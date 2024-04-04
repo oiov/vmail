@@ -1,0 +1,17 @@
+{
+  "name": "email-api",
+  "scripts": {
+    "dev": "wrangler dev src/index.ts",
+    "deploy": "wrangler deploy --minify src/index.ts"
+  },
+  "dependencies": {
+    "@scaleway/random-name": "^4.0.2",
+    "database": "workspace:^",
+    "hono": "^3.12.4",
+    "jose": "^5.2.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20231218.0",
+    "wrangler": "^3.22.4"
+  }
+}

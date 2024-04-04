@@ -1,93 +1,201 @@
-# Vmail
+<div align="center">
+  <h1>𝐕𝐌𝐀𝐈𝐋.𝐃𝐄𝐕</h1>
+  <p><a href="https://github.com/yesmore/vmail/blob/main/README_en.md">English</a> | 简体中文</p>
+  <p>使用 Cloudflare email worker 实现的临时电子邮件服务</p>
+  <img src="https://img.inke.app/file/beb0212f96c6cd37eaeb8.jpg"/>
+</div>
 
+## 🌈 特点
 
+- 🎯 隐私友好，无需注册，开箱即用
+- ✨ 更好的 UI 设计，更加简洁
+- 🚀 快速部署，无需服务器
 
-## Getting started
+原理：
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+- Email worker 接收电子邮件
+- 前端显示电子邮件（remix）
+- 邮件存储（sqlite）
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+> worker接收电子邮件 -> 保存到数据库 -> 客户端查询电子邮件
 
-## Add your files
+## 👋 自部署教程
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+### 准备工作
 
+- [Cloudflare](https://dash.cloudflare.com/) 账户与托管在 Cloudflare 上的域名
+- [turso](https://turso.tech) sqlite 数据库（个人免费计划足够）
+- [Vercel](https://vercel.com) 或 [fly.io](https://fly.io) 账号部署前端用户界面
+
+### 步骤
+
+**1.注册一个 [turso](https://turso.tech) 账户，创建数据库，并创建一个`emails`表**
+
+注册后，系统会提示您创建一个数据库。在这里我将其命名为 `vmail`，
+
+![](https://img.inke.app/file/3773b481c78c9087140b1.png) 
+
+然后，创建一个名为 `emails` 的表。
+
+选择您的数据库，您会看到“编辑表”按钮，点击并进入:
+
+![](https://img.inke.app/file/d49086f9b450edd5a2cef.png) 
+
+> ⚠️ 注意：**左上角有一个加号按钮，我尝试点击它没有任何提示或效果，所以我使用了 turso 提供的 cli 来初始化表。**
+
+Cli 文档：https://docs.turso.tech/cli/introduction 
+
+Linux (或 mac/windows) 终端执行：
+
+```bash
+# 安装（安装后记得重启终端生效）
+curl -sSfL https://get.tur.so/install.sh | bash
+
+# 登录账户
+turso auth login
+
+# 连接到您的Turso数据库
+turso db shell <database-name>
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/unvv/vmail.git
-git branch -M main
-git push -uf origin main
+
+将sql脚本复制到终端运行（packages/database/drizzle/0000_sturdy_arclight.sql）
+
+<details>
+<summary>查看脚本内容</summary>
+<pre ><code>CREATE TABLE `emails` (
+ `id` text PRIMARY KEY NOT NULL,
+ `message_from` text NOT NULL,
+ `message_to` text NOT NULL,
+ `headers` text NOT NULL,
+ `from` text NOT NULL,
+ `sender` text,
+ `reply_to` text,
+ `delivered_to` text,
+ `return_path` text,
+ `to` text,
+ `cc` text,
+ `bcc` text,
+ `subject` text,
+ `message_id` text NOT NULL,
+ `in_reply_to` text,
+ `references` text,
+ `date` text,
+ `html` text,
+ `text` text,
+ `created_at` integer NOT NULL,
+ `updated_at` integer NOT NULL
+);
+</code></pre>
+</details>
+
+**2.部署 email worker**
+
+```bash
+git clone https://github.com/yesmore/vmail
+
+cd vmail
+
+# 安装依赖
+pnpm install
 ```
 
-## Integrate with your tools
+在 `vmail/apps/email-worker/wrangler.toml` 文件中填写必要的环境变量。
 
-- [ ] [Set up project integrations](https://gitlab.com/unvv/vmail/-/settings/integrations)
+- TURSO_DB_AUTH_TOKEN（第1步中的turso表信息，点击“Generate Token”）
+- TURSO_DB_URL（例如 libsql://db-name.turso.io）
+- EMAIL_DOMAIN (域名，如 vmail.dev)
+  
+> 如果您不执行此步骤，可以在Cloudflare的 worker settings 中添加环境变量
 
-## Collaborate with your team
+然后运行命令：
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+```bash
+cd apps/email-worker
 
-## Test and Deploy
+# 需要 Node 环境，并且需要安装 wrangler cli 并在本地登录，参考 https://developers.cloudflare.com/workers/wrangler/install-and-update
+pnpm run deploy
+```
 
-Use the built-in continuous integration in GitLab.
+**3.配置电子邮件路由规则**
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+设置“Catch-all”操作为发送到 email worker：
 
-***
+![](https://img.inke.app/file/fa39163411cd35fad0a7f.png) 
 
-# Editing this README
+**4.在 Vercel 或 fly.io 上部署 Remix 应用程序**
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+确保在部署期间准备并填写以下环境变量（`.env.example`）：
 
-## Suggestions for a good README
+| 变量名                 | 说明                                 | 示例                        |
+| ---------------------- | ------------------------------------ | --------------------------- |
+| COOKIES_SECRET         | 必填，cookie加密密钥                 | `my-secret-key`             |
+| TURNSTILE_KEY          | 必填，网站验证所需的Turnstile Key    | `my-turnstile-key`          |
+| TURNSTILE_SECRET       | 必填，网站验证所需的Turnstile Secret | `my-turnstile-secret`       |
+| TURSO_DB_RO_AUTH_TOKEN | 必填，turso数据库只读凭据            | `my-turso-db-ro-auth-token` |
+| TURSO_DB_URL           | 必填，turso数据库URL                 | `libsql://db-name.turso.io` |
+| EMAIL_DOMAIN           | 必填，域名后缀                       | `vmail.dev`                 |
+| EXPIRY_TIME            | 可选，过期时间，单位秒，默认86400    | `86400`                     |
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+**Vercel:** 
 
-## Name
-Choose a self-explaining name for your project.
+推荐使用一键部署按钮（一步 `fork + deploy` 此仓库）：
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fyesmore%2Fvmail&env=COOKIES_SECRET&env=TURNSTILE_KEY&env=TURNSTILE_SECRET&env=TURSO_DB_RO_AUTH_TOKEN&env=TURSO_DB_URL&env=EMAIL_DOMAIN&project-name=vmail&repository-name=vmail)
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+或手动将代码推送到你的 Github 仓库，并在 Vercel 面板中创建项目。选择 `New project`，然后导入对应的 Github 仓库，填写环境变量，选择 `Remix` 框架，点击 `Deploy`，等待部署完成。
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+部署完后继续点击 Countinu to Dashboard，进入 Settings -> General，修改下面设置：
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+![](https://img.inke.app/file/573f842ccbefdf8daf319.png)
+![](https://img.inke.app/file/36c1566d8c27735bb097d.png)
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+**然后进入 Deployments 重新部署一次，或向 github 推送代码重新触发部署**。
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+**fly.io:** 
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+```bash
+cd vmail/apps/remix 
+fly launch
+```
+  
+**5.部署成功后在 cloudflare 添加域名解析(A记录)到对应平台，就可以愉快的玩耍了**
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+vercel 演示如何解析：
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+![](https://img.inke.app/file/245b71636cd16afcf93c7.png)
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+![](https://img.inke.app/file/e10af19334fd6a13b7d2e.png)
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+以上，完成！
 
-## License
-For open source projects, say how it is licensed.
+## 🔨 本地运行调试
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+复制 `apps/remix/.env.example` 到 `apps/remix/.env` 并填写必要的环境变量。
+
+```bash
+cd path-to/vmail/ # 根路径
+pnpm install
+
+# 运行 localhost:3000
+pnpm run remix:dev
+```
+
+## ❤️ 交流群
+
+- 加微信 `yesmore_cc` 拉讨论群 (**备注你的职业**)
+- Discord: https://discord.gg/d68kWCBDEs
+
+## 🎨 Inspired By
+
+Please check out these previous works that helped inspire the creation of vmail. 🙏
+
+- [akazwz/smail](https://github.com/akazwz/smail)
+- [email.ml](email.ml)
+
+## 📝 License
+
+GNU General Public License v3.0
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=yesmore/vmail&type=Date)](https://star-history.com/#yesmore/vmail&Date)

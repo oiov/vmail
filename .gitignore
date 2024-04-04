@@ -1,0 +1,8 @@
+node_modules
+.next
+.idea
+.vercel
+fly.toml
+
+.env
+.env*.local

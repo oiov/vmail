@@ -1,0 +1,32 @@
+{
+  "name": "vmail",
+  "version": "1.0.0",
+  "description": "",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "worker:dev": "pnpm -F email-worker run dev",
+    "remix:build": "pnpm -F remix run build",
+    "remix:dev": "pnpm -F remix run dev",
+    "remix:start": "pnpm -F remix run start",
+    "next:build": "pnpm -F next run build",
+    "format": "prettier --write ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "prettier": "^3.2.2",
+    "prettier-plugin-tailwindcss": "^0.5.11"
+  },
+  "dependencies": {
+    "@libsql/client": "0.4.0-pre.7",
+    "@tanstack/react-query": "^5.17.10",
+    "date-fns": "^3.2.0",
+    "drizzle-orm": "^0.29.3",
+    "drizzle-zod": "^0.5.1",
+    "zod": "^3.22.4"
+  }
+}
