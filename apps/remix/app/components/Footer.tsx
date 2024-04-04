@@ -45,18 +45,18 @@ export default function Footer() {
           <Twitter />
         </Link>
         <Link
-          to="https://github.com/yesmore/vmail"
+          to="https://gitlab.com/unvc/vmail"
           target="_blank"
           title="Github"
           className="text-gray-400 hover:text-gray-500">
           <Github />
         </Link>
-        <Link
+        {/* <Link
           to="https://www.buymeacoffee.com/yesmore"
           target="_blank"
           title="Buy me a coffee">
           <Coffee className="w-6 h-6" />
-        </Link>
+        </Link> */}
       </div>
     </div>
   );
