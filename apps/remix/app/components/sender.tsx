@@ -30,7 +30,7 @@ export default function SenderModal({
             etc
           </p>
         </div>
-        <form method="POST" className="flex flex-col mt-4 space-y-4">
+        <Form method="POST" className="flex flex-col mt-4 space-y-4">
           <div className="w-full flex gap-4 md:flex-row px-4">
             <input
               value={senderEmail}
@@ -94,7 +94,7 @@ export default function SenderModal({
               {navigation.state === "submitting" ? "Sending..." : "Send"}
             </button>
           </div>
-        </form>
+        </Form>
       </div>
     </Modal>
   );
