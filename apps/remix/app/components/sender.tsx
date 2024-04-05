@@ -28,9 +28,18 @@ export default function SenderModal({
         </div>
         <Form method="POST" id="sender-form">
           <input
+            value={senderEmail}
             type="text"
             name="senderEmail"
-            placeholder="发件人名称"
+            placeholder="发件人邮箱"
+            autoComplete="on"
+            required
+            disabled
+          />
+          <input
+            type="text"
+            name="senderName"
+            placeholder="发件人昵称"
             autoComplete="on"
             required
           />
@@ -63,7 +72,6 @@ export default function SenderModal({
             {navigation.state === "submitting" ? "Sending..." : "Send"}
           </button>
         </Form>
-        {senderEmail}
       </div>
     </Modal>
   );

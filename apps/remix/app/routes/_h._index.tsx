@@ -132,7 +132,7 @@ export const action: ActionFunction = async ({ request }) => {
       body: JSON.stringify({
         from: {
           email: formData.get("senderEmail") as string,
-          name: "Sender",
+          name: formData.get("senderName") as string,
         },
         personalizations: [
           {
