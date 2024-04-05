@@ -45,7 +45,7 @@ export default function Footer() {
           <Twitter />
         </Link>
         <Link
-          to="https://gitlab.com/unvc/vmail"
+          to="https://github.com/oiov/vmail"
           target="_blank"
           title="Github"
           className="text-gray-400 hover:text-gray-500">
