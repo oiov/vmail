@@ -65,7 +65,6 @@ export const loader: LoaderFunction = async ({ request }) => {
 export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
   const { _action } = Object.fromEntries(formData);
-  console.log("行为", _action);
 
   if (_action === "stop") {
     const IuserMailbox =
@@ -125,14 +124,6 @@ export const action: ActionFunction = async ({ request }) => {
       },
     });
   } else if (_action === "send") {
-    console.log(
-      formData.get("senderEmail") as string,
-      formData.get("receiverEmail") as string,
-      formData.get("subject") as string,
-      formData.get("type") as string,
-      formData.get("content") as string
-    );
-
     const res = await fetch(process.env.SEND_WORKER_URL || "", {
       method: "POST",
       headers: {
@@ -162,6 +153,8 @@ export const action: ActionFunction = async ({ request }) => {
         ],
       }),
     });
+    console.log("[res]", res);
+
     return redirect("/", {});
   }
 };
