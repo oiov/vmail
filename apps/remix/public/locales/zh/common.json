@@ -16,5 +16,16 @@
   "About": "关于",
   "Privacy": "隐私",
   "INBOX": "INBOX",
-  "Waiting for emails...": "准备接收邮件..."
+  "Waiting for emails...": "准备接收邮件...",
+  "Vmail sender is beta now. ": "Vmail 发信公测中，",
+  "Try it": "试试匿名发件",
+  "Forward only, no storage": "仅转发，不存储",
+  "Sending email *": "发送电子邮件 *",
+  "Sending name": "发件人昵称",
+  "Recipient email *": "收件人电子邮件 *",
+  "Email subject *": "电子邮件主题 *",
+  "Email content *": "电子邮件内容 *",
+  "Sending...": "正在发送...",
+  "Send": "发送",
+  "Please do not send illegal content such as politics, pornography, etc": "请勿发送涉政、色情等违法内容"
 }

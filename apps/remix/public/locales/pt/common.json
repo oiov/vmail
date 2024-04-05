@@ -16,5 +16,15 @@
   "About": "Sobre",
   "Privacy": "Privacidade",
   "INBOX": "CAIXA DE ENTRADA",
-  "Waiting for emails...": "Aguardando e-mails..."
+  "Waiting for emails...": "Aguardando e-mails...",
+  "Try it": "Experimente",
+  "Forward only, no storage": "Apenas encaminhar, sem armazenamento",
+  "Sending email *": "Enviar e-mail *",
+  "Sending name": "Nome do remetente",
+  "Recipient email *": "Email do destinatário *",
+  "Email subject *": "Assunto do email *",
+  "Email content *": "Conteúdo do email *",
+  "Sending...": "Enviando...",
+  "Send": "Enviar",
+  "Please do not send illegal content such as politics, pornography, etc": "Por favor, não envie conteúdo ilegal como política, pornografia, etc."
 }

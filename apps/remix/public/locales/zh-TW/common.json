@@ -16,5 +16,15 @@
   "About": "關於",
   "Privacy": "隱私政策",
   "INBOX": "收件匣",
-  "Waiting for emails...": "等待電子郵件..."
+  "Waiting for emails...": "等待電子郵件...",
+  "Try it": "試試看",
+  "Forward only, no storage": "僅轉發，不儲存",
+  "Sending email *": "發送電子郵件 *",
+  "Sending name": "發件人姓名",
+  "Recipient email *": "收件者電子郵件 *",
+  "Email subject *": "電子郵件主題 *",
+  "Email content *": "電子郵件內容 *",
+  "Sending...": "發送中...",
+  "Send": "發送",
+  "Please do not send illegal content such as politics, pornography, etc": "請不要發送政治、色情等非法內容"
 }

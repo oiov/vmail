@@ -16,5 +16,15 @@
   "About": "について",
   "Privacy": "プライバシー",
   "INBOX": "インボックス",
-  "Waiting for emails...": "メールを待っています..."
+  "Waiting for emails...": "メールを待っています...",
+  "Try it": "試してみる",
+  "Forward only, no storage": "転送のみ、保存なし",
+  "Sending email *": "メールの送信 *",
+  "Sending name": "送信者名",
+  "Recipient email *": "受信者のメールアドレス *",
+  "Email subject *": "メールの件名 *",
+  "Email content *": "メールの内容 *",
+  "Sending...": "送信中...",
+  "Send": "送信",
+  "Please do not send illegal content such as politics, pornography, etc": "政治、ポルノなどの違法なコンテンツを送信しないでください"
 }

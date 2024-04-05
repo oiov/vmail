@@ -16,5 +16,15 @@
   "About": "के बारे में",
   "Privacy": "गोपनीयता",
   "INBOX": "इनबॉक्स",
-  "Waiting for emails...": "ईमेल की प्रतीक्षा कर रहा है..."
+  "Waiting for emails...": "ईमेल की प्रतीक्षा कर रहा है...",
+  "Try it": "इसे प्रयास करें",
+  "Forward only, no storage": "केवल आगे भेजें, कोई संग्रहण नहीं",
+  "Sending email *": "ईमेल भेजना *",
+  "Sending name": "भेजने वाले का नाम",
+  "Recipient email *": "प्राप्तकर्ता ईमेल *",
+  "Email subject *": "ईमेल विषय *",
+  "Email content *": "ईमेल की सामग्री *",
+  "Sending...": "भेज रहा है...",
+  "Send": "भेजें",
+  "Please do not send illegal content such as politics, pornography, etc": "कृपया राजनीति, अश्लीलता आदि जैसी अवैध सामग्री न भेजें"
 }

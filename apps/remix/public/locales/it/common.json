@@ -16,5 +16,15 @@
   "About": "Informazioni",
   "Privacy": "Privacy",
   "INBOX": "INBOX",
-  "Waiting for emails...": "In attesa di email..."
+  "Waiting for emails...": "In attesa di email...",
+  "Try it": "Provalo",
+  "Forward only, no storage": "Solo inoltra, nessuna archiviazione",
+  "Sending email *": "Invio email *",
+  "Sending name": "Nome invio",
+  "Recipient email *": "Email del destinatario *",
+  "Email subject *": "Oggetto dell'email *",
+  "Email content *": "Contenuto dell'email *",
+  "Sending...": "Inviando...",
+  "Send": "Invia",
+  "Please do not send illegal content such as politics, pornography, etc": "Si prega di non inviare contenuti illegali come politica, pornografia, ecc."
 }

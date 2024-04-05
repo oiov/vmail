@@ -16,5 +16,15 @@
   "About": "소개",
   "Privacy": "개인정보",
   "INBOX": "인박스",
-  "Waiting for emails...": "이메일 기다리는 중..."
+  "Waiting for emails...": "이메일 기다리는 중...",
+  "Try it": "시도해 보세요",
+  "Forward only, no storage": "전달만, 저장 없음",
+  "Sending email *": "이메일 보내기 *",
+  "Sending name": "보내는 이름",
+  "Recipient email *": "수신자 이메일 *",
+  "Email subject *": "이메일 제목 *",
+  "Email content *": "이메일 내용 *",
+  "Sending...": "전송 중...",
+  "Send": "보내기",
+  "Please do not send illegal content such as politics, pornography, etc": "정치, 음란물 등과 같은 불법 콘텐츠를 보내지 마십시오"
 }

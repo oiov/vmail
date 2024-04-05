@@ -16,5 +16,15 @@
   "About": "Über",
   "Privacy": "Datenschutz",
   "INBOX": "POSTEINGANG",
-  "Waiting for emails...": "Warte auf E-Mails..."
+  "Waiting for emails...": "Warte auf E-Mails...",
+  "Try it": "Ausprobieren",
+  "Forward only, no storage": "Nur weiterleiten, keine Speicherung",
+  "Sending email *": "E-Mail senden *",
+  "Sending name": "Senden von Name",
+  "Recipient email *": "Empfänger-E-Mail *",
+  "Email subject *": "E-Mail-Betreff *",
+  "Email content *": "E-Mail-Inhalt *",
+  "Sending...": "Senden...",
+  "Send": "Senden",
+  "Please do not send illegal content such as politics, pornography, etc": "Bitte senden Sie keine illegalen Inhalte wie Politik, Pornografie, usw."
 }

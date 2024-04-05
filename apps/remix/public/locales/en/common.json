@@ -16,5 +16,15 @@
   "About": "About",
   "Privacy": "Privacy",
   "INBOX": "INBOX",
-  "Waiting for emails...": "Waiting for emails..."
+  "Waiting for emails...": "Waiting for emails...",
+  "Try it": "Try it",
+  "Forward only, no storage": "Forward only, no storage",
+  "Sending email *": "Sending email *",
+  "Sending name": "Sending name",
+  "Recipient email *": "Recipient email *",
+  "Email subject *": "Email subject *",
+  "Email content *": "Email content *",
+  "Sending...": "Sending...",
+  "Send": "Send",
+  "Please do not send illegal content such as politics, pornography, etc": "Please do not send illegal content such as politics, pornography, etc"
 }

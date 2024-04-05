@@ -69,6 +69,7 @@ export const action: ActionFunction = async ({ request }) => {
     ((await userMailboxCookie.parse(
       request.headers.get("Cookie")
     )) as string) || undefined;
+  const sendWorkerUrl = process.env.SEND_WORKER_URL || "";
 
   if (_action === "stop") {
     if (IuserMailbox) {
@@ -81,32 +82,32 @@ export const action: ActionFunction = async ({ request }) => {
       });
     }
   } else if (_action === "create") {
-    // const response = (await request.formData()).get("cf-turnstile-response");
-    // if (!response) {
-    //   return {
-    //     error: "No captcha response",
-    //   };
-    // }
-    // const verifyEndpoint =
-    //   "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-    // const secret =
-    //   process.env.TURNSTILE_SECRET || "1x0000000000000000000000000000000AA";
-    // const resp = await fetch(verifyEndpoint, {
-    //   method: "POST",
-    //   body: JSON.stringify({
-    //     secret,
-    //     response,
-    //   }),
-    //   headers: {
-    //     "Content-Type": "application/json",
-    //   },
-    // });
-    // const data = await resp.json();
-    // if (!data.success) {
-    //   return {
-    //     error: "Failed to verify captcha",
-    //   };
-    // }
+    const response = (await request.formData()).get("cf-turnstile-response");
+    if (!response) {
+      return {
+        error: "No captcha response",
+      };
+    }
+    const verifyEndpoint =
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+    const secret =
+      process.env.TURNSTILE_SECRET || "1x0000000000000000000000000000000AA";
+    const resp = await fetch(verifyEndpoint, {
+      method: "POST",
+      body: JSON.stringify({
+        secret,
+        response,
+      }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+    const data = await resp.json();
+    if (!data.success) {
+      return {
+        error: "Failed to verify captcha",
+      };
+    }
 
     const domain = process.env.EMAIL_DOMAIN || "";
     if (!domain) {
@@ -122,8 +123,8 @@ export const action: ActionFunction = async ({ request }) => {
         "Set-Cookie": userMailbox,
       },
     });
-  } else if (_action === "send") {
-    const res = await fetch(process.env.SEND_WORKER_URL || "", {
+  } else if (_action === "send" && sendWorkerUrl) {
+    const res = await fetch(sendWorkerUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -131,7 +132,7 @@ export const action: ActionFunction = async ({ request }) => {
       body: JSON.stringify({
         from: {
           email: IuserMailbox,
-          name: formData.get("senderName") as string,
+          name: formData.get("senderName") || "Anonymous",
         },
         personalizations: [
           {
@@ -152,9 +153,12 @@ export const action: ActionFunction = async ({ request }) => {
         ],
       }),
     });
-    console.log("[res]", res);
-
-    return redirect("/", {});
+    console.log("[res]", res.status);
+    return redirect("/");
+  } else {
+    return {
+      error: "Invalid action",
+    };
   }
 };
 
@@ -215,6 +219,15 @@ export default function Index() {
               className="py-2.5 rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500">
               {t("Stop")}
             </button>
+
+            <div className="text-sm text-gray-300 mt-4">
+              {t("Vmail sender is beta now. ")}
+              <span
+                onClick={() => setShowSenderModal(true)}
+                className="text-cyan-500 cursor-pointer">
+                {t("Try it")}.
+              </span>
+            </div>
           </Form>
         )}
 
@@ -240,6 +253,9 @@ export default function Index() {
               className="py-2.5 rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500">
               {t("Create temporary email")}
             </button>
+            <p className="mt-4 text-sm text-gray-300">
+              Vmail can now send emails!
+            </p>
           </Form>
         )}
         <div>
@@ -247,8 +263,6 @@ export default function Index() {
             <div className="text-red-500">{t(actionData.error)}</div>
           )}
         </div>
-
-        <button onClick={() => setShowSenderModal(true)}>出来</button>
       </div>
 
       <div className="w-full flex-1 overflow-hidden">

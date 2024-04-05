@@ -16,5 +16,15 @@
   "About": "О нас",
   "Privacy": "Конфиденциальность",
   "INBOX": "ВХОДЯЩИЕ",
-  "Waiting for emails...": "Ожидание писем..."
+  "Waiting for emails...": "Ожидание писем...",
+  "Try it": "Попробуйте",
+  "Forward only, no storage": "Только пересылка, без сохранения",
+  "Sending email *": "Отправка электронной почты *",
+  "Sending name": "Имя отправителя",
+  "Recipient email *": "Адресат электронной почты *",
+  "Email subject *": "Тема письма *",
+  "Email content *": "Содержимое письма *",
+  "Sending...": "Отправка...",
+  "Send": "Отправить",
+  "Please do not send illegal content such as politics, pornography, etc": "Пожалуйста, не отправляйте незаконный контент, такой как политика, порнография и т. д."
 }
