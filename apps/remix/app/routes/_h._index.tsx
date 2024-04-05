@@ -65,11 +65,11 @@ export const loader: LoaderFunction = async ({ request }) => {
 export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
   const { _action } = Object.fromEntries(formData);
+  const sendWorkerUrl = process.env.SEND_WORKER_URL || "";
   const IuserMailbox =
     ((await userMailboxCookie.parse(
       request.headers.get("Cookie")
     )) as string) || undefined;
-  const sendWorkerUrl = process.env.SEND_WORKER_URL || "";
 
   if (_action === "stop") {
     if (IuserMailbox) {
