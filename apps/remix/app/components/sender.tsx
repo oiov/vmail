@@ -42,7 +42,6 @@ export default function SenderModal({
               className="rounded-md border border-slate-200 px-3 py-2 shadow-inner w-full"
             />
             <input
-              value=""
               type="text"
               name="senderName"
               placeholder="发件人昵称*"
