@@ -82,7 +82,7 @@ export const action: ActionFunction = async ({ request }) => {
       });
     }
   } else if (_action === "create") {
-    const response = (await request.formData()).get("cf-turnstile-response");
+    const response = formData.get("cf-turnstile-response");
     if (!response) {
       return {
         error: "No captcha response",
