@@ -24,6 +24,7 @@ import Clock from "~/components/icons/Clock";
 import Info from "~/components/icons/Info";
 
 import { useTranslation } from "react-i18next";
+import { useSenderModal } from "~/components/sender";
 
 export const meta: MetaFunction = () => {
   return [
@@ -62,62 +63,107 @@ export const loader: LoaderFunction = async ({ request }) => {
 };
 
 export const action: ActionFunction = async ({ request }) => {
-  const IuserMailbox =
-    ((await userMailboxCookie.parse(
-      request.headers.get("Cookie")
-    )) as string) || undefined;
+  const formData = await request.formData();
+  const { _action } = Object.fromEntries(formData);
+  console.log("行为", _action);
 
-  if (IuserMailbox) {
-    return redirect("/", {
+  if (_action === "stop") {
+    const IuserMailbox =
+      ((await userMailboxCookie.parse(
+        request.headers.get("Cookie")
+      )) as string) || undefined;
+
+    if (IuserMailbox) {
+      return redirect("/", {
+        headers: {
+          "Set-Cookie": await userMailboxCookie.serialize("", {
+            maxAge: 1,
+          }),
+        },
+      });
+    }
+  } else if (_action === "create") {
+    const response = (await request.formData()).get("cf-turnstile-response");
+    if (!response) {
+      return {
+        error: "No captcha response",
+      };
+    }
+    const verifyEndpoint =
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+    const secret =
+      process.env.TURNSTILE_SECRET || "1x0000000000000000000000000000000AA";
+    const resp = await fetch(verifyEndpoint, {
+      method: "POST",
+      body: JSON.stringify({
+        secret,
+        response,
+      }),
       headers: {
-        "Set-Cookie": await userMailboxCookie.serialize("", {
-          maxAge: 1,
-        }),
+        "Content-Type": "application/json",
       },
     });
-  }
+    const data = await resp.json();
+    if (!data.success) {
+      return {
+        error: "Failed to verify captcha",
+      };
+    }
 
-  const response = (await request.formData()).get("cf-turnstile-response");
-  if (!response) {
-    return {
-      error: "No captcha response",
-    };
-  }
-  const verifyEndpoint =
-    "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-  const secret =
-    process.env.TURNSTILE_SECRET || "1x0000000000000000000000000000000AA";
-  const resp = await fetch(verifyEndpoint, {
-    method: "POST",
-    body: JSON.stringify({
-      secret,
-      response,
-    }),
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-  const data = await resp.json();
-  if (!data.success) {
-    return {
-      error: "Failed to verify captcha",
-    };
-  }
+    const domain = process.env.EMAIL_DOMAIN || "";
+    if (!domain) {
+      return {
+        error: "Email domain not set in .env",
+      };
+    }
 
-  const domain = process.env.EMAIL_DOMAIN || "";
-  if (!domain) {
-    return {
-      error: "Email domain not set in .env",
-    };
-  }
+    const mailbox = `${randomName("", ".")}@${domain}`;
+    const userMailbox = await userMailboxCookie.serialize(mailbox);
+    return redirect("/", {
+      headers: {
+        "Set-Cookie": userMailbox,
+      },
+    });
+  } else if (_action === "send") {
+    console.log(
+      formData.get("senderEmail") as string,
+      formData.get("receiverEmail") as string,
+      formData.get("subject") as string,
+      formData.get("type") as string,
+      formData.get("content") as string
+    );
 
-  const mailbox = `${randomName("", ".")}@${domain}`;
-  const userMailbox = await userMailboxCookie.serialize(mailbox);
-  return redirect("/", {
-    headers: {
-      "Set-Cookie": userMailbox,
-    },
-  });
+    const res = await fetch(process.env.SEND_WORKER_URL || "", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: {
+          email: formData.get("senderEmail") as string,
+          name: "Sender",
+        },
+        personalizations: [
+          {
+            to: [
+              {
+                email: formData.get("receiverEmail") as string,
+                name: "Receiver",
+              },
+            ],
+          },
+        ],
+        subject: formData.get("subject") as string,
+        content: [
+          {
+            type: formData.get("type") as string,
+            value: formData.get("content") as string,
+          },
+        ],
+      }),
+    });
+    return redirect("/", {});
+  }
 };
 
 export default function Index() {
@@ -127,6 +173,10 @@ export default function Index() {
   const navigation = useNavigation();
 
   const { t } = useTranslation();
+
+  const { SenderModal, setShowSenderModal } = useSenderModal(
+    loaderData.userMailbox
+  );
 
   return (
     <div className="h-full flex flex-col gap-4 md:flex-row justify-center items-start mt-28 mx-6 md:mx-10">
@@ -168,6 +218,8 @@ export default function Index() {
             </div>
             <button
               type="submit"
+              name="_action"
+              value="stop"
               className="py-2.5 rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500">
               {t("Stop")}
             </button>
@@ -190,6 +242,8 @@ export default function Index() {
             </div>
             <button
               type="submit"
+              value="create"
+              name="_action"
               disabled={navigation.state != "idle"}
               className="py-2.5 rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500">
               {t("Create temporary email")}
@@ -201,11 +255,14 @@ export default function Index() {
             <div className="text-red-500">{t(actionData.error)}</div>
           )}
         </div>
+
+        <button onClick={() => setShowSenderModal(true)}>出来</button>
       </div>
 
       <div className="w-full flex-1 overflow-hidden">
         <MailListWithQuery mails={loaderData.mails} />
       </div>
+      <SenderModal />
     </div>
   );
 }
