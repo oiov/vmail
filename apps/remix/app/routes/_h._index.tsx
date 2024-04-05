@@ -254,7 +254,7 @@ export default function Index() {
               {t("Create temporary email")}
             </button>
             <p className="mt-4 text-sm text-gray-300">
-              Vmail can now send emails!
+              {t("Vmail can now send emails!")}
             </p>
           </Form>
         )}
