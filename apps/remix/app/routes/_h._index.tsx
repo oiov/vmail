@@ -65,13 +65,12 @@ export const loader: LoaderFunction = async ({ request }) => {
 export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
   const { _action } = Object.fromEntries(formData);
+  const IuserMailbox =
+    ((await userMailboxCookie.parse(
+      request.headers.get("Cookie")
+    )) as string) || undefined;
 
   if (_action === "stop") {
-    const IuserMailbox =
-      ((await userMailboxCookie.parse(
-        request.headers.get("Cookie")
-      )) as string) || undefined;
-
     if (IuserMailbox) {
       return redirect("/", {
         headers: {
@@ -131,7 +130,7 @@ export const action: ActionFunction = async ({ request }) => {
       },
       body: JSON.stringify({
         from: {
-          email: formData.get("senderEmail") as string,
+          email: IuserMailbox,
           name: formData.get("senderName") as string,
         },
         personalizations: [

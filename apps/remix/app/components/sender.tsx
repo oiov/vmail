@@ -6,7 +6,7 @@ import {
   useState,
 } from "react";
 import Modal from "./modal";
-import { Form, useActionData, useNavigation } from "@remix-run/react";
+import { Form, useNavigation } from "@remix-run/react";
 
 export default function SenderModal({
   senderEmail,
@@ -26,13 +26,12 @@ export default function SenderModal({
           <h3 className="font-display text-2xl font-bold">Send email</h3>
           <p className="text-sm text-gray-500">⚠️ Please enter your email,</p>
         </div>
-        <Form method="POST" id="sender-form">
+        <Form method="POST">
           <input
             value={senderEmail}
-            type="text"
+            type="email"
             name="senderEmail"
             placeholder="发件人邮箱"
-            autoComplete="on"
             required
             disabled
           />
@@ -40,20 +39,18 @@ export default function SenderModal({
             type="text"
             name="senderName"
             placeholder="发件人昵称"
-            autoComplete="on"
             required
           />
           <input
-            type="text"
+            type="email"
             name="receiverEmail"
             placeholder="收件人邮箱"
-            autoComplete="on"
             required
           />
           <input type="text" name="subject" placeholder="邮件主题" required />
           <select name="type">
-            <option value="text/html; charset=utf-8">HTML</option>
-            <option value="text/plain; charset=utf-8" selected>
+            <option value="text/html">HTML</option>
+            <option value="text/plain" selected>
               Plain
             </option>
           </select>
