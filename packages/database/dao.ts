@@ -1,4 +1,4 @@
-import { desc, eq, and } from "drizzle-orm";
+import { count, desc, eq, and } from "drizzle-orm";
 import { LibSQLDatabase } from "drizzle-orm/libsql";
 import { emails, InsertEmail } from "./schema";
 
@@ -36,7 +36,7 @@ export async function getEmail(db: LibSQLDatabase, id: string) {
 
 export async function getEmailsByMessageTo(
   db: LibSQLDatabase,
-  messageTo: string,
+  messageTo: string
 ) {
   try {
     return await db
@@ -47,5 +47,14 @@ export async function getEmailsByMessageTo(
       .execute();
   } catch (e) {
     return [];
+  }
+}
+
+export async function getEmailsCount(db: LibSQLDatabase) {
+  try {
+    const res = await db.select({ count: count() }).from(emails);
+    return res[0]?.count;
+  } catch (e) {
+    return 0;
   }
 }

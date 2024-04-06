@@ -69,19 +69,24 @@ export function MailList(props: { mails: Email[] }) {
           <MailIcon className="size-6" />
           <div className="flex items-center font-bold text-lg font-mono">
             {t("INBOX")}
-            <span className="ml-1 text-base">
-              {data.length > 0 && <span>({data.length})</span>}
-            </span>
+            {data.length > 0 && (
+              <span className="inline-flex items-center justify-center w-[22px] h-[22px] ms-2 text-xs font-semibold text-white bg-zinc-600 rounded-full">
+                {data.length}
+              </span>
+            )}
           </div>
           <button
             className="rounded ml-auto p-1"
+            title="refresh"
             onClick={() =>
               queryClient.invalidateQueries({
                 queryKey: ["mails"],
               })
             }>
-            {data.length === 0 && <Lock className="size-6 " />}
-            {data.length > 0 && <Refresh className={`size-6 animate-spin`} />}
+            {data.length === 0 && <Lock className="size-6" />}
+            {data.length > 0 && (
+              <Refresh className="size-6 animate-spin hover:opacity-50 transition-all duration-300" />
+            )}
           </button>
         </div>
 
