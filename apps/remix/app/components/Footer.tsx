@@ -19,9 +19,18 @@ export default function Footer() {
         {" "}
         © 2024 Products of Yesmore
       </Link>
-      <div className="flex items-center gap-3 mt-3 md:hidden text-sm text-gray-300">
+      <Link
+        className="text-gray-300 text-sm hover:text-gray-500 ml-1 hidden md:block"
+        to="https://status.vmail.dev"
+        target="_blank">
+        · Status
+      </Link>
+      <div className="flex items-center gap-3 mt-3 sm:ml-3 sm:mt-0 md:hidden text-sm text-gray-300">
         <Link to="/about">{t("About")}</Link>
         <Link to="/privacy">{t("Privacy")}</Link>
+        <Link to="https://status.vmail.dev" target="_blank">
+          Status
+        </Link>
       </div>
       <div className="inline-flex justify-center mt-4 space-x-5 sm:ml-auto sm:mt-0 sm:justify-start">
         <Link
