@@ -25,6 +25,7 @@ import Info from "~/components/icons/Info";
 
 import { useTranslation } from "react-i18next";
 import { useSenderModal } from "~/components/sender";
+import { getRandomCharacter } from "lib/hooks/utlis";
 
 export const meta: MetaFunction = () => {
   return [
@@ -116,7 +117,7 @@ export const action: ActionFunction = async ({ request }) => {
       };
     }
 
-    const mailbox = `${randomName("", ".")}@${domain}`;
+    const mailbox = `${randomName("", getRandomCharacter())}@${domain}`;
     const userMailbox = await userMailboxCookie.serialize(mailbox);
     return redirect("/", {
       headers: {
