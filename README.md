@@ -1,6 +1,6 @@
 <div align="center">
   <h1>𝐕𝐌𝐀𝐈𝐋.𝐃𝐄𝐕</h1>
-  <p><a href="https://github.com/yesmore/vmail/blob/main/README_en.md">English</a> | 简体中文</p>
+  <p><a href="https://github.com/oiov/vmail/blob/main/README_en.md">English</a> | 简体中文</p>
   <p>使用 Cloudflare email worker 实现的临时电子邮件服务</p>
   <img src="https://img.inke.app/file/beb0212f96c6cd37eaeb8.jpg"/>
 </div>
@@ -8,16 +8,19 @@
 ## 🌈 特点
 
 - 🎯 隐私友好，无需注册，开箱即用
+- ✈️ 支持邮件收发
 - ✨ 更好的 UI 设计，更加简洁
 - 🚀 快速部署，无需服务器
 
-原理：
+收件原理：
 
 - Email worker 接收电子邮件
 - 前端显示电子邮件（remix）
 - 邮件存储（sqlite）
 
-> worker接收电子邮件 -> 保存到数据库 -> 客户端查询电子邮件
+发件原理
+
+- 手打中...
 
 ## 👋 自部署教程
 
@@ -27,7 +30,7 @@
 - [turso](https://turso.tech) sqlite 数据库（个人免费计划足够）
 - [Vercel](https://vercel.com) 或 [fly.io](https://fly.io) 账号部署前端用户界面
 
-### 步骤
+### 接收邮件步骤
 
 **1.注册一个 [turso](https://turso.tech) 账户，创建数据库，并创建一个`emails`表**
 
@@ -167,6 +170,12 @@ vercel 演示如何解析：
 ![](https://img.inke.app/file/e10af19334fd6a13b7d2e.png)
 
 以上，完成！
+
+### 发送邮件步骤
+
+**1.在 Cloudflare 控制台中添加域名DNS解析**
+
+手打中...
 
 ## 🔨 本地运行调试
 

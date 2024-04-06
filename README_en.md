@@ -7,9 +7,10 @@
 
 ## Features
 
-- Privacy-friendly, no registration required, out-of-the-box
-- Better UI design, more concise
-- 100% open source, quick deployment, no server required
+- 🎯 Privacy-friendly, no registration required, out-of-the-box
+- ✈️ Support email sending and receiving
+- ✨ Better UI design, more concise
+- 🚀 100% open source, quick deployment, no server required
 
 Principles： 
 
