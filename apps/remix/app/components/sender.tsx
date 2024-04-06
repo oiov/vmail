@@ -8,6 +8,7 @@ import {
 import Modal from "./modal";
 import { Form, useNavigation } from "@remix-run/react";
 import { useTranslation } from "react-i18next";
+import Close from "./icons/Close";
 
 export default function SenderModal({
   senderEmail,
@@ -24,7 +25,12 @@ export default function SenderModal({
   return (
     <Modal showModal={showSenderModal} setShowModal={setShowSenderModal}>
       <div className="w-full overflow-hidden bg-white/95 backdrop-blur-xl shadow-xl p-4 md:max-w-3xl md:rounded-2xl md:border md:border-gray-200">
-        <div className="flex flex-col items-center justify-center space-y-3 border-b border-gray-200 px-4 py-5 pt-8 text-center md:px-16">
+        <Close
+          className="absolute top-4 right-4 h-6 w-6 text-gray-500 hover:text-gray-700 cursor-pointer"
+          onClick={() => setShowSenderModal(false)}
+        />
+
+        <div className="flex flex-col items-center justify-center space-y-3 border-b border-gray-200 px-4 py-5 text-center md:px-16">
           <h3 className="font-display text-2xl font-bold">Vmail Sender</h3>
           <p className="text-gray-500">{t("Forward only, no storage")}</p>
         </div>
