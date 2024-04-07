@@ -33,8 +33,7 @@ export default function SenderModal({
     if (navigation.state === "idle" && isSubmitted) {
       // setIsSubmitted(false);
       setShowSenderModal(false);
-      toast.success(t("Message sent"), {
-        icon: "🪁",
+      toast(t("Message sent"), {
         style: {
           borderRadius: "8px",
           background: "#383838",
