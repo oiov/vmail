@@ -34,6 +34,7 @@ export default function SenderModal({
       // setIsSubmitted(false);
       setShowSenderModal(false);
       toast.success(t("Message sent"), {
+        icon: "🪁",
         style: {
           borderRadius: "8px",
           background: "#383838",
