@@ -27,10 +27,10 @@ export default function SenderModal({
   const [isSubmitted, setIsSubmitted] = useState(false);
 
   useEffect(() => {
-    if (navigation.state === "submitting") {
+    if (showSenderModal && navigation.state === "submitting") {
       setIsSubmitted(true);
     }
-    if (navigation.state === "idle" && isSubmitted) {
+    if (showSenderModal && navigation.state === "idle" && isSubmitted) {
       // setIsSubmitted(false);
       setShowSenderModal(false);
       toast(t("Message sent"), {
@@ -41,7 +41,7 @@ export default function SenderModal({
         },
       });
     }
-  }, [navigation.state]);
+  }, [navigation.state, showSenderModal]);
 
   return (
     <Modal showModal={showSenderModal} setShowModal={setShowSenderModal}>
