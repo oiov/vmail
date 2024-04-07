@@ -33,7 +33,13 @@ export default function SenderModal({
     if (navigation.state === "idle" && isSubmitted) {
       // setIsSubmitted(false);
       setShowSenderModal(false);
-      toast.success(t("Message sent"));
+      toast.success(t("Message sent"), {
+        style: {
+          borderRadius: "8px",
+          background: "#383838",
+          color: "#ffffff",
+        },
+      });
     }
   }, [navigation.state]);
 
