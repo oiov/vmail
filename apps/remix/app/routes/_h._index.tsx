@@ -27,6 +27,8 @@ import { useTranslation } from "react-i18next";
 import { useSenderModal } from "~/components/sender";
 import { getRandomCharacter } from "lib/hooks/utlis";
 
+import { Toaster } from "react-hot-toast";
+
 export const meta: MetaFunction = () => {
   return [
     { title: "Vmail - Virtual Temporary Email" },
@@ -83,32 +85,32 @@ export const action: ActionFunction = async ({ request }) => {
       });
     }
   } else if (_action === "create") {
-    const response = formData.get("cf-turnstile-response");
-    if (!response) {
-      return {
-        error: "No captcha response",
-      };
-    }
-    const verifyEndpoint =
-      "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-    const secret =
-      process.env.TURNSTILE_SECRET || "1x0000000000000000000000000000000AA";
-    const resp = await fetch(verifyEndpoint, {
-      method: "POST",
-      body: JSON.stringify({
-        secret,
-        response,
-      }),
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-    const data = await resp.json();
-    if (!data.success) {
-      return {
-        error: "Failed to verify captcha",
-      };
-    }
+    // const response = formData.get("cf-turnstile-response");
+    // if (!response) {
+    //   return {
+    //     error: "No captcha response",
+    //   };
+    // }
+    // const verifyEndpoint =
+    //   "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+    // const secret =
+    //   process.env.TURNSTILE_SECRET || "1x0000000000000000000000000000000AA";
+    // const resp = await fetch(verifyEndpoint, {
+    //   method: "POST",
+    //   body: JSON.stringify({
+    //     secret,
+    //     response,
+    //   }),
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //   },
+    // });
+    // const data = await resp.json();
+    // if (!data.success) {
+    //   return {
+    //     error: "Failed to verify captcha",
+    //   };
+    // }
 
     const domain = process.env.EMAIL_DOMAIN || "";
     if (!domain) {
@@ -270,6 +272,7 @@ export default function Index() {
         <MailListWithQuery mails={loaderData.mails} />
       </div>
       <SenderModal />
+      <Toaster />
     </div>
   );
 }

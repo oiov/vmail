@@ -2,6 +2,7 @@ import {
   Dispatch,
   SetStateAction,
   useCallback,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -9,6 +10,7 @@ import Modal from "./modal";
 import { Form, useNavigation } from "@remix-run/react";
 import { useTranslation } from "react-i18next";
 import Close from "./icons/Close";
+import toast from "react-hot-toast";
 
 export default function SenderModal({
   senderEmail,
@@ -21,6 +23,19 @@ export default function SenderModal({
 }) {
   const navigation = useNavigation();
   const { t } = useTranslation();
+
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (navigation.state === "submitting") {
+      setIsSubmitted(true);
+    }
+    if (navigation.state === "idle" && isSubmitted) {
+      // setIsSubmitted(false);
+      setShowSenderModal(false);
+      toast.success(t("Message sent"));
+    }
+  }, [navigation.state]);
 
   return (
     <Modal showModal={showSenderModal} setShowModal={setShowSenderModal}>
