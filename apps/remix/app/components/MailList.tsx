@@ -66,11 +66,11 @@ export function MailList(props: { mails: Email[] }) {
     <>
       <div className="rounded-md border border-cyan-50/20">
         <div className="w-full rounded-t-md p-2 flex items-center bg-zinc-800 text-zinc-200 gap-2">
-          <MailIcon className="size-6" />
-          <div className="flex items-center font-bold text-lg font-mono">
+          <div className="flex items-center justify-start gap-2 font-bold">
+            <MailIcon className="size-6" />
             {t("INBOX")}
             {data.length > 0 && (
-              <span className="inline-flex items-center justify-center w-[22px] h-[22px] ms-2 text-xs font-semibold text-white bg-zinc-600 rounded-full">
+              <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-zinc-600 rounded-full">
                 {data.length}
               </span>
             )}
