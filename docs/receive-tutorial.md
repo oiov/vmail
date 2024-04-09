@@ -61,6 +61,19 @@ turso db shell <database-name>
 
 **2.部署 email worker**
 
+方法一：手动创建 worker 并复制代码
+进入 Cloudflare https://dash.cloudflare.com -> Workers 和 Pages -> 点击 `创建 Worker` -> 部署
+
+-> 进入刚刚创建的 worker -> 点击 `编辑代码` -> 复制粘贴[email-worker-source.js](https://github.com/oiov/vmail/blob/main/docs/email-worker-source.js)中所有代码 -> 点击 `保存并部署`
+
+在 worker 的 `设置` -> `变量` 中添加以下环境变量：
+
+- TURSO_DB_AUTH_TOKEN（第1步中的turso表信息，点击“Generate Token”）
+- TURSO_DB_URL（例如 libsql://db-name.turso.io）
+- EMAIL_DOMAIN (域名，如 vmail.dev)
+
+方法二：使用 wrangler cli 部署 worker
+
 ```bash
 git clone https://github.com/yesmore/vmail
 
