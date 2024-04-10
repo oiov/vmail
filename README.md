@@ -41,8 +41,6 @@
 
 ## 🔨 本地运行调试
 
-复制 `apps/remix/.env.example` 到 `apps/remix/.env` 并填写必要的环境变量。
-
 ```bash
 git clone https://github.com/oiov/vmail
 cd vmail
@@ -53,7 +51,11 @@ pnpm install
 pnpm run remix:dev
 ```
 
-## ❤️ 交流群
+运行前复制 `apps/remix/.env.example` 文件并重命名为 `apps/remix/.env`，填写必要的环境变量。
+
+## ❤️ 共建交流群
+
+期待参与共建，欢迎加入交流群
 
 - 加微信 `yesmore_cc` 拉讨论群 (**备注你的职业**)
 - Discord: https://discord.gg/d68kWCBDEs
