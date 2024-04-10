@@ -95,17 +95,19 @@ pnpm run deploy
 
 **4.在 Vercel 或 fly.io 上部署 Remix 应用程序**
 
-确保在部署期间准备并填写以下环境变量（`.env.example`）：
+确保在部署时准备并填写以下环境变量（`.env.example`）：
 
-| 变量名                 | 说明                                 | 示例                        |
-| ---------------------- | ------------------------------------ | --------------------------- |
-| COOKIES_SECRET         | 必填，cookie加密密钥                 | `my-secret-key`             |
-| TURNSTILE_KEY          | 必填，网站验证所需的Turnstile Key    | `my-turnstile-key`          |
-| TURNSTILE_SECRET       | 必填，网站验证所需的Turnstile Secret | `my-turnstile-secret`       |
-| TURSO_DB_RO_AUTH_TOKEN | 必填，turso数据库只读凭据            | `my-turso-db-ro-auth-token` |
-| TURSO_DB_URL           | 必填，turso数据库URL                 | `libsql://db-name.turso.io` |
-| EMAIL_DOMAIN           | 必填，域名后缀                       | `vmail.dev`                 |
-| EXPIRY_TIME            | 可选，过期时间，单位秒，默认86400    | `86400`                     |
+| 变量名                 | 说明                                  | 示例                        |
+| ---------------------- | ------------------------------------- | --------------------------- |
+| COOKIES_SECRET         | 必填，cookie加密密钥，随机字符串      | `12345abcde`                |
+| TURSO_DB_RO_AUTH_TOKEN | 必填，turso数据库只读凭据             | `my-turso-db-ro-auth-token` |
+| TURSO_DB_URL           | 必填，turso数据库URL                  | `libsql://db-name.turso.io` |
+| EMAIL_DOMAIN           | 必填，域名后缀                        | `vmail.dev`                 |
+| EXPIRY_TIME            | 可选，邮箱过期时间，单位秒，默认86400 | `86400`                     |
+| TURNSTILE_KEY          | 可选，网站验证所需的 Turnstile Key    | `my-turnstile-key`          |
+| TURNSTILE_SECRET       | 可选，网站验证所需的 Turnstile Secret | `my-turnstile-secret`       |
+
+获取 `TURNSTILE_KEY`、`TURNSTILE_SECRET` 请前往 cloudflare 控制台 https://dash.cloudflare.com/[account-id]/turnstile
 
 **Vercel:** 
 

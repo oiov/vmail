@@ -48,7 +48,7 @@ export const meta: MetaFunction = () => {
 };
 
 export const loader: LoaderFunction = async ({ request }) => {
-  const siteKey = process.env.TURNSTILE_KEY || "1x00000000000000000000AA";
+  const siteKey = process.env.TURNSTILE_KEY || "";
   const userMailbox =
     ((await userMailboxCookie.parse(
       request.headers.get("Cookie")
@@ -76,6 +76,7 @@ export const action: ActionFunction = async ({ request }) => {
   const formData = await request.formData();
   const { _action } = Object.fromEntries(formData);
   const sendWorkerUrl = process.env.SEND_WORKER_URL || "";
+  const siteKey = process.env.TURNSTILE_KEY || "";
   const IuserMailbox =
     ((await userMailboxCookie.parse(
       request.headers.get("Cookie")
@@ -92,31 +93,32 @@ export const action: ActionFunction = async ({ request }) => {
       });
     }
   } else if (_action === "create") {
-    const response = formData.get("cf-turnstile-response");
-    if (!response) {
-      return {
-        error: "No captcha response",
-      };
-    }
-    const verifyEndpoint =
-      "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-    const secret =
-      process.env.TURNSTILE_SECRET || "1x0000000000000000000000000000000AA";
-    const resp = await fetch(verifyEndpoint, {
-      method: "POST",
-      body: JSON.stringify({
-        secret,
-        response,
-      }),
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-    const data = await resp.json();
-    if (!data.success) {
-      return {
-        error: "Failed to verify captcha",
-      };
+    if (siteKey) {
+      const response = formData.get("cf-turnstile-response");
+      if (!response) {
+        return {
+          error: "No captcha response",
+        };
+      }
+      const verifyEndpoint =
+        "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+      const secret = process.env.TURNSTILE_SECRET || "";
+      const resp = await fetch(verifyEndpoint, {
+        method: "POST",
+        body: JSON.stringify({
+          secret,
+          response,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await resp.json();
+      if (!data.success) {
+        return {
+          error: "Failed to verify captcha",
+        };
+      }
     }
 
     const domain = process.env.EMAIL_DOMAIN || "";
@@ -277,18 +279,20 @@ export default function Index() {
 
         {!loaderData?.userMailbox && (
           <Form method="POST" className="w-full md:max-w-[350px]">
-            <div className="text-sm relative mb-6">
-              <div className="mb-4 font-semibold">{t("Validater")}</div>
-              <div className="[&amp;_iframe]:!w-full h-[65px] max-w-[300px] bg-gray-700">
-                <Turnstile
-                  className="z-10 border-none"
-                  siteKey={loaderData.siteKey}
-                  options={{
-                    theme: "dark",
-                  }}
-                />
+            {loaderData.siteKey && (
+              <div className="text-sm relative mb-6">
+                <div className="mb-4 font-semibold">{t("Validater")}</div>
+                <div className="[&amp;_iframe]:!w-full h-[65px] max-w-[300px] bg-gray-700">
+                  <Turnstile
+                    className="z-10 border-none"
+                    siteKey={loaderData.siteKey}
+                    options={{
+                      theme: "dark",
+                    }}
+                  />
+                </div>
               </div>
-            </div>
+            )}
             <button
               type="submit"
               value="create"
