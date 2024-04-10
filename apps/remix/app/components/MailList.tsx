@@ -90,9 +90,9 @@ export function MailList(props: { mails: Email[] }) {
           </button>
         </div>
 
-        <div className="grids flex flex-col flex-1 h-[450px] overflow-y-auto p-2">
+        <div className="grids flex flex-col flex-1 h-[480px] overflow-y-auto p-2">
           {data.length === 0 && (
-            <div className="w-full items-center h-[450px] flex-col justify-center flex">
+            <div className="w-full items-center h-[480px] flex-col justify-center flex">
               <Loader />
               <p className="text-zinc-400 mt-6">{t("Waiting for emails...")}</p>
             </div>

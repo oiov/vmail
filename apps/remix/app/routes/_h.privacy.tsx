@@ -13,7 +13,7 @@ export const meta: MetaFunction = () => {
 
 export default function Index() {
   return (
-    <div className="mx-10 mt-28 text-white">
+    <div className="mx-10 mt-24 text-white">
       <div className="max-w-[1400px] ">
         <h1 className="text-4xl font-bold" id="about">
           Privacy Policy

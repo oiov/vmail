@@ -38,7 +38,7 @@ export default function MailViewer() {
 
   const mail = useLoaderData<typeof loader>();
   return (
-    <div className="mt-28 mx-6 md:mx-10 flex flex-1 flex-col p-2 gap-10">
+    <div className="mt-24 mx-6 md:mx-10 flex flex-1 flex-col p-2 gap-10">
       <Link
         to="/"
         className="flex text-white w-fit font-semibold items-center border p-2 rounded-md gap-2">

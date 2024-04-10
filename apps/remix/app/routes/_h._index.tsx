@@ -12,11 +12,7 @@ import {
   useNavigation,
 } from "@remix-run/react";
 import randomName from "@scaleway/random-name";
-import {
-  getEmail,
-  getEmailByPassword,
-  getEmailsByMessageTo,
-} from "database/dao";
+import { getEmailByPassword, getEmailsByMessageTo } from "database/dao";
 import { getWebTursoDB } from "database/db";
 
 import CopyButton from "../components/CopyButton";
@@ -32,7 +28,6 @@ import { useSenderModal } from "~/components/sender";
 import { getRandomCharacter } from "lib/hooks/utlis";
 
 import { Toaster } from "react-hot-toast";
-import { useState } from "react";
 import { usePasswordModal } from "~/components/password";
 import Password from "~/components/icons/Password";
 
@@ -49,6 +44,7 @@ export const meta: MetaFunction = () => {
 
 export const loader: LoaderFunction = async ({ request }) => {
   const siteKey = process.env.TURNSTILE_KEY || "";
+  const domains = (process.env.EMAIL_DOMAIN || "").split(",");
   const userMailbox =
     ((await userMailboxCookie.parse(
       request.headers.get("Cookie")
@@ -58,6 +54,7 @@ export const loader: LoaderFunction = async ({ request }) => {
       userMailbox: undefined,
       mails: [],
       siteKey,
+      domains,
     };
   }
   const db = getWebTursoDB(
@@ -69,6 +66,7 @@ export const loader: LoaderFunction = async ({ request }) => {
     userMailbox,
     mails,
     siteKey,
+    domains,
   };
 };
 
@@ -93,7 +91,7 @@ export const action: ActionFunction = async ({ request }) => {
       });
     }
   } else if (_action === "create") {
-    if (siteKey) {
+    if (!siteKey) {
       const response = formData.get("cf-turnstile-response");
       if (!response) {
         return {
@@ -121,14 +119,21 @@ export const action: ActionFunction = async ({ request }) => {
       }
     }
 
-    const domain = process.env.EMAIL_DOMAIN || "";
-    if (!domain) {
+    const domains = (process.env.EMAIL_DOMAIN || "").split(",");
+    if (!domains) {
       return {
         error: "Email domain not set in .env",
       };
     }
 
-    const mailbox = `${randomName("", getRandomCharacter())}@${domain}`;
+    const selectDomain = formData.get("selectDomain") as string;
+    if (!domains.includes(selectDomain)) {
+      return {
+        error: "Invalid email domain",
+      };
+    }
+
+    const mailbox = `${randomName("", getRandomCharacter())}@${selectDomain}`;
     const userMailbox = await userMailboxCookie.serialize(mailbox);
     return redirect("/", {
       headers: {
@@ -214,9 +219,9 @@ export default function Index() {
   );
 
   return (
-    <div className="h-full flex flex-col gap-4 md:flex-row justify-center items-start mt-28 mx-6 md:mx-10">
+    <div className="h-full flex flex-col gap-4 md:flex-row justify-center items-start mt-24 mx-6 md:mx-10">
       <div className="flex flex-col text-white items-start w-full md:w-[350px] mx-auto gap-2">
-        <div className="w-full mb-6 md:max-w-[350px] shrink-0 group group-hover:before:duration-500 group-hover:after:duration-500 after:duration-500 hover:border-cyan-600 hover:before:[box-shadow:_20px_20px_20px_30px_#a21caf] duration-500 before:duration-500 hover:duration-500 hover:after:-right-8 hover:before:right-12 hover:before:-bottom-8 hover:before:blur origin-left hover:decoration-2 relative bg-neutral-800 h-full border text-left p-4 rounded-lg overflow-hidden border-cyan-50/20 before:absolute before:w-12 before:h-12 before:content[''] before:right-1 before:top-1 before:z-10 before:bg-violet-500 before:rounded-full before:blur-lg  after:absolute after:z-10 after:w-20 after:h-20 after:content['']  after:bg-rose-300 after:right-8 after:top-3 after:rounded-full after:blur-lg">
+        <div className="w-full mb-4 md:max-w-[350px] shrink-0 group group-hover:before:duration-500 group-hover:after:duration-500 after:duration-500 hover:border-cyan-600 hover:before:[box-shadow:_20px_20px_20px_30px_#a21caf] duration-500 before:duration-500 hover:duration-500 hover:after:-right-8 hover:before:right-12 hover:before:-bottom-8 hover:before:blur origin-left hover:decoration-2 relative bg-neutral-800 h-full border text-left p-4 rounded-lg overflow-hidden border-cyan-50/20 before:absolute before:w-12 before:h-12 before:content[''] before:right-1 before:top-1 before:z-10 before:bg-violet-500 before:rounded-full before:blur-lg  after:absolute after:z-10 after:w-20 after:h-20 after:content['']  after:bg-rose-300 after:right-8 after:top-3 after:rounded-full after:blur-lg">
           <h1 className="text-gray-50 text-xl font-bold mb-7 group-hover:text-cyan-500 duration-500">
             {t("Virtual Temporary Email")}
           </h1>
@@ -280,8 +285,8 @@ export default function Index() {
         {!loaderData?.userMailbox && (
           <Form method="POST" className="w-full md:max-w-[350px]">
             {loaderData.siteKey && (
-              <div className="text-sm relative mb-6">
-                <div className="mb-4 font-semibold">{t("Validater")}</div>
+              <div className="text-sm relative mb-4">
+                <div className="mb-3 font-semibold">{t("Validater")}</div>
                 <div className="[&amp;_iframe]:!w-full h-[65px] max-w-[300px] bg-gray-700">
                   <Turnstile
                     className="z-10 border-none"
@@ -291,6 +296,24 @@ export default function Index() {
                     }}
                   />
                 </div>
+              </div>
+            )}
+            {loaderData.domains && loaderData.domains.length > 1 && (
+              <div className="text-sm relative mb-4">
+                <div className="mb-3 font-semibold">{t("Domain")}</div>
+                <select
+                  id="selectDomain"
+                  name="selectDomain"
+                  className="border text-sm rounded-md block w-full p-2.5 bg-gray-700 border-gray-600 placeholder-gray-400 text-white focus:ring-blue-500 focus:border-gray-500">
+                  {loaderData.domains.map((item: string) => (
+                    <option
+                      className="py-2 h-10"
+                      selected={item === loaderData.domains[0]}
+                      value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
             <button
