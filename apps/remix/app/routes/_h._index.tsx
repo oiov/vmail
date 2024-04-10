@@ -12,7 +12,11 @@ import {
   useNavigation,
 } from "@remix-run/react";
 import randomName from "@scaleway/random-name";
-import { getEmailsByMessageTo } from "database/dao";
+import {
+  getEmail,
+  getEmailByPassword,
+  getEmailsByMessageTo,
+} from "database/dao";
 import { getWebTursoDB } from "database/db";
 
 import CopyButton from "../components/CopyButton";
@@ -28,6 +32,9 @@ import { useSenderModal } from "~/components/sender";
 import { getRandomCharacter } from "lib/hooks/utlis";
 
 import { Toaster } from "react-hot-toast";
+import { useState } from "react";
+import { usePasswordModal } from "~/components/password";
+import Password from "~/components/icons/Password";
 
 export const meta: MetaFunction = () => {
   return [
@@ -85,32 +92,32 @@ export const action: ActionFunction = async ({ request }) => {
       });
     }
   } else if (_action === "create") {
-    const response = formData.get("cf-turnstile-response");
-    if (!response) {
-      return {
-        error: "No captcha response",
-      };
-    }
-    const verifyEndpoint =
-      "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-    const secret =
-      process.env.TURNSTILE_SECRET || "1x0000000000000000000000000000000AA";
-    const resp = await fetch(verifyEndpoint, {
-      method: "POST",
-      body: JSON.stringify({
-        secret,
-        response,
-      }),
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-    const data = await resp.json();
-    if (!data.success) {
-      return {
-        error: "Failed to verify captcha",
-      };
-    }
+    // const response = formData.get("cf-turnstile-response");
+    // if (!response) {
+    //   return {
+    //     error: "No captcha response",
+    //   };
+    // }
+    // const verifyEndpoint =
+    //   "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+    // const secret =
+    //   process.env.TURNSTILE_SECRET || "1x0000000000000000000000000000000AA";
+    // const resp = await fetch(verifyEndpoint, {
+    //   method: "POST",
+    //   body: JSON.stringify({
+    //     secret,
+    //     response,
+    //   }),
+    //   headers: {
+    //     "Content-Type": "application/json",
+    //   },
+    // });
+    // const data = await resp.json();
+    // if (!data.success) {
+    //   return {
+    //     error: "Failed to verify captcha",
+    //   };
+    // }
 
     const domain = process.env.EMAIL_DOMAIN || "";
     if (!domain) {
@@ -158,6 +165,29 @@ export const action: ActionFunction = async ({ request }) => {
     });
     console.log("[res]", res.status);
     return redirect("/");
+  } else if (_action === "login") {
+    let psd = formData.get("password") as string;
+    if (!psd) {
+      return {
+        error: "Password is required",
+      };
+    }
+    const db = getWebTursoDB(
+      process.env.TURSO_DB_URL as string,
+      process.env.TURSO_DB_RO_AUTH_TOKEN as string
+    );
+    const res = await getEmailByPassword(db, psd);
+    if (!res) {
+      return {
+        error: "Invalid password",
+      };
+    }
+    const userMailbox = await userMailboxCookie.serialize(res.messageTo);
+    return redirect("/", {
+      headers: {
+        "Set-Cookie": userMailbox,
+      },
+    });
   } else {
     return {
       error: "Invalid action",
@@ -175,6 +205,10 @@ export default function Index() {
 
   const { SenderModal, setShowSenderModal } = useSenderModal(
     loaderData.userMailbox
+  );
+
+  const { PasswordModal, setShowPasswordModal } = usePasswordModal(
+    loaderData.mails[0]?.id
   );
 
   return (
@@ -206,7 +240,13 @@ export default function Index() {
         {loaderData?.userMailbox && (
           <Form method="POST" className="w-full md:max-w-[350px] mb-4">
             <div className="mb-4 font-semibold text-sm">
-              {t("Email address")}
+              {t("Email address")}{" "}
+              {loaderData.mails && loaderData.mails[0] && (
+                <Password
+                  className="cursor-pointer text-cyan-500 inline-block w-4 h-4"
+                  onClick={() => setShowPasswordModal(true)}
+                />
+              )}
             </div>
             <div className="flex items-center mb-6 text-zinc-100 bg-white/10 backdrop-blur-xl shadow-inner px-4 py-4 rounded-md w-full">
               <span className="truncate">{loaderData.userMailbox}</span>
@@ -215,6 +255,7 @@ export default function Index() {
                 className="p-1 rounded-md ml-auto transition-all duration-200"
               />
             </div>
+
             <button
               type="submit"
               name="_action"
@@ -256,11 +297,15 @@ export default function Index() {
               className="py-2.5 rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500">
               {t("Create temporary email")}
             </button>
-            <p className="mt-4 text-sm text-gray-300">
-              {t("Vmail can now send emails!")}
+            <p
+              className="mt-4 text-sm text-cyan-500 cursor-pointer"
+              onClick={() => setShowPasswordModal(true)}>
+              <Password className="inline-block w-4 h-4 mr-2" />
+              {t("Have a password? Login.")}
             </p>
           </Form>
         )}
+
         <div>
           {actionData?.error && (
             <div className="text-red-500">{t(actionData.error)}</div>
@@ -272,6 +317,7 @@ export default function Index() {
         <MailListWithQuery mails={loaderData.mails} />
       </div>
       <SenderModal />
+      <PasswordModal />
       <Toaster />
     </div>
   );

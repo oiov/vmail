@@ -34,6 +34,20 @@ export async function getEmail(db: LibSQLDatabase, id: string) {
   }
 }
 
+export async function getEmailByPassword(db: LibSQLDatabase, id: string) {
+  try {
+    const result = await db
+      .select({ messageTo: emails.messageTo })
+      .from(emails)
+      .where(and(eq(emails.id, id)))
+      .limit(1)
+      .execute();
+    return result[0];
+  } catch (e) {
+    return null;
+  }
+}
+
 export async function getEmailsByMessageTo(
   db: LibSQLDatabase,
   messageTo: string
