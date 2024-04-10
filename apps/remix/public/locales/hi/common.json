@@ -26,5 +26,15 @@
   "Email content *": "ईमेल की सामग्री *",
   "Sending...": "भेज रहा है...",
   "Send": "भेजें",
-  "Please do not send illegal content such as politics, pornography, etc": "कृपया राजनीति, अश्लीलता आदि जैसी अवैध सामग्री न भेजें"
+  "Please do not send illegal content such as politics, pornography, etc": "कृपया राजनीति, अश्लीलता आदि जैसी अवैध सामग्री न भेजें",
+  "Message sent": "संदेश भेजा गया",
+  "Have a password? Login.": "कृपया पासवर्ड दर्ज करें? लॉगिन करें।",
+  "Save password": "पासवर्ड सहेजें",
+  "Save your password and continue using this email in 1 day": "अपना पासवर्ड सहेजें और 1 दिन के लिए इस ईमेल का उपयोग जारी रखें",
+  "Login": "लॉगिन",
+  "Submitting...": "जमा कर रहा है...",
+  "Remember your password, otherwise your email will expire and cannot be retrieved": "अपना पासवर्ड याद रखें, अन्यथा ваш ईमेल समाप्त हो जाएगा और पुनर्प्राप्त नहीं हो सकता",
+  "Enter your password *": "अपना पासवर्ड दर्ज करें *",
+  "Log out": "लॉगआउट",
+  "Terms": "नियम"
 }

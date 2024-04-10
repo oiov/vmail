@@ -26,5 +26,15 @@
   "Email content *": "이메일 내용 *",
   "Sending...": "전송 중...",
   "Send": "보내기",
-  "Please do not send illegal content such as politics, pornography, etc": "정치, 음란물 등과 같은 불법 콘텐츠를 보내지 마십시오"
+  "Please do not send illegal content such as politics, pornography, etc": "정치, 음란물 등과 같은 불법 콘텐츠를 보내지 마십시오",
+  "Message sent": "메시지 전송 완료",
+  "Have a password? Login.": "비밀번호가 있으신가요? 로그인하세요.",
+  "Save password": "비밀번호 저장",
+  "Save your password and continue using this email in 1 day": "비밀번호를 저장하고 이메일을 1일 더 사용하세요",
+  "Login": "로그인",
+  "Submitting...": "전송 중...",
+  "Remember your password, otherwise your email will expire and cannot be retrieved": "비밀번호를 기억하세요. 그렇지 않으면 이메일이 만료되어 검색할 수 없습니다",
+  "Enter your password *": "비밀번호를 입력하세요 *",
+  "Log out": "로그아웃",
+  "Terms": "약관"
 }

@@ -48,7 +48,7 @@ export default function PasswordModal({
             {t("Save password")}
           </h3>
           <p className="text-gray-500">
-            {t("Save your password and continue using this email in 7 days")}
+            {t("Save your password and continue using this email in 1 day")}
           </p>
         </div>
         <Form method="POST" className="flex flex-col mt-4 space-y-4 px-4">

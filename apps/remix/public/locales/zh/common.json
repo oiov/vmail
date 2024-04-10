@@ -31,10 +31,11 @@
   "Message sent": "已发送",
   "Have a password? Login.": "已经有密码？点击登录",
   "Save password": "登录并保存密码",
-  "Save your password and continue using this email in 7 days": "保存你的密码，并在 1 天后继续使用此邮箱",
+  "Save your password and continue using this email in 1 day": "保存你的密码，并在 1 天后继续使用此邮箱",
   "Login": "登录",
   "Submitting...": "提交中...",
   "Remember your password, otherwise your email will expire and cannot be retrieved": "记住你的密码，否则邮箱过期后将不可找回",
   "Enter your password *": "请输入你的密码 *",
-  "Log out": "登出"
+  "Log out": "登出",
+  "Terms": "条款"
 }

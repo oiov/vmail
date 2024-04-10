@@ -26,5 +26,15 @@
   "Email content *": "E-posta içeriği *",
   "Sending...": "Gönderiliyor...",
   "Send": "Gönder",
-  "Please do not send illegal content such as politics, pornography, etc": "Lütfen siyaset, pornografi vb. gibi yasa dışı içerikler göndermeyin"
+  "Please do not send illegal content such as politics, pornography, etc": "Lütfen siyaset, pornografi vb. gibi yasa dışı içerikler göndermeyin",
+  "Message sent": "Mesaj gönderildi",
+  "Have a password? Login.": "Parolanız var mı? Giriş yapın.",
+  "Save password": "Parolayı kaydet",
+  "Save your password and continue using this email in 1 day": "Parolanızı kaydedin ve bu e-postayı 1 gün devam etdirin",
+  "Login": "Giriş Yap",
+  "Submitting...": "Gönderiliyor...",
+  "Remember your password, otherwise your email will expire and cannot be retrieved": "Parolanızı unutmayın, aksi takdirde e-postanız sona erecek ve alınamayacak",
+  "Enter your password *": "Parolanızı girin *",
+  "Log out": "Çıkış Yap",
+  "Terms": "Şartlar"
 }

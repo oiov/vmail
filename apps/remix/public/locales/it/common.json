@@ -26,5 +26,15 @@
   "Email content *": "Contenuto dell'email *",
   "Sending...": "Inviando...",
   "Send": "Invia",
-  "Please do not send illegal content such as politics, pornography, etc": "Si prega di non inviare contenuti illegali come politica, pornografia, ecc."
+  "Please do not send illegal content such as politics, pornography, etc": "Si prega di non inviare contenuti illegali come politica, pornografia, ecc.",
+  "Message sent": "Messaggio inviato",
+  "Have a password? Login.": "Hai una password? Accedi.",
+  "Save password": "Salva la password",
+  "Save your password and continue using this email in 1 day": "Salva la tua password e continua a utilizzare questa e-mail in 1 giorno",
+  "Login": "Accedi",
+  "Submitting...": "Invio in corso...",
+  "Remember your password, otherwise your email will expire and cannot be retrieved": "Ricorda la tua password, altrimenti la tua e-mail scadrà e non potrà essere recuperata",
+  "Enter your password *": "Inserisci la tua password *",
+  "Log out": "Esci",
+  "Terms": "Termini"
 }

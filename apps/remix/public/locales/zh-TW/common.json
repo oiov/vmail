@@ -2,7 +2,7 @@
   "Donate": "捐款",
   "Virtual Temporary Email": "虛擬臨時電子郵件",
   "Privacy friendly": "隱私友善",
-  "Valid for 1 Day": "有效期1天",
+  "Valid for 1 Day": "有效期 1 天",
   "AD friendly": "廣告友善",
   "100% Run on Cloudflare": "100% 在Cloudflare上運行",
   "Email address": "電子郵件地址",
@@ -26,5 +26,15 @@
   "Email content *": "電子郵件內容 *",
   "Sending...": "發送中...",
   "Send": "發送",
-  "Please do not send illegal content such as politics, pornography, etc": "請不要發送政治、色情等非法內容"
+  "Please do not send illegal content such as politics, pornography, etc": "請不要發送政治、色情等非法內容",
+  "Message sent": "訊息已發送",
+  "Have a password? Login.": "有密碼？登入。",
+  "Save password": "儲存密碼",
+  "Save your password and continue using this email in 1 day": "儲存您的密碼並在1天內繼續使用此電子郵件",
+  "Login": "登入",
+  "Submitting...": "提交中...",
+  "Remember your password, otherwise your email will expire and cannot be retrieved": "請記住您的密碼，否則您的電子郵件將會過期且無法檢索",
+  "Enter your password *": "輸入您的密碼 *",
+  "Log out": "登出",
+  "Terms": "條款"
 }

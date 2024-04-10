@@ -31,10 +31,11 @@
   "Message sent": "Message sent",
   "Have a password? Login.": "Have a password? Login.",
   "Save password": "Save password",
-  "Save your password and continue using this email in 7 days": "Save your password and continue using this email in 7 days",
+  "Save your password and continue using this email in 1 day": "Save your password and continue using this email in 1 day",
   "Login": "Login",
   "Submitting...": "Submitting...",
   "Remember your password, otherwise your email will expire and cannot be retrieved": "Remember your password, otherwise your email will expire and cannot be retrieved",
   "Enter your password *": "Enter your password *",
-  "Log out": "Log out"
+  "Log out": "Log out",
+  "Terms": "Terms"
 }
