@@ -28,6 +28,7 @@ export default function Footer() {
       <div className="flex items-center gap-3 mt-3 sm:ml-3 sm:mt-0 md:hidden text-sm text-gray-300">
         <Link to="/about">{t("About")}</Link>
         <Link to="/privacy">{t("Privacy")}</Link>
+        <Link to="/terms">{t("Terms")}</Link>
         <Link to="https://status.vmail.dev" target="_blank">
           Status
         </Link>
