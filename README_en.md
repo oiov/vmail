@@ -42,7 +42,8 @@ See [send-tutorial-en.md](/docs/send-tutorial-en.md)
 copy `apps/remix/.env.example` to `apps/remix/.env` and fill in the necessary environment variables.
 
 ```bash
-cd path-to/vmail/ # root directory
+git clone https://github.com/oiov/vmail
+cd vmail
 pnpm install
 
 # run on localhost:3000

@@ -44,10 +44,12 @@
 复制 `apps/remix/.env.example` 到 `apps/remix/.env` 并填写必要的环境变量。
 
 ```bash
-cd path-to/vmail/ # 根路径
+git clone https://github.com/oiov/vmail
+cd vmail
+# 安装依赖
 pnpm install
 
-# 运行 localhost:3000
+# 运行端口 localhost:3000
 pnpm run remix:dev
 ```
 
