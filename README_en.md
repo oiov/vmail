@@ -17,6 +17,7 @@ Principles：
 - Receiving emails (email worker)
 - Display email (remix)
 - Mail Storage (sqlite)
+- [Nodejs](https://nodejs.org) >= 18
 
 > Worker receives email -> saves to database -> client queries email
 

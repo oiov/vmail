@@ -29,6 +29,7 @@
 - [Cloudflare](https://dash.cloudflare.com/) 账户与托管在 Cloudflare 上的域名
 - [turso](https://turso.tech) sqlite 数据库（个人免费计划足够）
 - [Vercel](https://vercel.com) 或 [fly.io](https://fly.io) 账号部署前端用户界面
+- 本地安装 [Nodejs](https://nodejs.org) 环境 (版本 >= 18.x)
 
 ### 接收邮件教程
 

@@ -55,7 +55,7 @@ CREATE TABLE `emails` (
 **2.Deploy email workers**
 
 ```bash
-git clone https://github.com/yesmore/vmail
+git clone https://github.com/oiov/vmail
 
 cd vmail
 

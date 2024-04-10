@@ -62,7 +62,7 @@ turso db shell <database-name>
 **2.部署 email worker**
 
 ```bash
-git clone https://github.com/yesmore/vmail
+git clone https://github.com/oiov/vmail
 
 cd vmail
 
@@ -109,7 +109,7 @@ pnpm run deploy
 
 **Vercel:** 
 
-推荐使用一键部署按钮（一步 `fork + deploy` 此仓库）：
+推荐使用一键部署按钮（此操作会在你的github账户中自动创建vmail仓库并关联部署到vercel）：
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Foiov%2Fvmail&env=COOKIES_SECRET&env=TURNSTILE_KEY&env=TURNSTILE_SECRET&env=TURSO_DB_RO_AUTH_TOKEN&env=TURSO_DB_URL&env=EMAIL_DOMAIN&project-name=vmail&repository-name=vmail)
 
