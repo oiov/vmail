@@ -102,7 +102,7 @@ pnpm run deploy
 | COOKIES_SECRET         | 必填，cookie加密密钥，随机字符串      | `12345abcde`                |
 | TURSO_DB_RO_AUTH_TOKEN | 必填，turso数据库只读凭据             | `my-turso-db-ro-auth-token` |
 | TURSO_DB_URL           | 必填，turso数据库URL                  | `libsql://db-name.turso.io` |
-| EMAIL_DOMAIN           | 必填，域名后缀                        | `vmail.dev`                 |
+| EMAIL_DOMAIN           | 必填，域名后缀，支持多个              | `vmail.dev,meetu.dev`       |
 | EXPIRY_TIME            | 可选，邮箱过期时间，单位秒，默认86400 | `86400`                     |
 | TURNSTILE_KEY          | 可选，网站验证所需的 Turnstile Key    | `my-turnstile-key`          |
 | TURNSTILE_SECRET       | 可选，网站验证所需的 Turnstile Secret | `my-turnstile-secret`       |

@@ -95,7 +95,7 @@ Ensure that the following environment variables (`.env.example`) are prepared an
 | COOKIES_SECRET         | The encryption secret of the cookie, a random string is sufficient | `s3cr3t`                               |
 | TURSO_DB_RO_AUTH_TOKEN | Obtain database credentials from turso                             | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9` |
 | TURSO_DB_URL           | Obtain database credentials from turso                             | `libsql://db-name.turso.io`            |
-| EMAIL_DOMAIN           | email domain                                                       | `vmail.dev`                            |
+| EMAIL_DOMAIN           | email domains                                                      | `vmail.dev,meetu.dev`                  |
 | EXPIRY_TIME            | Optional. default `86400`                                          | `86400`                                |
 | TURNSTILE_KEY          | Optional. Obtained from Cloudflare for website verification        | `1234567890`                           |
 | TURNSTILE_SECRET       | Optional. Obtained from Cloudflare for website verification        | `s3cr3t`                               |

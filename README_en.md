@@ -9,7 +9,8 @@
 
 - 🎯 Privacy-friendly, no registration required, out-of-the-box
 - ✈️ Support email sending and receiving
-- ✨ Better UI design, more concise
+- ✨ Support saving passwords and retrieving email addresses
+- 😄 Support multiple domain name suffixes
 - 🚀 100% open source, quick deployment, no server required
 
 Principles： 

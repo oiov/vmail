@@ -91,7 +91,7 @@ export const action: ActionFunction = async ({ request }) => {
       });
     }
   } else if (_action === "create") {
-    if (!siteKey) {
+    if (siteKey) {
       const response = formData.get("cf-turnstile-response");
       if (!response) {
         return {
@@ -299,22 +299,19 @@ export default function Index() {
               </div>
             )}
             {loaderData.domains && loaderData.domains.length > 1 && (
-              <div className="text-sm relative mb-4">
-                <div className="mb-3 font-semibold">{t("Domain")}</div>
-                <select
-                  id="selectDomain"
-                  name="selectDomain"
-                  className="border text-sm rounded-md block w-full p-2.5 bg-gray-700 border-gray-600 placeholder-gray-400 text-white focus:ring-blue-500 focus:border-gray-500">
-                  {loaderData.domains.map((item: string) => (
-                    <option
-                      className="py-2 h-10"
-                      selected={item === loaderData.domains[0]}
-                      value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <select
+                id="selectDomain"
+                name="selectDomain"
+                className="mb-4 border text-sm rounded-md block w-full p-2.5 bg-gray-700 border-gray-600 placeholder-gray-400 text-white focus:ring-blue-500 focus:border-gray-500">
+                {loaderData.domains.map((item: string) => (
+                  <option
+                    className="py-2 h-10"
+                    selected={item === loaderData.domains[0]}
+                    value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
             )}
             <button
               type="submit"
