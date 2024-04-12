@@ -60,11 +60,20 @@ export default function PasswordModal({
             required
             className="rounded-md border border-slate-200 px-3 py-2 shadow-inner w-full"
           />
+          <p className="text-sm">
+            {t(
+              "How to get a password? Click to create a temporary email and receive at least one email to generate a password"
+            )}
+            .
+          </p>
+
           <p className="text-sm text-yellow-600">
             {t(
               "Remember your password, otherwise your email will expire and cannot be retrieved"
             )}
+            .
           </p>
+
           {password && password.length > 0 ? (
             <button
               type="submit"
