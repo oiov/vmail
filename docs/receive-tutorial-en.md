@@ -1,4 +1,4 @@
-## Receive email steps
+## Email receiving tutorial
 
 **1.Register a [turso](https://turso.tech) account, create a database, and create an emails table**
 
