@@ -127,7 +127,7 @@ export const action: ActionFunction = async ({ request }) => {
     }
 
     const selectDomain = formData.get("selectDomain") as string;
-    if (!domains.includes(selectDomain)) {
+    if (domains.length > 1 && !domains.includes(selectDomain)) {
       return {
         error: "Invalid email domain",
       };
