@@ -16,9 +16,9 @@ Here we will manually create it:
 
 | Variable Name    | Description                          | Example               |
 | ---------------- | ------------------------------------ | --------------------- |
-| DKIM_DOMAIN      | Required, domain suffix              | `vmail.dev`           |
-| DKIM_PRIVATE_KEY | Required, DKIM private key           | `MIIEpQIBAAKCAQEA...` |
-| DKIM_SELECTOR    | Required, fixed value `mailchannels` | `mailchannels`        |
+| DKIM_DOMAIN      | Optional, domain suffix              | `vmail.dev`           |
+| DKIM_PRIVATE_KEY | Optional, DKIM private key           | `MIIEpQIBAAKCAQEA...` |
+| DKIM_SELECTOR    | Optional, fixed value `mailchannels` | `mailchannels`        |
 
 The `DKIM_PRIVATE_KEY` will be explained later on how to obtain it.
 

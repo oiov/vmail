@@ -16,9 +16,9 @@
 
 | 变量名           | 说明                        | 示例                  |
 | ---------------- | --------------------------- | --------------------- |
-| DKIM_DOMAIN      | 必填，域名后缀              | `vmail.dev`           |
-| DKIM_PRIVATE_KEY | 必填，DKIM 私钥             | `MIIEpQIBAAKCAQEA...` |
-| DKIM_SELECTOR    | 必填，固定值 `mailchannels` | `mailchannels`        |
+| DKIM_DOMAIN      | 可选，域名后缀              | `vmail.dev`           |
+| DKIM_PRIVATE_KEY | 可选，DKIM 私钥             | `MIIEpQIBAAKCAQEA...` |
+| DKIM_SELECTOR    | 可选，固定值 `mailchannels` | `mailchannels`        |
 
 `DKIM_PRIVATE_KEY` 后续会提到如何获取。
 

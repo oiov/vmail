@@ -120,7 +120,7 @@ export const action: ActionFunction = async ({ request }) => {
     }
 
     const domains = (process.env.EMAIL_DOMAIN || "").split(",");
-    if (!domains) {
+    if (domains.length === 0) {
       return {
         error: "Email domain not set in .env",
       };
@@ -133,7 +133,7 @@ export const action: ActionFunction = async ({ request }) => {
       };
     }
 
-    const mailbox = `${randomName("", getRandomCharacter())}@${selectDomain}`;
+    const mailbox = `${randomName("", getRandomCharacter())}@${domains.length > 1 ? selectDomain : domains[0]}`;
     const userMailbox = await userMailboxCookie.serialize(mailbox);
     return redirect("/", {
       headers: {
