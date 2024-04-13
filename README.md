@@ -2,7 +2,7 @@
   <h1>𝐕𝐌𝐀𝐈𝐋.𝐃𝐄𝐕</h1>
   <p><a href="https://discord.gg/d68kWCBDEs">Discord</a> · <a href="https://github.com/oiov/vmail/blob/main/README_en.md">English</a> | 简体中文</p>
   <p>使用 Cloudflare email worker 实现的临时电子邮件服务</p>
-  <img src="https://img.inke.app/file/beb0212f96c6cd37eaeb8.jpg"/>
+  <!-- <img src="https://img.inke.app/file/beb0212f96c6cd37eaeb8.jpg"/> -->
 </div>
 
 ## 🌈 特点
@@ -51,11 +51,11 @@ pnpm run remix:dev
 
 运行前复制 `apps/remix/.env.example` 文件并重命名为 `apps/remix/.env`，填写必要的环境变量。
 
-## ❤️ 共建交流群
+## ❤️ 交流群
 
-期待参与共建，欢迎加入交流群
+有任何问题或意见，欢迎加入交流群讨论。
 
-- 加微信 `yesmore_cc` 拉讨论群 (**备注你的职业**)
+- 添加微信 `yesmore_cc` (**备注你的职业**) 拉讨论群或[扫码进群](https://img.inke.app/file/494a7126352427a3b34d8.jpg) 
 - Discord: https://discord.gg/d68kWCBDEs
 
 ## 🎨 Inspired By
