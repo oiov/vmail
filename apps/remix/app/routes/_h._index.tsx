@@ -140,7 +140,12 @@ export const action: ActionFunction = async ({ request }) => {
         "Set-Cookie": userMailbox,
       },
     });
-  } else if (_action === "send" && sendWorkerUrl) {
+  } else if (_action === "send") {
+    if (!sendWorkerUrl) {
+      return {
+        error: "SEND_WORKER_URL not set in .env",
+      };
+    }
     const res = await fetch(sendWorkerUrl, {
       method: "POST",
       headers: {
@@ -170,7 +175,7 @@ export const action: ActionFunction = async ({ request }) => {
         ],
       }),
     });
-    console.log("[res]", res.status);
+    // console.log("[res]", res.status);
     return redirect("/");
   } else if (_action === "login") {
     let psd = formData.get("password") as string;
