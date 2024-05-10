@@ -42,7 +42,7 @@ export default function Footer() {
           🌍
         </Link>
         <Link
-          to="mailto:team@inke.app"
+          to="mailto:oiov@duck.com"
           title="Email"
           className="text-gray-400 hover:text-gray-500">
           <MailIcon className="w-6 h-6" />
