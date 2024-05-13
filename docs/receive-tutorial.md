@@ -119,6 +119,9 @@ pnpm run deploy
 部署完后继续点击 Countinu to Dashboard，进入 Settings -> General，修改下面设置：
 
 ![](https://img.inke.app/file/573f842ccbefdf8daf319.png)
+
+注意一定要修改目录为 `apps/remix`，否则部署后访问网站会出现`404`错误：
+
 ![](https://img.inke.app/file/36c1566d8c27735bb097d.png)
 
 **然后进入 Deployments 重新部署一次，或向 github 推送代码重新触发部署**。
@@ -130,12 +133,18 @@ cd vmail/apps/remix
 fly launch
 ```
   
-**5.部署成功后在 cloudflare 添加域名解析(A记录)到对应平台，就可以愉快的玩耍了**
+**5.部署成功后在 cloudflare 添加域名解析(A记录)到对应平台**
 
 vercel 演示如何解析：
 
 ![](https://img.inke.app/file/245b71636cd16afcf93c7.png)
 
 ![](https://img.inke.app/file/e10af19334fd6a13b7d2e.png)
+
+**6.在CF域名控制台修改加密模式为完全（或严格）**
+
+> 若不修改，访问网站会出现`重定向次数过多`错误
+
+![](https://img.vmail.dev/api/img/KK8Qwp)
 
 以上，完成！
