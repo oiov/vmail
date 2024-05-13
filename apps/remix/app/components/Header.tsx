@@ -14,8 +14,14 @@ export default function Header() {
         </button>
       </Link>
       <Link
-        to="/about"
+        to="https://im.vmail.dev/invite/BO91jwnd"
+        target="_blank"
         className="ml-auto text-sm md:text-base hidden md:block">
+        {t("GPT")}
+      </Link>
+      <Link
+        to="/about"
+        className="ml-3 md:ml-8 text-sm md:text-base hidden md:block">
         {t("About")}
       </Link>
       <Link

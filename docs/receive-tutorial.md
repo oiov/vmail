@@ -40,30 +40,25 @@
 
 <details>
 <summary>手动创建表（旧版方法）</summary>
-![](https://img.inke.app/file/d49086f9b450edd5a2cef.png) 
-> ⚠️ 注意：**左上角有一个加号按钮，我尝试点击它没有任何提示或效果，所以我使用了 turso 提供的 cli 来初始化表。**
 Cli 文档：https://docs.turso.tech/cli/introduction 
+
 Linux (或 mac/windows) 终端执行：
-```bash
+
 # 安装（安装后记得重启终端生效）
 curl -sSfL https://get.tur.so/install.sh | bash
 # 登录账户
 turso auth login
 # 连接到您的Turso数据库
 turso db shell <database-name>
-```
 </details>
 
 **2.部署 email worker**
 
-需要准备 Node 环境（推荐 18.x 及以上），并且需要安装 wrangler cli 并在本地登录 (登录时建议开启VPN)
+需要准备 Node 环境（推荐 18.x 及以上），并且需要安装 wrangler cli 并在本地登录，参考 https://developers.cloudflare.com/workers/wrangler/install-and-update (登录时建议开启VPN)
 
 ```bash
 # 安装 pnpm 
 npm install -g pnpm
-
-# 安装 wrangler cli, 参考 https://developers.cloudflare.com/workers/wrangler/install-and-update
-npm install wrangler --save-dev
 ```
 
 ```bash
