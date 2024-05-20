@@ -6,26 +6,9 @@ After registration, you will be prompted to create a database. I named it `vmail
 
 ![](https://img.inke.app/file/3773b481c78c9087140b1.png)
 
-Then, Create a table named `emails`. Select your database, you will see the "Edit Tables" button, click and enter.
-
-![](https://img.inke.app/file/d49086f9b450edd5a2cef.png)
-
-> ⚠️ Note: **There is a plus button in the upper left corner, and I tried to click it without any prompts or effects, so I used the cli provided by turso to initialize the table.**
-
-Cli documents: https://docs.turso.tech/cli/introduction
-
-For Linux (or mac/windows):
+Select your database, you will see the "Edit Table" button, click and enter, continue to click the "SQL Runner" button in the upper left corner, and insert the [SQL Script](https://github.com/oiov/vmail/blob/main/packages/database/drizzle/0000_sturdy_arclight.sql) Copy to Terminal Run:
 
 ```bash
-# Install (Remember to restart the terminal after installation)
-curl -sSfL https://get.tur.so/install.sh | bash
-
-# Authenticate
-turso auth login
-
-# Connect to your Turso database
-turso db shell <database-name>
-
 # Copy sql script to run on the terminal (packages/database/drizzle/0000_sturdy_arclight.sql)
 CREATE TABLE `emails` (
  `id` text PRIMARY KEY NOT NULL,
@@ -99,6 +82,8 @@ Ensure that the following environment variables (`.env.example`) are prepared an
 | EXPIRY_TIME            | Optional. default `86400`                                          | `86400`                                |
 | TURNSTILE_KEY          | Optional. Obtained from Cloudflare for website verification        | `1234567890`                           |
 | TURNSTILE_SECRET       | Optional. Obtained from Cloudflare for website verification        | `s3cr3t`                               |
+
+Get `TURNSTILE_KEY`、`TURNSTILE_SECRET` from https://dash.cloudflare.com/?to=/:account/turnstile
 
 **For Vercel:**
 

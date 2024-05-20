@@ -106,7 +106,7 @@ pnpm run deploy
 | TURNSTILE_KEY          | 可选，网站验证所需的 Turnstile Key    | `my-turnstile-key`          |
 | TURNSTILE_SECRET       | 可选，网站验证所需的 Turnstile Secret | `my-turnstile-secret`       |
 
-获取 `TURNSTILE_KEY`、`TURNSTILE_SECRET` 请前往 cloudflare 控制台 https://dash.cloudflare.com/[account-id]/turnstile
+获取 `TURNSTILE_KEY`、`TURNSTILE_SECRET` 请前往 cloudflare 控制台 https://dash.cloudflare.com/?to=/:account/turnstile
 
 **Vercel:** 
 
