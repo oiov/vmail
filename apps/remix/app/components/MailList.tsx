@@ -59,7 +59,7 @@ export function MailList(props: { mails: Email[] }) {
     queryKey: ["mails"],
     queryFn: fetchMails,
     initialData: props.mails,
-    refetchInterval: 10000,
+    refetchInterval: 20000, // refetch every 20 seconds
   });
 
   return (
@@ -83,10 +83,14 @@ export function MailList(props: { mails: Email[] }) {
                 queryKey: ["mails"],
               })
             }>
-            {data.length === 0 && <Lock className="size-6" />}
-            {data.length > 0 && (
-              <Refresh className="size-6 animate-spin hover:opacity-50 transition-all duration-300" />
-            )}
+            <Refresh
+              className={
+                isFetching
+                  ? "animate-spin"
+                  : "" +
+                    " size-6 hover:animate-spin active:opacity-20 transition-all duration-300"
+              }
+            />
           </button>
         </div>
 
