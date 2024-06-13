@@ -21,7 +21,7 @@ export default function Footer() {
       </Link>
       <Link
         className="text-gray-300 text-sm hover:text-gray-500 ml-1 hidden md:block"
-        to="https://status.vmail.dev"
+        to="https://status.wr.do"
         target="_blank">
         · Status
       </Link>
@@ -29,7 +29,7 @@ export default function Footer() {
         <Link to="/about">{t("About")}</Link>
         <Link to="/privacy">{t("Privacy")}</Link>
         <Link to="/terms">{t("Terms")}</Link>
-        <Link to="https://status.vmail.dev" target="_blank">
+        <Link to="https://status.wr.do" target="_blank">
           Status
         </Link>
       </div>
