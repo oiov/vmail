@@ -91,33 +91,33 @@ export const action: ActionFunction = async ({ request }) => {
       });
     }
   } else if (_action === "create") {
-    // if (siteKey) {
-    //   const response = formData.get("cf-turnstile-response");
-    //   if (!response) {
-    //     return {
-    //       error: "No captcha response",
-    //     };
-    //   }
-    //   const verifyEndpoint =
-    //     "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-    //   const secret = process.env.TURNSTILE_SECRET || "";
-    //   const resp = await fetch(verifyEndpoint, {
-    //     method: "POST",
-    //     body: JSON.stringify({
-    //       secret,
-    //       response,
-    //     }),
-    //     headers: {
-    //       "Content-Type": "application/json",
-    //     },
-    //   });
-    //   const data = await resp.json();
-    //   if (!data.success) {
-    //     return {
-    //       error: "Failed to verify captcha",
-    //     };
-    //   }
-    // }
+    if (siteKey) {
+      const response = formData.get("cf-turnstile-response");
+      if (!response) {
+        return {
+          error: "No captcha response",
+        };
+      }
+      const verifyEndpoint =
+        "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+      const secret = process.env.TURNSTILE_SECRET || "";
+      const resp = await fetch(verifyEndpoint, {
+        method: "POST",
+        body: JSON.stringify({
+          secret,
+          response,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await resp.json();
+      if (!data.success) {
+        return {
+          error: "Failed to verify captcha",
+        };
+      }
+    }
 
     const domains = (process.env.EMAIL_DOMAIN || "").split(",");
     if (domains.length === 0) {
