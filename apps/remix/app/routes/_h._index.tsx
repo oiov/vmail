@@ -24,7 +24,7 @@ import Clock from "~/components/icons/Clock";
 import Info from "~/components/icons/Info";
 
 import { useTranslation } from "react-i18next";
-import { useSenderModal } from "~/components/sender";
+// import { useSenderModal } from "~/components/sender";
 import { getRandomCharacter } from "lib/hooks/utlis";
 
 import { Toaster } from "react-hot-toast";
@@ -91,33 +91,33 @@ export const action: ActionFunction = async ({ request }) => {
       });
     }
   } else if (_action === "create") {
-    if (siteKey) {
-      const response = formData.get("cf-turnstile-response");
-      if (!response) {
-        return {
-          error: "No captcha response",
-        };
-      }
-      const verifyEndpoint =
-        "https://challenges.cloudflare.com/turnstile/v0/siteverify";
-      const secret = process.env.TURNSTILE_SECRET || "";
-      const resp = await fetch(verifyEndpoint, {
-        method: "POST",
-        body: JSON.stringify({
-          secret,
-          response,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      const data = await resp.json();
-      if (!data.success) {
-        return {
-          error: "Failed to verify captcha",
-        };
-      }
-    }
+    // if (siteKey) {
+    //   const response = formData.get("cf-turnstile-response");
+    //   if (!response) {
+    //     return {
+    //       error: "No captcha response",
+    //     };
+    //   }
+    //   const verifyEndpoint =
+    //     "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+    //   const secret = process.env.TURNSTILE_SECRET || "";
+    //   const resp = await fetch(verifyEndpoint, {
+    //     method: "POST",
+    //     body: JSON.stringify({
+    //       secret,
+    //       response,
+    //     }),
+    //     headers: {
+    //       "Content-Type": "application/json",
+    //     },
+    //   });
+    //   const data = await resp.json();
+    //   if (!data.success) {
+    //     return {
+    //       error: "Failed to verify captcha",
+    //     };
+    //   }
+    // }
 
     const domains = (process.env.EMAIL_DOMAIN || "").split(",");
     if (domains.length === 0) {
@@ -215,9 +215,9 @@ export default function Index() {
 
   const { t } = useTranslation();
 
-  const { SenderModal, setShowSenderModal } = useSenderModal(
-    loaderData.userMailbox
-  );
+  // const { SenderModal, setShowSenderModal } = useSenderModal(
+  //   loaderData.userMailbox
+  // );
 
   const { PasswordModal, setShowPasswordModal } = usePasswordModal(
     loaderData.mails[0]?.id
@@ -276,14 +276,14 @@ export default function Index() {
               {t("Stop")}
             </button>
 
-            <div className="text-sm text-gray-300 mt-4">
+            {/* <div className="text-sm text-gray-300 mt-4">
               {t("Vmail sender is beta now. ")}
               <span
                 onClick={() => setShowSenderModal(true)}
                 className="text-cyan-500 cursor-pointer">
                 {t("Try it")}.
               </span>
-            </div>
+            </div> */}
           </Form>
         )}
 
@@ -348,7 +348,7 @@ export default function Index() {
       <div className="w-full flex-1 overflow-hidden">
         <MailListWithQuery mails={loaderData.mails} />
       </div>
-      <SenderModal />
+      {/* <SenderModal /> */}
       <PasswordModal />
       <Toaster />
     </div>

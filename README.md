@@ -2,6 +2,7 @@
   <h1>𝐕𝐌𝐀𝐈𝐋.𝐃𝐄𝐕</h1>
   <p><a href="https://discord.gg/d68kWCBDEs">Discord</a> · <a href="https://github.com/oiov/vmail/blob/main/README_en.md">English</a> | 简体中文</p>
   <p>使用 Cloudflare email worker 实现的临时电子邮件服务</p>
+  <a href="https://trendshift.io/repositories/8681" target="_blank"><img src="https://trendshift.io/api/badge/repositories/8681" alt="yesmore%2Fvmail | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
   <!-- <img src="https://img.inke.app/file/beb0212f96c6cd37eaeb8.jpg"/> -->
 </div>
 
