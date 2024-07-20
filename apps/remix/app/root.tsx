@@ -44,6 +44,10 @@ export default function App() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        <script
+          defer
+          src="https://umami.oiov.dev/script.js"
+          data-website-id="4e48018a-ecd4-4d52-81ef-fcc771e981c5"></script>
         {/* Google Analytics */}
         <script
           async
