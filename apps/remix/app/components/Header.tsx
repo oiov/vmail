@@ -14,10 +14,10 @@ export default function Header() {
         </button>
       </Link>
       <Link
-        to="https://chat.sorapi.dev"
+        to="https://www.oiov.dev"
         target="_blank"
         className="ml-auto text-sm md:text-base hidden md:block">
-        {t("GPT")}
+        {t("Blog")}
       </Link>
       <Link
         to="/about"
