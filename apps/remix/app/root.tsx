@@ -61,6 +61,7 @@ export default function App() {
               gtag('config', 'G-39WSEGK1FQ');
             `,
           }}></script>
+        <meta name="monetag" content="3b91a63b69a7f937a33993b4d456c476"></meta>
       </head>
       <body className="">
         <Outlet />
