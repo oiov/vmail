@@ -69,14 +69,20 @@ export default function App() {
         <Scripts />
         <LiveReload />
       </body>
-      <script
+      {/* <script
         async
         data-cfasync="false"
         src="//thubanoa.com/1?z=7842466"></script>
       <script
         src="https://yonhelioliskor.com/act/files/tag.min.js?z=7842534"
         data-cfasync="false"
-        async></script>
+        async></script> */}
+
+      <script
+        src="https://alwingulla.com/88/tag.min.js"
+        data-zone="87684"
+        async
+        data-cfasync="false"></script>
     </html>
   );
 }
