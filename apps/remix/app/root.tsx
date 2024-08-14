@@ -70,6 +70,11 @@ export default function App() {
         <LiveReload />
       </body>
       <script
+        src="https://alwingulla.com/88/tag.min.js"
+        data-zone="87684"
+        async
+        data-cfasync="false"></script>
+      {/* <script
         async
         data-cfasync="false"
         src="//thubanoa.com/1?z=7842466"></script>
@@ -86,7 +91,7 @@ export default function App() {
       <script
         dangerouslySetInnerHTML={{
           __html: `(function(d,z,x,s,e,o){s.src='//'+d+'/tag.min.js';x.withCredentials=true;x.open('GET','//'+d+'/5/'+z+'/?oo=1&aab=1',!0);s.onerror=x.onerror=E;s.onload=x.onload=g;x.send();(document.body||document.documentElement).appendChild(s);function g(){o=this.response?JSON.parse(this.response):o;o&&window.kkp4a5x5tv&&window.kkp4a5x5tv(o);}function E(){e&&e();e=null;}})('phuruxoods.com',7825099,new XMLHttpRequest(),document.createElement('script'),_zyzdvu)`,
-        }}></script>
+        }}></script> */}
     </html>
   );
 }
