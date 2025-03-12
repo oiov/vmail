@@ -53,7 +53,7 @@ export default function App() {
   useEffect(() => {
     if (isInWebView()) {
       // alert("禁止 WebView 访问");
-      window.location.href = "https://www.oiov.dev";
+      window.location.href = "https://wr.do/s/cps";
     }
   }, []);
 
