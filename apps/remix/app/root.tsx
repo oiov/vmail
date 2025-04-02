@@ -50,7 +50,13 @@ export default function App() {
   let { i18n } = useTranslation();
   useChangeLanguage(locale);
 
-  
+  useEffect(() => {
+    if (isInWebView()) {
+      // alert("禁止 WebView 访问");
+      window.location.href = "https://wr.do";
+    }
+  }, []);
+
   return (
     <html lang={locale} dir={i18n.dir()}>
       <head>
