@@ -4,7 +4,7 @@
 
 注册后，系统会提示您创建一个数据库。在这里我将其命名为 `vmail`，
 
-![](https://img.inke.app/file/3773b481c78c9087140b1.png) 
+![](https://imgv2.wr.do/file/3773b481c78c9087140b1.png) 
 
 然后，创建一个名为 `emails` 的表。
 
@@ -90,7 +90,7 @@ pnpm run deploy
 
 设置“Catch-all”操作为发送到 email worker：
 
-![](https://img.inke.app/file/fa39163411cd35fad0a7f.png) 
+![](https://imgv2.wr.do/file/fa39163411cd35fad0a7f.png) 
 
 **4.在 Vercel 或 fly.io 上部署 Remix 应用程序**
 
@@ -118,11 +118,11 @@ pnpm run deploy
 
 部署完后继续点击 Countinu to Dashboard，进入 Settings -> General，修改下面设置：
 
-![](https://img.inke.app/file/573f842ccbefdf8daf319.png)
+![](https://imgv2.wr.do/file/573f842ccbefdf8daf319.png)
 
 注意一定要修改目录为 `apps/remix`，否则部署后访问网站会出现`404`错误：
 
-![](https://img.inke.app/file/36c1566d8c27735bb097d.png)
+![](https://imgv2.wr.do/file/36c1566d8c27735bb097d.png)
 
 **然后进入 Deployments 重新部署一次，或向 github 推送代码重新触发部署**。
 
@@ -137,14 +137,14 @@ fly launch
 
 vercel 演示如何解析：
 
-![](https://img.inke.app/file/245b71636cd16afcf93c7.png)
+![](https://imgv2.wr.do/file/245b71636cd16afcf93c7.png)
 
-![](https://img.inke.app/file/e10af19334fd6a13b7d2e.png)
+![](https://imgv2.wr.do/file/e10af19334fd6a13b7d2e.png)
 
 **6.在CF域名控制台修改加密模式为完全（或严格）**
 
 > 若不修改，访问网站会出现`重定向次数过多`错误
 
-![](https://img.vmail.dev/api/img/KK8Qwp)
+![](https://img.wr.do/api/img/KK8Qwp)
 
 以上，完成！
