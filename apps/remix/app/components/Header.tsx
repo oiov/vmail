@@ -14,10 +14,10 @@ export default function Header() {
         </button>
       </Link>
       <Link
-        to="https://www.oiov.dev"
+        to="https://wr.do"
         target="_blank"
         className="ml-auto text-sm md:text-base hidden md:block">
-        {t("Blog")}
+        {t("Pro")}
       </Link>
       <Link
         to="/about"
