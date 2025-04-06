@@ -6,6 +6,8 @@
   <!-- <img src="https://img.inke.app/file/beb0212f96c6cd37eaeb8.jpg"/> -->
 </div>
 
+[WR.DO](https://wr.do) 临时邮箱已上线，与 Vmail 同款原理，使用 CF 转发邮件，并支持发件，支持多域名。仓库：[oiov/wr.do](https://github.com/oiov/wr.do)，体验地址: [wr.do/emails](https://wr.do/emails)
+
 ## 🌈 特点
 
 - 🎯 隐私友好，无需注册，开箱即用

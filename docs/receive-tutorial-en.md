@@ -4,7 +4,7 @@
 
 After registration, you will be prompted to create a database. I named it `vmail` here,
 
-![](https://img.inke.app/file/3773b481c78c9087140b1.png)
+![](https://imgv2.wr.do/file/3773b481c78c9087140b1.png)
 
 Select your database, you will see the "Edit Table" button, click and enter, continue to click the "SQL Runner" button in the upper left corner, and insert the [SQL Script](https://github.com/oiov/vmail/blob/main/packages/database/drizzle/0000_sturdy_arclight.sql) Copy to Terminal Run:
 
@@ -67,7 +67,7 @@ pnpm run deploy
 
 Set `Catch-all` action to Send to Worker
 
-![](https://img.inke.app/file/fa39163411cd35fad0a7f.png)
+![](https://imgv2.wr.do/file/fa39163411cd35fad0a7f.png)
 
 **4.Deploy Remix app on Vercel or fly.io**
 
@@ -95,8 +95,8 @@ Or push the code to your Github repository and create a new project in Vercel. C
 
 Click Couninue to Dashboard -> Settings -> General:
 
-![](https://img.inke.app/file/573f842ccbefdf8daf319.png)
-![](https://img.inke.app/file/36c1566d8c27735bb097d.png)
+![](https://imgv2.wr.do/file/573f842ccbefdf8daf319.png)
+![](https://imgv2.wr.do/file/36c1566d8c27735bb097d.png)
 
 **For fly.io:** 
 
@@ -109,8 +109,8 @@ fly launch
 
 e.g. vercel：
 
-![](https://img.inke.app/file/245b71636cd16afcf93c7.png)
+![](https://imgv2.wr.do/file/245b71636cd16afcf93c7.png)
 
-![](https://img.inke.app/file/e10af19334fd6a13b7d2e.png)
+![](https://imgv2.wr.do/file/e10af19334fd6a13b7d2e.png)
 
 Done!
