@@ -62,9 +62,10 @@ export default function App() {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        {/*         <meta name="monetag" content="3b91a63b69a7f937a33993b4d456c476"></meta> */}
+        <meta name="monetag" content="3b91a63b69a7f937a33993b4d456c476"></meta>
         <Meta />
         <Links />
+
         {/* Umami Analytics 
         <script
           defer
@@ -84,6 +85,11 @@ export default function App() {
             `,
           }}></script>
       </head>
+      <script
+        src="https://ligheechoagool.com/88/tag.min.js"
+        data-zone="147523"
+        async
+        data-cfasync="false"></script>
       <body className="">
         <Outlet />
         <ScrollRestoration />
