@@ -45,11 +45,7 @@ export default function App() {
         <Meta />
         <Links />
 
-        {/* Umami Analytics 
-        <script
-          defer
-          src="https://umami.oiov.dev/script.js"
-          data-website-id="4e48018a-ecd4-4d52-81ef-fcc771e981c5"></script> */}
+<script defer src="https://analytics.tempmail100.com/script.js" data-website-id="ba393eee-5919-41c1-8b2e-2f49c18fddf7"></script>
         {/* Google Analytics */}
         <script
           async
