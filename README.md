@@ -58,10 +58,6 @@ pnpm run remix:dev
 
 运行前复制 `apps/remix/.env.example` 文件并重命名为 `apps/remix/.env`，填写必要的环境变量。
 
-## Deploy with Edgeone
-
-[![使用 EdgeOne Pages 部署](https://cdnstatic.tencentcs.com/edgeone/pages/deploy.svg)](https://edgeone.ai/pages/new?repository-url=https%3A%2F%2Fgithub.com%2Foiov%2Fvmail)
-
 ## 🌈 下一步计划
 
 - [ ] 使用 [Cloudflare D1](https://developers.cloudflare.com/d1/) 数据库重构，简化部署流程
@@ -87,5 +83,3 @@ GNU General Public License v3.0
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=oiov/vmail&type=Date)](https://star-history.com/#oiov/vmail&Date)
-
-[![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Powered by DartNode - Free VPS for Open Source")
