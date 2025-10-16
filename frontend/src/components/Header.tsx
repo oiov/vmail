@@ -1,48 +1,52 @@
-import { Link } from "@remix-run/react";
-import { VmailLogo } from "./icons/vmail";
-import { useTranslation } from "react-i18next";
-import GithubPlat from "./icons/GitHubPlat";
+import { Link, NavLink } from 'react-router-dom'; // <--- 关键修正：从 react-router-dom 导入
+import { Vmail } from './icons/vmail'; // 假设 vmail 图标组件已迁移
 
-export default function Header() {
-  const { t } = useTranslation();
+// NavLink 的样式函数，用于激活状态
+const getNavLinkClass = ({ isActive }: { isActive: boolean }) => {
+  return `px-3 py-2 rounded-md text-sm font-medium ${
+    isActive
+      ? 'bg-gray-900 text-white'
+      : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+  }`;
+};
+
+export function Header() {
   return (
-    <div className="fixed top-0 z-20 h-20 w-full px-5 backdrop-blur-xl md:px-10 text-white flex items-center justify-between first-letter:shadow-sm">
-      <Link to="/" className="font-bold flex items-center justify-center gap-3">
-        <VmailLogo />
-        <button className="cool-btn">
-          <span>VMAIL.DEV</span>
-        </button>
-      </Link>
-      <Link
-        to="https://wr.do"
-        target="_blank"
-        className="ml-auto text-sm md:text-base hidden md:block">
-        {t("Pro")}
-      </Link>
-      <Link
-        to="/about"
-        className="ml-3 md:ml-8 text-sm md:text-base hidden md:block">
-        {t("About")}
-      </Link>
-      <Link
-        to="/privacy"
-        className="ml-3 md:ml-8 text-sm md:text-base hidden md:block">
-        {t("Privacy")}
-      </Link>
-      <Link
-        to="/terms"
-        className="ml-3 md:ml-8 text-sm md:text-base hidden md:block">
-        {t("Terms")}
-      </Link>
-      <Link
-        className="ml-3 md:ml-8"
-        target="_blank"
-        to="https://github.com/oiov/vmail">
-        <button className="whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-background hover:bg-accent hover:text-accent-foreground text-md flex h-[32px] w-[85px] cursor-pointer items-center justify-center rounded-md border-2 p-2 font-semibold hover:opacity-50">
-          <GithubPlat />
-          <div className="ml-1.5 text-sm">Star</div>
-        </button>
-      </Link>
-    </div>
+    <header className="bg-gray-800 text-white">
+      <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          <div className="flex items-center">
+            <Link to="/" className="flex-shrink-0">
+              <Vmail className="h-8 w-8" />
+            </Link>
+            <div className="hidden md:block">
+              <div className="ml-10 flex items-baseline space-x-4">
+                {/* 使用 react-router-dom 的 NavLink */}
+                <NavLink to="/" className={getNavLinkClass} end>
+                  收件箱
+                </NavLink>
+                <NavLink to="/about" className={getNavLinkClass}>
+                  关于
+                </NavLink>
+                <NavLink to="/privacy" className={getNavLinkClass}>
+                  隐私政策
+                </NavLink>
+              </div>
+            </div>
+          </div>
+          <div className="hidden md:block">
+            {/* 可以添加其他元素，例如 GitHub 链接 */}
+            <a 
+              href="https://github.com/oiov/vmail" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-gray-300 hover:text-white"
+            >
+              GitHub
+            </a>
+          </div>
+        </div>
+      </nav>
+    </header>
   );
 }
