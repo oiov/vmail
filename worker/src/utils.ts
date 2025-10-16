@@ -1,12 +1,4 @@
-/**
- * 获取一个随机字符
- * @returns {string} 从 "abcdefghijklmnopqrstuvwxyz." 中随机选择一个字符
- */
-export function getRandomCharacter(): string {
-  const characters = "abcdefghijklmnopqrstuvwxyz.";
-  return characters.charAt(Math.floor(Math.random() * characters.length));
-}
-
+// worker/src/utils.ts
 /**
  * 使用密钥对文本进行简单的 XOR 加密。
  * @param text 要加密的文本。

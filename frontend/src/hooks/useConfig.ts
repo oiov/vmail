@@ -4,6 +4,8 @@ import { createContext, useContext } from 'react';
 export interface AppConfig {
   emailDomain: string;
   turnstileKey: string;
+  // feat: 添加 cookiesSecret 到配置中，以便前端加密时使用
+  cookiesSecret: string; 
 }
 
 // 创建 React Context
