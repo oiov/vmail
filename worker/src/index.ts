@@ -4,9 +4,10 @@ import { cors } from 'hono/cors';
 // 路径修正：使用相对路径并导入正确的函数
 // feat: 导入 getEmailByPassword 函数
 import { deleteEmails, findEmailById, getEmailByPassword, getEmailsByMessageTo, insertEmail, deleteExpiredEmails } from '../../packages/database/dao';
+// fix: 修正数据库导入路径
 import { getD1DB } from '../../packages/database/db';
 import { InsertEmail, insertEmailSchema } from '../../packages/database/schema';
-import { nanoid } from 'nanoid/non-secure';
+import { nanoid } from 'non-secure';
 import PostalMime from 'postal-mime';
 
 // 定义 Cloudflare 绑定和环境变量的类型
@@ -27,48 +28,52 @@ const app = new Hono<{ Bindings: Env }>();
 // 配置 CORS
 app.use('/api/*', cors());
 
-// fix: 修复重复读取请求体的问题，并增强健壮性
-// Turnstile (人机验证) 中间件
+// fix: 增强请求体验证逻辑。
+// 此前的实现方式在请求体解析失败时会静默处理，导致后续处理流程因缺少数据而返回一个模糊的400错误。
+// 新的实现方式会严格校验请求体，如果解析为JSON失败（例如请求体为空或格式错误），将立即返回一个明确的400错误，从而阻止无效请求继续执行。
 const turnstile = async (c, next) => {
-  let body: any = {}; // 默认值为空对象
+  let body: any;
   try {
-    // 尝试读取请求体文本。如果请求体为空，.text() 会返回空字符串，不会像 .json() 那样报错。
-    const rawBody = await c.req.text();
-    if (rawBody) {
-      // 如果请求体不为空，则解析为 JSON
-      body = JSON.parse(rawBody);
-    }
+    // 尝试将请求体解析为JSON。如果失败，将抛出异常。
+    body = await c.req.json();
   } catch (e) {
-    // 如果 JSON.parse 失败，说明请求体不是有效的 JSON
-    // 这种情况我们依然继续，因为 token 可能在 header 中。body 维持为空对象。
-    console.error("无法将请求体解析为 JSON:", e);
+    // 捕获异常，记录错误日志，并返回一个清晰的错误响应。
+    console.error("请求体解析为JSON时出错:", e);
+    return c.json({ message: '错误的请求：请求体无效或为空。' }, 400);
   }
 
-  // 将解析后的 body (或空对象) 存入上下文，供后续的处理器使用
+  // 将解析后的 body 存入上下文，以便下游处理器直接使用，避免重复解析。
   c.set('parsedBody', body);
 
   const token = body.token || c.req.header('cf-turnstile-token');
   const ip = c.req.header('CF-Connecting-IP');
 
   if (!token) {
-    return c.json({ message: 'token is required' }, 400);
+    return c.json({ message: '缺少 turnstile token' }, 400);
   }
 
-  const formData = new FormData();
-  formData.append('secret', c.env.TURNSTILE_SECRET);
-  formData.append('response', token);
-  formData.append('remoteip', ip);
+  // fix: 切换到 application/x-www-form-urlencoded 格式来发送验证请求。
+  // 这可以提高兼容性，并可能解决由 FormData 编码引起的边界问题。
+  const params = new URLSearchParams();
+  params.append('secret', c.env.TURNSTILE_SECRET);
+  params.append('response', token);
+  if (ip) {
+    params.append('remoteip', ip);
+  }
 
   const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
     method: 'POST',
-    body: formData,
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: params.toString(),
   });
 
   const data = await res.json();
   if (!data.success) {
     // feat: 增加详细的错误日志，方便调试
     console.error("Turnstile 验证失败:", data['error-codes']);
-    return c.json({ message: 'token is invalid' }, 400);
+    return c.json({ message: 'token 无效' }, 400);
   }
 
   await next();
@@ -77,18 +82,33 @@ const turnstile = async (c, next) => {
 // API 路由组
 const api = app.basePath('/api');
 
-// 获取邮件列表
-api.post('/emails', turnstile, async (c) => {
+// feat: 新增一个专门用于人机验证的接口。
+// 前端应在生成邮箱地址前先调用此接口。
+api.post('/verify', turnstile, async (c) => {
+  // turnstile 中间件已经完成了验证工作。
+  // 如果代码能执行到这里，说明验证成功。
+  return c.json({ success: true });
+});
+
+// fix: 移除获取邮件列表接口的 turnstile 验证。
+// 这个接口现在是公开的，刷新收件箱时可以直接调用，不再需要重复验证。
+api.post('/emails', async (c) => {
   const db = getD1DB(c.env.DB);
-  // fix: 从上下文中获取已解析的请求体，并增加健壮性处理
-  const { address } = c.get('parsedBody') || {};
+  let body: any;
+  try {
+    body = await c.req.json();
+  } catch (e) {
+    return c.json({ message: '错误的请求：请求体无效或为空。' }, 400);
+  }
+  const address = body?.address;
+
   if (!address) {
     return c.json({ message: 'address is required' }, 400);
   }
-  // 函数调用修正：使用 getEmailsByMessageTo 函数
   const emails = await getEmailsByMessageTo(db, address as string);
   return c.json(emails);
 });
+
 
 // 获取单封邮件详情
 api.get('/emails/:id', async (c) => {
@@ -102,11 +122,12 @@ api.get('/emails/:id', async (c) => {
   return c.json(email);
 });
 
-// 删除邮件
+// 删除邮件接口仍然保留 turnstile 验证，以防滥用
 api.post('/delete-emails', turnstile, async (c) => {
     const db = getD1DB(c.env.DB);
-    // fix: 从上下文中获取已解析的请求体，并增加健壮性处理
-    const { ids } = c.get('parsedBody') || {};
+    // fix: 从上下文中获取已解析的请求体，并进行安全访问
+    const body = c.get('parsedBody');
+    const ids = body?.ids;
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
         return c.json({ message: 'ids are required' }, 400);
     }
@@ -114,11 +135,12 @@ api.post('/delete-emails', turnstile, async (c) => {
     return c.json(result);
 });
 
-// feat: 添加登录路由
+// 登录接口同样保留 turnstile 验证
 api.post('/login', turnstile, async (c) => {
   const db = getD1DB(c.env.DB);
-  // fix: 从上下文中获取已解析的请求体，并增加健壮性处理
-  const { password } = c.get('parsedBody') || {};
+  // fix: 从上下文中获取已解析的请求体，并进行安全访问
+  const body = c.get('parsedBody');
+  const password = body?.password;
   if (!password) {
     return c.json({ message: 'Password is required' }, 400);
   }

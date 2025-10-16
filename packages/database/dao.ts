@@ -1,8 +1,9 @@
 import { count, desc, eq, and, inArray, lt } from "drizzle-orm";
-import { LibSQLDatabase } from "drizzle-orm/libsql";
+// fix: 将数据库类型从 LibSQLDatabase 更改为 DrizzleD1Database，以匹配 Cloudflare D1
+import { DrizzleD1Database } from "drizzle-orm/d1";
 import { emails, InsertEmail } from "./schema";
 
-export async function insertEmail(db: LibSQLDatabase, email: InsertEmail) {
+export async function insertEmail(db: DrizzleD1Database, email: InsertEmail) {
   try {
     await db.insert(emails).values(email).execute();
   } catch (e) {
@@ -10,7 +11,7 @@ export async function insertEmail(db: LibSQLDatabase, email: InsertEmail) {
   }
 }
 
-export async function getEmails(db: LibSQLDatabase) {
+export async function getEmails(db: DrizzleD1Database) {
   try {
     return await db.select().from(emails).execute();
   } catch (e) {
@@ -19,7 +20,7 @@ export async function getEmails(db: LibSQLDatabase) {
 }
 
 // 函数重命名：将 getEmail 重命名为 findEmailById 以匹配 worker 中的调用
-export async function findEmailById(db: LibSQLDatabase, id: string) {
+export async function findEmailById(db: DrizzleD1Database, id: string) {
   try {
     const result = await db
       .select()
@@ -35,7 +36,7 @@ export async function findEmailById(db: LibSQLDatabase, id: string) {
   }
 }
 
-export async function getEmailByPassword(db: LibSQLDatabase, id: string) {
+export async function getEmailByPassword(db: DrizzleD1Database, id: string) {
   try {
     const result = await db
       .select({ messageTo: emails.messageTo })
@@ -50,7 +51,7 @@ export async function getEmailByPassword(db: LibSQLDatabase, id: string) {
 }
 
 export async function getEmailsByMessageTo(
-  db: LibSQLDatabase,
+  db: DrizzleD1Database,
   messageTo: string
 ) {
   try {
@@ -65,7 +66,7 @@ export async function getEmailsByMessageTo(
   }
 }
 
-export async function getEmailsCount(db: LibSQLDatabase) {
+export async function getEmailsCount(db: DrizzleD1Database) {
   try {
     const res = await db.select({ count: count() }).from(emails);
     return res[0]?.count;
@@ -75,7 +76,7 @@ export async function getEmailsCount(db: LibSQLDatabase) {
 }
 
 // 新增函数：添加 worker 中缺失的 deleteEmails 函数
-export async function deleteEmails(db: LibSQLDatabase, ids: string[]) {
+export async function deleteEmails(db: DrizzleD1Database, ids: string[]) {
     if (!ids || ids.length === 0) {
         return { count: 0 };
     }
@@ -94,7 +95,7 @@ export async function deleteEmails(db: LibSQLDatabase, ids: string[]) {
  * @param expirationTime 一个 Date 对象，表示过期时间点。
  * @returns 返回一个包含已删除邮件数量的对象，或在出错时返回 { count: 0 }。
  */
-export async function deleteExpiredEmails(db: LibSQLDatabase, expirationTime: Date) {
+export async function deleteExpiredEmails(db: DrizzleD1Database, expirationTime: Date) {
     try {
         // 使用Drizzle的lt（小于）操作符来比较createdAt字段和expirationTime
         const result = await db.delete(emails).where(lt(emails.createdAt, expirationTime)).execute();
