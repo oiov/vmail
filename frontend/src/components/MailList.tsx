@@ -5,7 +5,7 @@ import { zhCN } from 'date-fns/locale';
 import type { Email } from 'database';
 
 // 图标导入
-import MailIcon from './icons/MailIcon.tsx'; // 修复：将命名导入 { MailIcon } 改为默认导入 MailIcon
+import MailIcon from './icons/MailIcon.tsx';
 import RefreshIcon from './icons/RefreshIcon.tsx';
 import Loader from './icons/Loader.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
@@ -73,12 +73,9 @@ export function MailList({ emails, isLoading, onDelete, isDeleting, onRefresh, s
               className="p-1 rounded"
               title="refresh"
               onClick={onRefresh}>
+              {/* fix: 为刷新图标添加持续旋转动画 */}
               <RefreshIcon
-                className={
-                  isLoading
-                    ? "animate-spin"
-                    : "size-6 hover:animate-spin active:opacity-20 transition-all duration-300"
-                }
+                className={"animate-spin size-6"}
               />
             </button>
         </div>
@@ -134,4 +131,3 @@ export function MailList({ emails, isLoading, onDelete, isDeleting, onRefresh, s
     </div>
   );
 }
-
