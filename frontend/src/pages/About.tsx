@@ -1,11 +1,8 @@
 // 这个文件内容直接从您的 _h.about.tsx 迁移而来
 export function About() {
   return (
-    <div className="mx-10 mt-24 text-white">
+    <div className="text-black">
       <div className="max-w-[1400px] ">
-        <h1 className="text-4xl font-bold" id="about">
-          About{" "}
-        </h1>
         <p className="mt-8">
           <strong>Vmail.DEV </strong> is a Virtual temporary email service.{" "}
         </p>

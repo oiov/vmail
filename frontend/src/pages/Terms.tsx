@@ -1,11 +1,8 @@
 // 这个文件内容直接从您的 _h.terms.tsx 迁移而来
 export function Terms() {
   return (
-    <div className="mx-10 mt-24 text-white">
+    <div className="text-black">
       <div className="max-w-[1400px] ">
-        <h1 className="text-4xl font-bold" id="about">
-          Terms of Service
-        </h1>
         <p className="mt-8">
           Welcome to Vmail.DEV! These Terms of Service ("Terms") govern your
           access to and use of our website and services. By accessing or using
