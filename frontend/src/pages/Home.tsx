@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Turnstile } from '@marsidev/react-turnstile';
 import randomName from "@scaleway/random-name";
@@ -15,13 +15,14 @@ import { getRandomCharacter } from '../lib/utlis.ts';
 
 // feat: 导入密码模态框和相关 hook
 import { usePasswordModal } from '../components/password.tsx';
-import PasswordIcon from '../components/icons/Password.tsx'; // 假设你有一个密码图标
+import PasswordIcon from '../components/icons/Password.tsx'; 
 
 // 图标导入
 import ShieldCheck from "../components/icons/ShieldCheck.tsx";
 import Cloudflare from "../components/icons/Cloudflare.tsx";
 import Clock from "../components/icons/Clock.tsx";
 import Info from "../components/icons/Info.tsx";
+import Close from '../components/icons/Close.tsx';
 
 // refactor: 将导入从 'database' 包更改为本地的类型定义文件
 import type { Email } from '../database_types.ts';
@@ -40,6 +41,9 @@ export function Home() {
   // feat: 初始化密码模态框
   const { PasswordModal, setShowPasswordModal } = usePasswordModal();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  
+  // feat: 新增状态来跟踪密码通知是否已显示
+  const [passwordNotificationShown, setPasswordNotificationShown] = useState(false);
 
   // 使用 React Query 获取邮件列表
   const { data: emails = [], isLoading, isFetching, refetch } = useQuery<Email[]>({
@@ -56,6 +60,72 @@ export function Home() {
     // 失败后不自动重试
     retry: false,
   });
+
+  // feat: 使用useEffect来检测新邮件并显示密码通知
+  const prevEmailsLength = useRef(emails.length);
+  useEffect(() => {
+    // 检查邮箱列表是否从空变为非空，且通知未曾显示
+    if (prevEmailsLength.current === 0 && emails.length > 0 && !passwordNotificationShown && address) {
+      // 邮件按时间倒序排列，所以第一封邮件是数组的最后一项
+      const firstEmail = emails[emails.length - 1];
+      const password = firstEmail.id;
+
+      toast.custom(
+        (toastInstance) => (
+          <div
+            className={`max-w-md w-full bg-slate-800 text-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 transition-all duration-300 ${
+              toastInstance.visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            }`}
+          >
+            <div className="flex-1 w-0 p-4">
+              <div className="flex items-start">
+                <div className="flex-shrink-0 pt-0.5">
+                  <PasswordIcon className="h-8 w-8 text-cyan-400" />
+                </div>
+                <div className="ml-3 flex-1">
+                  {/* style: 使用现有翻译作为标题，并调整样式 */}
+                  <p className="text-sm font-medium text-gray-100">
+                    {t('Save password')}
+                  </p>
+                  <div className="mt-1 flex items-center text-sm text-gray-300 bg-slate-700 px-2 py-1 rounded">
+                    <span className="truncate flex-1 font-mono">{password}</span>
+                    <CopyButton text={password} className="p-1" />
+                  </div>
+                  <p className="mt-2 text-xs text-yellow-400">
+                    {t("Remember your password, otherwise your email will expire and cannot be retrieved")}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex border-l border-gray-700">
+              <button
+                onClick={() => toast.dismiss(toastInstance.id)}
+                className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-cyan-400 hover:text-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              >
+                关闭
+              </button>
+            </div>
+          </div>
+        ),
+        {
+          id: 'password-notification', // 防止重复通知
+          duration: Infinity, // 持续显示直到用户关闭
+          position: 'bottom-center',
+        }
+      );
+      setPasswordNotificationShown(true);
+    }
+
+    // 当用户停止使用邮箱时，重置状态并关闭通知
+    if (!address) {
+      setPasswordNotificationShown(false);
+      toast.dismiss('password-notification');
+    }
+
+    // 更新上一次的邮件数量，用于下一次渲染时比较
+    prevEmailsLength.current = emails.length;
+    // fix: 移除 t 函数作为依赖项，防止刷新时页面崩溃
+  }, [emails, address, passwordNotificationShown]);
 
   // 创建新邮箱地址的处理函数
   const handleCreateAddress = () => {
