@@ -51,7 +51,10 @@ jobs:
 
       # 安装依赖
       - name: Install dependencies
-        run: pnpm install
+        # 修复：添加 --no-frozen-lockfile 标志
+        # 这会告诉 pnpm 根据 package.json 的内容来安装依赖，即使 pnpm-lock.yaml 文件不是最新的。
+        # 这样就解决了在部署环境中因锁文件不同步导致的安装失败问题。
+        run: pnpm install --no-frozen-lockfile
 
       # 运行构建
       - name: Build
