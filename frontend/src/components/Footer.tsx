@@ -1,44 +1,63 @@
-import { Link } from 'react-router-dom'; // <--- 关键修正
-import Cloudflare from './icons/Cloudflare'; // <--- 关键修正：修复了导入方式
-import GitHubPlat from './icons/GitHubPlat';
+import { Link } from "react-router-dom";
+import Twitter from "./icons/Twitter.tsx";
+import GitHub from "./icons/GitHub.tsx";
+import MailIcon from "./icons/MailIcon.tsx";
+import WrdoLogo from "./icons/Wrdo.tsx";
 
+/**
+ * 网站的页脚组件
+ */
 export function Footer() {
-  const year = new Date().getFullYear();
-
   return (
-    <footer className="bg-gray-800 text-white mt-8">
-      <div className="container mx-auto px-4 py-6 text-center">
-        <div className="flex justify-center items-center space-x-4 mb-4">
-          <a
-            href="https://github.com/oiov/vmail"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-gray-400"
-          >
-            <GitHubPlat className="w-6 h-6" />
-          </a>
-          <a
-            href="https://www.cloudflare.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hover:text-gray-400"
-          >
-            <Cloudflare className="w-6 h-6" />
-          </a>
-        </div>
-        <p className="text-sm">
-          &copy; {year} vMail. All rights reserved.
-        </p>
-        <div className="text-sm mt-2 space-x-4">
-          {/* 使用 react-router-dom 的 Link */}
-          <Link to="/about" className="hover:underline">
-            关于
-          </Link>
-          <Link to="/privacy" className="hover:underline">
-            隐私政策
-          </Link>
-        </div>
+    <div className="text-white w-full mt-auto flex flex-col items-center justify-between px-5 pt-16 mb-10 md:px-10 mx-auto sm:flex-row">
+      <Link to="/" className="text-xl font-black leading-none select-none logo">
+        VMAIL.DEV
+      </Link>{" "}
+      <p className="mt-4 text-sm text-gray-400 sm:ml-4 sm:pl-4 sm:border-l sm:border-gray-200 sm:mt-0">
+        © 2024 Products of{" "}
+        <a
+          className="font-semibold underline hover:text-gray-600"
+          href="https://www.oiov.dev"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          oiov
+        </a>
+        .
+      </p>
+      <div className="inline-flex justify-center mt-4 space-x-5 sm:ml-auto sm:mt-0 sm:justify-start">
+        {/* 社交媒体和联系方式链接 */}
+        <a
+          href="https://wr.do"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="WR.DO"
+          className="text-gray-400 hover:text-gray-500  scale-[1.2]">
+          <WrdoLogo className="w-6 h-6" />
+        </a>
+        <a
+          href="mailto:hi@oiov.dev"
+          title="Email"
+          className="text-gray-400 hover:text-gray-500">
+          <MailIcon className="w-6 h-6" />
+        </a>
+        <a
+          href="https://twitter.com/yesmoree"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Twitter"
+          className="text-gray-400 hover:text-gray-500">
+          <Twitter />
+        </a>
+        <a
+          href="https://github.com/oiov/vmail"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Github"
+          className="text-gray-400 hover:text-gray-500">
+          <GitHub />
+        </a>
       </div>
-    </footer>
+    </div>
   );
 }

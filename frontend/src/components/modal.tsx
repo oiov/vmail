@@ -1,82 +1,63 @@
-"use client";
+import { Link } from "react-router-dom";
+import Twitter from "./icons/Twitter.tsx";
+import GitHub from "./icons/GitHub.tsx";
+import MailIcon from "./icons/MailIcon.tsx";
+import WrdoLogo from "./icons/Wrdo.tsx";
 
-import {
-  Dispatch,
-  SetStateAction,
-  useCallback,
-  useEffect,
-  useRef,
-} from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import Leaflet from "./leaflet";
-import useWindowSize from "../../lib/hooks/use-window-size";
-
-export default function Modal({
-  children,
-  showModal,
-  setShowModal,
-  showBlur = true,
-}: {
-  children: React.ReactNode;
-  showModal: boolean;
-  setShowModal: Dispatch<SetStateAction<boolean>>;
-  showBlur?: boolean;
-}) {
-  const desktopModalRef = useRef(null);
-
-  const onKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setShowModal(false);
-      }
-    },
-    [setShowModal]
-  );
-
-  useEffect(() => {
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [onKeyDown]);
-
-  const { isMobile, isDesktop } = useWindowSize();
-
+/**
+ * 网站的页脚组件
+ */
+export function Footer() {
   return (
-    <AnimatePresence>
-      {showModal && (
-        <>
-          {isMobile && (
-            <Leaflet setShow={setShowModal} showBlur={showBlur}>
-              {children}
-            </Leaflet>
-          )}
-          {isDesktop && showBlur && (
-            <>
-              <motion.div
-                ref={desktopModalRef}
-                key="desktop-modal"
-                className="fixed inset-0 z-[1000] min-h-screen flex-col items-center justify-center md:flex"
-                initial={{ scale: 0.95 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0.95 }}
-                onMouseDown={(e) => {
-                  if (desktopModalRef.current === e.target) {
-                    setShowModal(false);
-                  }
-                }}>
-                {children}
-              </motion.div>
-              <motion.div
-                key="desktop-backdrop"
-                className="fixed inset-0 z-30 bg-gray-100 bg-opacity-10 backdrop-blur"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowModal(false)}
-              />
-            </>
-          )}
-        </>
-      )}
-    </AnimatePresence>
+    <div className="text-white w-full mt-auto flex flex-col items-center justify-between px-5 pt-16 mb-10 md:px-10 mx-auto sm:flex-row">
+      <Link to="/" className="text-xl font-black leading-none select-none logo">
+        VMAIL.DEV
+      </Link>{" "}
+      <p className="mt-4 text-sm text-gray-400 sm:ml-4 sm:pl-4 sm:border-l sm:border-gray-200 sm:mt-0">
+        © 2024 Products of{" "}
+        <a
+          className="font-semibold underline hover:text-gray-600"
+          href="https://www.oiov.dev"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          oiov
+        </a>
+        .
+      </p>
+      <div className="inline-flex justify-center mt-4 space-x-5 sm:ml-auto sm:mt-0 sm:justify-start">
+        {/* 社交媒体和联系方式链接 */}
+        <a
+          href="https://wr.do"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="WR.DO"
+          className="text-gray-400 hover:text-gray-500  scale-[1.2]">
+          <WrdoLogo className="w-6 h-6" />
+        </a>
+        <a
+          href="mailto:hi@oiov.dev"
+          title="Email"
+          className="text-gray-400 hover:text-gray-500">
+          <MailIcon className="w-6 h-6" />
+        </a>
+        <a
+          href="https://twitter.com/yesmoree"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Twitter"
+          className="text-gray-400 hover:text-gray-500">
+          <Twitter />
+        </a>
+        <a
+          href="https://github.com/oiov/vmail"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Github"
+          className="text-gray-400 hover:text-gray-500">
+          <GitHub />
+        </a>
+      </div>
+    </div>
   );
 }
