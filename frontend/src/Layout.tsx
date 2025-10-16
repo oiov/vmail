@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
+// feat: 导入 Toaster 组件
 import { Toaster } from 'react-hot-toast';
 
 /**
@@ -15,8 +16,17 @@ export function Layout() {
       {/* Outlet 用于渲染当前路由匹配的子组件 */}
       <Outlet />
       <Footer />
-      {/* 用于显示通知的组件 */}
-      <Toaster />
+      {/* feat: 添加全局 Toast 组件，并设置统一样式 */}
+      <Toaster
+        position="bottom-right" // 设置位置为右下角
+        toastOptions={{
+          // 设置默认样式
+          style: {
+            background: '#333',
+            color: '#fff',
+          },
+        }}
+      />
     </div>
   );
 }
