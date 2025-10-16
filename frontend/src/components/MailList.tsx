@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import clsx from 'clsx';
-import type { Email } from 'database';
+// refactor: 将导入从 'database' 包更改为本地的类型定义文件
+import type { Email } from '../database_types';
 
 // 图标导入
 import MailIcon from './icons/MailIcon.tsx';

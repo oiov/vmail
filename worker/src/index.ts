@@ -1,13 +1,10 @@
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/cloudflare-workers';
 import { cors } from 'hono/cors';
-// 路径修正：使用相对路径并导入正确的函数
-// feat: 导入 getEmailByPassword 函数
-import { deleteEmails, findEmailById, getEmailByPassword, getEmailsByMessageTo, insertEmail, deleteExpiredEmails } from '../../packages/database/dao';
-// fix: 修正数据库导入路径
-import { getD1DB } from '../../packages/database/db';
-import { InsertEmail, insertEmailSchema } from '../../packages/database/schema';
-// fix: 修复 nanoid 导入路径问题，解决部署报错
+// 导入数据库相关的模块
+import { deleteEmails, findEmailById, getEmailByPassword, getEmailsByMessageTo, insertEmail, deleteExpiredEmails } from './database/dao';
+import { getD1DB } from './database/db';
+import { InsertEmail, insertEmailSchema } from './database/schema';
 import { nanoid } from 'nanoid/non-secure';
 import PostalMime from 'postal-mime';
 

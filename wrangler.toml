@@ -12,6 +12,8 @@ keep_vars = true
 binding = "DB"
 database_name = "${D1_DATABASE_NAME}"
 database_id = "${D1_DATABASE_ID}"
+# fix: 将迁移目录直接配置在这里，这是 D1 自动迁移的标准做法
+migrations_dir = "worker/drizzle"
 
 # 定义环境变量和密钥
 [vars]

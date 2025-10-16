@@ -1,32 +1,21 @@
-import { createClient as createWebClient } from "@libsql/client/web";
-import * as orm from "drizzle-orm";
-import { LibSQLDatabase, drizzle } from "drizzle-orm/libsql";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import * as z from "zod";
 
-function getWebTursoDBFromEnv(): LibSQLDatabase {
-  const client = createWebClient({
-    url: process.env.TURSO_DB_URL || "",
-    authToken: process.env.TURSO_DB_AUTH_TOKEN || "",
-  });
-  return drizzle(client);
-}
+// 定义 Header 类型，用于存储邮件头信息
+export type Header = Record<string, string>;
 
-function getWebTursoDB(url: string, authToken: string): LibSQLDatabase {
-  return drizzle(createWebClient({ url, authToken }));
-}
-
-type Header = Record<string, string>;
-
-type Address = {
+// 定义 Address 类型，用于存储发件人、收件人等地址信息
+export type Address = {
   address: string;
   name: string;
 };
 
-type Email = typeof emails.$inferSelect;
+// 定义 Email 类型，通过 drizzle-orm 从数据库表结构推断得出
+export type Email = typeof emails.$inferSelect;
 
-const emails = sqliteTable("emails", {
+// 使用 drizzle-orm 定义 emails 表的结构
+export const emails = sqliteTable("emails", {
   id: text("id").primaryKey(),
   messageFrom: text("message_from").notNull(),
   messageTo: text("message_to").notNull(),
@@ -50,12 +39,14 @@ const emails = sqliteTable("emails", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
 
+// 使用 Zod 定义 Address 对象的验证 schema
 const AddressSchema = z.object({
   address: z.string(),
   name: z.string(),
 });
 
-const insertEmailSchema = createInsertSchema(emails, {
+// 使用 drizzle-zod 基于 emails 表结构创建用于插入操作的 Zod schema
+export const insertEmailSchema = createInsertSchema(emails, {
   headers: z.array(z.record(z.string())),
   from: AddressSchema,
   sender: AddressSchema.optional(),
@@ -65,18 +56,5 @@ const insertEmailSchema = createInsertSchema(emails, {
   bcc: z.array(AddressSchema).optional(),
 });
 
-type InsertEmail = z.infer<typeof insertEmailSchema>;
-
-export {
-  Address,
-  AddressSchema,
-  Email,
-  Header,
-  InsertEmail,
-  emails,
-  getWebTursoDB,
-  getWebTursoDBFromEnv,
-  insertEmailSchema,
-  orm,
-  z,
-};
+// 定义 InsertEmail 类型，从 Zod schema 推断
+export type InsertEmail = z.infer<typeof insertEmailSchema>;

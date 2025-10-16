@@ -1,6 +1,7 @@
 import { count, desc, eq, and, inArray, lt } from "drizzle-orm";
 // fix: 将数据库类型从 LibSQLDatabase 更改为 DrizzleD1Database，以匹配 Cloudflare D1
 import { DrizzleD1Database } from "drizzle-orm/d1";
+// refactor: 更新 schema 的导入路径
 import { emails, InsertEmail } from "./schema";
 
 export async function insertEmail(db: DrizzleD1Database, email: InsertEmail) {

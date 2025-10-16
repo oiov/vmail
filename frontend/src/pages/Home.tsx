@@ -23,8 +23,8 @@ import Cloudflare from "../components/icons/Cloudflare.tsx";
 import Clock from "../components/icons/Clock.tsx";
 import Info from "../components/icons/Info.tsx";
 
-// 假设 Email 类型定义在 'database' 包中
-import type { Email } from 'database';
+// refactor: 将导入从 'database' 包更改为本地的类型定义文件
+import type { Email } from '../database_types.ts';
 
 export function Home() {
   const config = useConfig();

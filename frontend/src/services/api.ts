@@ -1,10 +1,9 @@
-// 导入 Email 类型，'database' 是您 monorepo 中的包名
-import type { Email } from 'database';
+// refactor: 将导入从 'database' 包更改为本地的类型定义文件
+import type { Email } from '../database_types';
 
 const API_BASE_URL = '/api';
 
 // 定义 Turnstile 人机验证所需的 token
-// 恢复此接口定义，以备将来使用
 interface ApiPayload {
   token: string;
   [key: string]: any;

@@ -1,4 +1,5 @@
-CREATE TABLE `emails` (
+-- fix: 添加 IF NOT EXISTS 以确保表创建的幂等性，防止重复执行时出错
+CREATE TABLE IF NOT EXISTS `emails` (
 	`id` text PRIMARY KEY NOT NULL,
 	`message_from` text NOT NULL,
 	`message_to` text NOT NULL,
