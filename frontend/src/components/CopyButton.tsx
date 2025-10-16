@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import clsx from 'clsx';
+import { toast } from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 // 关键修正：为图标导入添加 .tsx 扩展名
 import CheckIcon from './icons/CheckIcon.tsx'; 
 import CopyIcon from './icons/CopyIcon.tsx';   
@@ -11,12 +13,14 @@ interface CopyButtonProps {
 
 export function CopyButton({ text, className }: CopyButtonProps) {
   const [isCopied, setIsCopied] = useState(false);
+  const { t } = useTranslation(); // feat: 引入 i18n
 
   const handleCopy = async () => {
     try {
       // 尝试使用 Clipboard API 复制文本
       await navigator.clipboard.writeText(text);
       setIsCopied(true);
+      toast.success(t('Copied to clipboard')); // feat: 使用全局 toast 提示
     } catch (err) {
       console.error('复制文本失败: ', err);
     }
