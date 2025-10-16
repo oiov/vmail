@@ -1,4 +1,4 @@
-import { count, desc, eq, and, inArray } from "drizzle-orm";
+import { count, desc, eq, and, inArray, lt } from "drizzle-orm";
 import { LibSQLDatabase } from "drizzle-orm/libsql";
 import { emails, InsertEmail } from "./schema";
 
@@ -84,6 +84,26 @@ export async function deleteEmails(db: LibSQLDatabase, ids: string[]) {
         return { count: result.rowsAffected };
     } catch (e) {
         console.error(e);
+        return { count: 0 };
+    }
+}
+
+/**
+ * 新增函数：根据提供的过期时间删除此时间之前的所有邮件。
+ * @param db Drizzle 数据库实例。
+ * @param expirationTime 一个 Date 对象，表示过期时间点。
+ * @returns 返回一个包含已删除邮件数量的对象，或在出错时返回 { count: 0 }。
+ */
+export async function deleteExpiredEmails(db: LibSQLDatabase, expirationTime: Date) {
+    try {
+        // 使用Drizzle的lt（小于）操作符来比较createdAt字段和expirationTime
+        const result = await db.delete(emails).where(lt(emails.createdAt, expirationTime)).execute();
+        // 返回受影响的行数，即已删除的邮件数量
+        return { count: result.rowsAffected };
+    } catch (e) {
+        // 如果在删除过程中发生错误，则在控制台打印错误信息
+        console.error('清理过期邮件失败:', e);
+        // 并返回一个表示删除数量为0的对象
         return { count: 0 };
     }
 }
