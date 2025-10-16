@@ -196,8 +196,9 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
               <button
                 className="p-1 rounded"
                 title="refresh"
-                // fix: 只有在创建地址后，刷新按钮才响应加载状态
-                disabled={!isAddressCreated}
+                onClick={onRefresh} // feat: 添加手动刷新事件
+                // fix: 只有在创建地址后，刷新按钮才可用, 且在加载中时禁用
+                disabled={!isAddressCreated || isFetching}
               >
                 <RefreshIcon
                   className={clsx("size-6", isAddressCreated && "animate-spin")}
