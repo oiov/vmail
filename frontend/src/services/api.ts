@@ -59,11 +59,12 @@ export async function deleteEmails(ids: string[]): Promise<{ count: number }> {
 }
 
 // feat: 添加密码登录函数
-export async function loginByPassword(password: string, token: string): Promise<{ address: string }> {
+// fix: 移除 token 参数，因为登录流程不再需要人机验证
+export async function loginByPassword(password: string): Promise<{ address: string }> {
   const response = await fetch(`${API_BASE_URL}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password, token }),
+    body: JSON.stringify({ password }),
   });
   if (!response.ok) {
     const errorData = await response.json();
