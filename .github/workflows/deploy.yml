@@ -17,11 +17,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 设置 pnpm
+      # 设置 pnpm (版本由根目录 package.json 的 "packageManager" 字段决定)
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
-      # 设置 Node.js
+      # 设置 Node.js 环境
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -66,7 +66,6 @@ jobs:
 
       # 部署到 Cloudflare Workers
       - name: Deploy
-        # 添加此条件判断：仅在 has_creds 为 'true' 时执行此步骤
         if: env.has_creds == 'true'
         uses: cloudflare/wrangler-action@v3
         with:
