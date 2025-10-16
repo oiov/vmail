@@ -16,7 +16,7 @@ import { getRandomCharacter, encrypt } from '../lib/utlis.ts';
 
 // feat: 导入密码模态框和相关 hook
 import { usePasswordModal } from '../components/password.tsx';
-import PasswordIcon from '../components/icons/Password.tsx'; 
+import PasswordIcon from '../components/icons/Password.tsx';
 
 // 图标导入
 import ShieldCheck from "../components/icons/ShieldCheck.tsx";
@@ -37,6 +37,7 @@ export function Home() {
   const [turnstileToken, setTurnstileToken] = useState<string>('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isTurnstileVerified, setIsTurnstileVerified] = useState(false);
+  const [selectedEmail, setSelectedEmail] = useState<Email | null>(null); // 新增状态，用于存储当前选中的邮件
 
   // feat: 初始化密码模态框
   const { PasswordModal, setShowPasswordModal } = usePasswordModal();
@@ -148,6 +149,7 @@ export function Home() {
     Cookies.remove('userMailbox');
     setAddress(undefined);
     setHasReceivedEmail(false); // 重置状态
+    setSelectedEmail(null); // 清除选中的邮件
     queryClient.invalidateQueries({ queryKey: ['emails'] }); // 清理缓存
   };
 
@@ -157,6 +159,9 @@ export function Home() {
     onSuccess: () => {
       toast.success(t('Emails deleted'));
       setSelectedIds([]); // 清空选择
+      if (selectedEmail && selectedIds.includes(selectedEmail.id)) {
+        setSelectedEmail(null); // 如果删除的邮件是被选中的，则清除
+      }
       queryClient.invalidateQueries({ queryKey: ['emails', address] }); // 刷新列表
     },
     onError: () => {
@@ -198,6 +203,16 @@ export function Home() {
     }
     return null;
   }, [address, config.cookiesSecret]);
+  
+  // 新增：处理邮件选择
+  const handleSelectEmail = (email: Email) => {
+    setSelectedEmail(email);
+  };
+  
+  // 新增：关闭邮件详情
+  const handleCloseDetail = () => {
+    setSelectedEmail(null);
+  };
 
   return (
     <div className="h-full flex flex-col gap-4 md:flex-row justify-center items-start mt-24 mx-6 md:mx-10">
@@ -255,7 +270,8 @@ export function Home() {
         )}
       </div>
 
-      {/* 右侧邮件列表 */}
+      {/* 右侧邮件列表或邮件详情 */}
+      {/* refactor: 始终渲染 MailList，并通过 selectedEmail prop 控制其内部显示逻辑 */}
       <div className="w-full flex-1 overflow-hidden">
         <MailList
           isAddressCreated={!!address}
@@ -267,6 +283,7 @@ export function Home() {
           onRefresh={refetch}
           selectedIds={selectedIds}
           setSelectedIds={setSelectedIds}
+          onSelectEmail={handleSelectEmail} // 传递选择邮件的函数
           // feat: 传递新状态和回调函数
           showViewPasswordButton={hasReceivedEmail}
           onShowPassword={() => {
@@ -275,6 +292,9 @@ export function Home() {
                 showPasswordToast(password);
             }
           }}
+          // feat: 传递当前选中的邮件和关闭详情页的回调
+          selectedEmail={selectedEmail}
+          onCloseDetail={handleCloseDetail}
         />
       </div>
     </div>
