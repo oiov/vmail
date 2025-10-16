@@ -12,6 +12,7 @@ import RefreshIcon from './icons/RefreshIcon.tsx';
 import Loader from './icons/Loader.tsx';
 import { WaitingEmail } from './icons/waiting-email.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
+import PasswordIcon from './icons/Password.tsx'; // feat: 导入密码图标
 
 interface MailListProps {
   emails: Email[];
@@ -23,9 +24,12 @@ interface MailListProps {
   selectedIds: string[];
   setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>;
   isAddressCreated: boolean;
+  // feat: 添加新 props 用于控制查看密码按钮
+  showViewPasswordButton: boolean;
+  onShowPassword: () => void;
 }
 
-export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, onRefresh, selectedIds, setSelectedIds, isAddressCreated }: MailListProps) {
+export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, onRefresh, selectedIds, setSelectedIds, isAddressCreated, showViewPasswordButton, onShowPassword }: MailListProps) {
   const { t } = useTranslation();
 
   const handleSelect = (id: string) => {
@@ -126,6 +130,16 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
         
         {/* 操作按钮区域 */}
         <div className="ml-auto flex items-center gap-2">
+            {/* feat: 添加查看密码按钮，当 showViewPasswordButton 为 true 时显示 */}
+            {showViewPasswordButton && (
+              <button
+                className="p-1 rounded text-cyan-400 hover:text-cyan-300"
+                title="查看密码"
+                onClick={onShowPassword}
+              >
+                <PasswordIcon className="w-5 h-5" />
+              </button>
+            )}
             {isAddressCreated && emails.length > 0 && (
               <>
                 <input
