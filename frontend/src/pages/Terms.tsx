@@ -1,7 +1,8 @@
 // 这个文件内容直接从您的 _h.terms.tsx 迁移而来
 export function Terms() {
   return (
-    <div className="text-black">
+    // 修复：移除 text-black 类，文本颜色将由父组件 InfoModal 控制
+    <div>
       <div className="max-w-[1400px] ">
         <p className="mt-8">
           Welcome to Vmail.DEV! These Terms of Service ("Terms") govern your
