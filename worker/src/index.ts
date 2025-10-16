@@ -167,9 +167,11 @@ api.post('/login', turnstile, async (c) => {
 
 // 前端配置接口
 app.get('/config', (c) => {
+  // fix: 将 COOKIES_SECRET 添加到配置响应中，以便前端进行加密
   return c.json({
     emailDomain: c.env.EMAIL_DOMAIN,
     turnstileKey: c.env.TURNSTILE_KEY,
+    cookiesSecret: c.env.COOKIES_SECRET,
   });
 });
 
