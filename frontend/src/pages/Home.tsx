@@ -108,19 +108,20 @@ export function Home() {
   // feat(fix): 使用useEffect来检测新邮件、显示密码通知，并控制“查看密码”按钮的可见性
   const prevEmailsLength = useRef(emails.length);
   useEffect(() => {
-    // 检查邮箱列表是否从空变为非空，且尚未标记为“已接收邮件”
-    if (prevEmailsLength.current === 0 && emails.length > 0 && !hasReceivedEmail) {
-      setHasReceivedEmail(true); // 标记此邮箱地址已收到过邮件
+    // 修复：只要邮件列表不为空，就确保 hasReceivedEmail 状态为 true。
+    // 这修复了从其他页面导航回来时，因组件重新挂载导致状态重置、图标不显示的问题。
+    if (emails.length > 0 && !hasReceivedEmail) {
+      setHasReceivedEmail(true);
     }
 
-    // 当用户停止使用邮箱时，重置状态并关闭通知
+    // 当用户停止使用邮箱时（地址被清除），重置状态并关闭通知
     if (!address) {
       setHasReceivedEmail(false);
       toast.dismiss('password-notification');
     }
 
     prevEmailsLength.current = emails.length;
-  }, [emails, address, hasReceivedEmail]);
+  }, [emails, address, hasReceivedEmail]); // 依赖项包含 emails, address 和 hasReceivedEmail 以响应所有相关变化
 
 
   // 创建新邮箱地址的处理函数
