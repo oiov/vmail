@@ -1,63 +1,76 @@
-import { Link } from "react-router-dom";
-import Twitter from "./icons/Twitter.tsx";
-import GitHub from "./icons/GitHub.tsx";
-import MailIcon from "./icons/MailIcon.tsx";
-import WrdoLogo from "./icons/Wrdo.tsx";
+import { Dispatch, SetStateAction, useCallback, useEffect, useRef } from 'react';
+// fix: 将具名导入 { useWindowSize } 更改为默认导入 useWindowSize
+import useWindowSize from '../hooks/use-window-size';
+import Leaflet from './leaflet';
 
-/**
- * 网站的页脚组件
- */
-export function Footer() {
+// 将默认导出（export default）改为具名导出（export）
+export function Modal({
+  children,
+  showModal,
+  setShowModal,
+}: {
+  children: React.ReactNode;
+  showModal: boolean;
+  setShowModal: Dispatch<SetStateAction<boolean>>;
+}) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const { isMobile } = useWindowSize();
+
+  // close modal on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        setShowModal(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [modalRef, setShowModal]);
+
+
+  const onKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowModal(false);
+      }
+    },
+    [setShowModal],
+  );
+
+  useEffect(() => {
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onKeyDown]);
+
+  if (isMobile) {
+    return (
+      <Leaflet show={showModal} setShow={setShowModal}>
+        {children}
+      </Leaflet>
+    );
+  }
+
   return (
-    <div className="text-white w-full mt-auto flex flex-col items-center justify-between px-5 pt-16 mb-10 md:px-10 mx-auto sm:flex-row">
-      <Link to="/" className="text-xl font-black leading-none select-none logo">
-        VMAIL.DEV
-      </Link>{" "}
-      <p className="mt-4 text-sm text-gray-400 sm:ml-4 sm:pl-4 sm:border-l sm:border-gray-200 sm:mt-0">
-        © 2024 Products of{" "}
-        <a
-          className="font-semibold underline hover:text-gray-600"
-          href="https://www.oiov.dev"
-          target="_blank"
-          rel="noopener noreferrer"
+    <>
+      {showModal && (
+        <div
+          className="fixed inset-0 z-40 flex items-center justify-center"
+          style={{
+            backdropFilter: "blur(4px)",
+            WebkitBackdropFilter: "blur(4px)",
+            backgroundColor: "rgba(0, 0, 0, 0.4)",
+          }}
         >
-          oiov
-        </a>
-        .
-      </p>
-      <div className="inline-flex justify-center mt-4 space-x-5 sm:ml-auto sm:mt-0 sm:justify-start">
-        {/* 社交媒体和联系方式链接 */}
-        <a
-          href="https://wr.do"
-          target="_blank"
-          rel="noopener noreferrer"
-          title="WR.DO"
-          className="text-gray-400 hover:text-gray-500  scale-[1.2]">
-          <WrdoLogo className="w-6 h-6" />
-        </a>
-        <a
-          href="mailto:hi@oiov.dev"
-          title="Email"
-          className="text-gray-400 hover:text-gray-500">
-          <MailIcon className="w-6 h-6" />
-        </a>
-        <a
-          href="https://twitter.com/yesmoree"
-          target="_blank"
-          rel="noopener noreferrer"
-          title="Twitter"
-          className="text-gray-400 hover:text-gray-500">
-          <Twitter />
-        </a>
-        <a
-          href="https://github.com/oiov/vmail"
-          target="_blank"
-          rel="noopener noreferrer"
-          title="Github"
-          className="text-gray-400 hover:text-gray-500">
-          <GitHub />
-        </a>
-      </div>
-    </div>
+          <div
+            className="relative z-50 w-full max-w-lg"
+            ref={modalRef}
+          >
+            {children}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
