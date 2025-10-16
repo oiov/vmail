@@ -27,7 +27,7 @@ interface MailListProps {
   selectedIds: string[];
   setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>;
   isAddressCreated: boolean;
-  onSelectEmail: (email: Email) => void; 
+  onSelectEmail: (email: Email) => void;
   showViewPasswordButton: boolean;
   onShowPassword: () => void;
   // feat: 新增 props，用于接收当前选中的邮件和关闭详情页的回调
@@ -43,7 +43,7 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
     );
   };
-  
+
   const handleSelectAll = () => {
     if (emails.length === 0) return;
     if (selectedIds.length === emails.length) {
@@ -58,7 +58,7 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
     if (selectedEmail) {
       return <MailDetail email={selectedEmail} onClose={onCloseDetail} />;
     }
-    
+
     // 状态 1: 还未创建地址
     if (!isAddressCreated) {
       return (
@@ -68,7 +68,7 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
         </div>
       );
     }
-    
+
     // 状态 2: 正在进行首次加载
     if (isLoading) {
       return (
@@ -106,7 +106,8 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
           <div className="flex w-full flex-col gap-1">
             <div className="flex items-center">
               <div className="flex items-center gap-2">
-                <div className="font-semibold">{email.from?.name || email.messageFrom}</div>
+                {/* feat: 在用户名后显示邮箱地址 */}
+                <div className="font-semibold">{email.from?.name || email.messageFrom} {email.from?.address && `(${email.from.address})`}</div>
               </div>
               <div className={"ml-auto text-xs"}>
                 {formatDistanceToNow(new Date(email.date || email.createdAt), {
@@ -148,7 +149,7 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
             </button>
           )}
         </div>
-        
+
         {/* 操作按钮区域 */}
         <div className="ml-auto flex items-center gap-2">
           {/* feat: 详情页模式下的操作按钮 */}
