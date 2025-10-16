@@ -162,13 +162,12 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
             <button
               className="p-1 rounded"
               title="refresh"
-              onClick={onRefresh}
               // fix: 只有在创建地址后，刷新按钮才响应加载状态
               disabled={!isAddressCreated}
             >
-              {/* 修复：只要正在获取数据，刷新图标就应该旋转 */}
+              {/* 修复：只要地址已创建，就让刷新图标持续旋转，以表示后台正在定时轮询。*/}
               <RefreshIcon
-                className={clsx("size-6", isAddressCreated && isFetching && "animate-spin")}
+                className={clsx("size-6", isAddressCreated && "animate-spin")}
               />
             </button>
         </div>
