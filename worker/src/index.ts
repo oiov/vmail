@@ -7,7 +7,8 @@ import { deleteEmails, findEmailById, getEmailByPassword, getEmailsByMessageTo, 
 // fix: 修正数据库导入路径
 import { getD1DB } from '../../packages/database/db';
 import { InsertEmail, insertEmailSchema } from '../../packages/database/schema';
-import { nanoid } from 'non-secure';
+// fix: 修复 nanoid 导入路径问题，解决部署报错
+import { nanoid } from 'nanoid/non-secure';
 import PostalMime from 'postal-mime';
 
 // 定义 Cloudflare 绑定和环境变量的类型
