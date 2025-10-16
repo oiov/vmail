@@ -42,9 +42,11 @@ export default function PasswordModal({
   return (
     <Modal showModal={showPasswordModal} setShowModal={setShowPasswordModal}>
       <div className="w-full overflow-hidden bg-white/95 backdrop-blur-xl shadow-xl p-4 md:max-w-3xl md:rounded-2xl md:border md:border-gray-200">
+        {/* 修复：添加 onPointerDown 事件来阻止拖动事件与点击事件的冲突 */}
         <Close
           className="absolute top-4 right-4 h-6 w-6 text-gray-500 hover:text-gray-700 cursor-pointer"
           onClick={() => setShowPasswordModal(false)}
+          onPointerDown={(e) => e.stopPropagation()}
         />
 
         <div className="flex flex-col items-center justify-center space-y-3 border-b border-gray-200 px-4 py-5 text-center md:px-16">
