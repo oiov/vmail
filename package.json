@@ -1,24 +1,27 @@
 {
   "name": "vmail",
   "version": "1.0.0",
-  "description": "",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "description": "使用 Cloudflare email worker 实现的临时电子邮件服务",
+  "private": true,
   "scripts": {
-    "worker:dev": "pnpm -F email-worker run dev",
-    "remix:build": "pnpm -F remix run build",
-    "remix:dev": "pnpm -F remix run dev",
-    "remix:start": "pnpm -F remix run start",
+    "build": "pnpm --filter frontend run build",
+    "deploy": "pnpm build && wrangler deploy",
+    "dev": "wrangler dev",
+    "worker:dev": "pnpm --filter worker run dev",
+    "frontend:dev": "pnpm --filter frontend run dev",
     "format": "prettier --write ."
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "vmail",
+    "temp-email",
+    "cloudflare-worker"
+  ],
+  "author": "oiov",
+  "license": "GPL-3.0-only",
   "devDependencies": {
     "prettier": "^3.2.2",
-    "prettier-plugin-tailwindcss": "^0.5.11"
+    "prettier-plugin-tailwindcss": "^0.5.11",
+    "wrangler": "^3.22.4"
   },
   "dependencies": {
     "@libsql/client": "0.4.0-pre.7",
