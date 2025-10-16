@@ -13,6 +13,9 @@ import Loader from './icons/Loader.tsx';
 import { WaitingEmail } from './icons/waiting-email.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
 import PasswordIcon from './icons/Password.tsx'; // feat: 导入密码图标
+// feat: 导入新组件
+import { MailDetail } from '../pages/MailDetail.tsx';
+import ArrowUturnLeft from './icons/ArrowUturnLeft.tsx';
 
 interface MailListProps {
   emails: Email[];
@@ -24,12 +27,15 @@ interface MailListProps {
   selectedIds: string[];
   setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>;
   isAddressCreated: boolean;
-  // feat: 添加新 props 用于控制查看密码按钮
+  onSelectEmail: (email: Email) => void; 
   showViewPasswordButton: boolean;
   onShowPassword: () => void;
+  // feat: 新增 props，用于接收当前选中的邮件和关闭详情页的回调
+  selectedEmail: Email | null;
+  onCloseDetail: () => void;
 }
 
-export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, onRefresh, selectedIds, setSelectedIds, isAddressCreated, showViewPasswordButton, onShowPassword }: MailListProps) {
+export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, onRefresh, selectedIds, setSelectedIds, isAddressCreated, onSelectEmail, showViewPasswordButton, onShowPassword, selectedEmail, onCloseDetail }: MailListProps) {
   const { t } = useTranslation();
 
   const handleSelect = (id: string) => {
@@ -48,6 +54,11 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
   };
 
   const renderBody = () => {
+    // feat: 如果有选中的邮件，则渲染邮件详情
+    if (selectedEmail) {
+      return <MailDetail email={selectedEmail} onClose={onCloseDetail} />;
+    }
+    
     // 状态 1: 还未创建地址
     if (!isAddressCreated) {
       return (
@@ -88,9 +99,9 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
           checked={selectedIds.includes(email.id)}
           onChange={() => handleSelect(email.id)}
         />
-        <Link
-          to={`/mails/${email.id}`}
-          className="flex-1 flex flex-col items-start gap-2 rounded-lg border border-zinc-600 p-3 text-left text-sm transition-all hover:bg-zinc-700"
+        <div
+          onClick={() => onSelectEmail(email)}
+          className="cursor-pointer flex-1 flex flex-col items-start gap-2 rounded-lg border border-zinc-600 p-3 text-left text-sm transition-all hover:bg-zinc-700"
         >
           <div className="flex w-full flex-col gap-1">
             <div className="flex items-center">
@@ -109,7 +120,7 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
           <div className="line-clamp-2 text-xs text-zinc-300 font-normal w-full">
             {(email.text || email.html || "").substring(0, 300)}
           </div>
-        </Link>
+        </div>
       </div>
     ));
   }
@@ -121,60 +132,84 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
         <div className="flex items-center justify-start gap-2 font-bold">
           <MailIcon className="size-6" />
           {t("INBOX")}
-          {isAddressCreated && emails.length > 0 && (
+          {isAddressCreated && emails.length > 0 && !selectedEmail && (
             <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-zinc-600 rounded-full">
               {emails.length}
             </span>
+          )}
+          {/* feat: 在详情页模式下，显示返回按钮 */}
+          {selectedEmail && (
+            <button
+              onClick={onCloseDetail}
+              className="flex items-center gap-1 text-sm font-semibold text-cyan-400 hover:text-cyan-300 ml-2"
+            >
+              <ArrowUturnLeft />
+              返回邮件列表
+            </button>
           )}
         </div>
         
         {/* 操作按钮区域 */}
         <div className="ml-auto flex items-center gap-2">
-            {/* feat: 添加查看密码按钮，当 showViewPasswordButton 为 true 时显示 */}
-            {showViewPasswordButton && (
-              <button
-                className="p-1 rounded text-cyan-400 hover:text-cyan-300"
-                title="查看密码"
-                onClick={onShowPassword}
-              >
-                <PasswordIcon className="w-5 h-5" />
-              </button>
-            )}
-            {isAddressCreated && emails.length > 0 && (
-              <>
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded bg-zinc-700 border-zinc-600 text-cyan-600 focus:ring-cyan-500"
-                  title='全选'
-                  checked={selectedIds.length === emails.length && emails.length > 0}
-                  onChange={handleSelectAll}
-                />
-                <button
-                  onClick={() => onDelete(selectedIds)}
-                  disabled={selectedIds.length === 0 || isDeleting}
-                  className="p-1 rounded text-red-500 disabled:text-gray-500 hover:text-red-400"
-                  title="删除选中"
-                >
-                  <TrashIcon className="w-5 h-5" />
-                </button>
-              </>
-            )}
+          {/* feat: 详情页模式下的操作按钮 */}
+          {selectedEmail ? (
             <button
-              className="p-1 rounded"
-              title="refresh"
-              // fix: 只有在创建地址后，刷新按钮才响应加载状态
-              disabled={!isAddressCreated}
+              onClick={() => onDelete([selectedEmail.id])}
+              disabled={isDeleting}
+              className="p-1 rounded text-red-500 disabled:text-gray-500 hover:text-red-400"
+              title="删除"
             >
-              {/* 修复：只要地址已创建，就让刷新图标持续旋转，以表示后台正在定时轮询。*/}
-              <RefreshIcon
-                className={clsx("size-6", isAddressCreated && "animate-spin")}
-              />
+              <TrashIcon className="w-5 h-5" />
             </button>
+          ) : (
+            <>
+              {/* 列表页模式下的操作按钮 */}
+              {showViewPasswordButton && (
+                <button
+                  className="p-1 rounded text-cyan-400 hover:text-cyan-300"
+                  title="查看密码"
+                  onClick={onShowPassword}
+                >
+                  <PasswordIcon className="w-5 h-5" />
+                </button>
+              )}
+              {isAddressCreated && emails.length > 0 && (
+                <>
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded bg-zinc-700 border-zinc-600 text-cyan-600 focus:ring-cyan-500"
+                    title='全选'
+                    checked={selectedIds.length === emails.length && emails.length > 0}
+                    onChange={handleSelectAll}
+                  />
+                  <button
+                    onClick={() => onDelete(selectedIds)}
+                    disabled={selectedIds.length === 0 || isDeleting}
+                    className="p-1 rounded text-red-500 disabled:text-gray-500 hover:text-red-400"
+                    title="删除选中"
+                  >
+                    <TrashIcon className="w-5 h-5" />
+                  </button>
+                </>
+              )}
+              <button
+                className="p-1 rounded"
+                title="refresh"
+                // fix: 只有在创建地址后，刷新按钮才响应加载状态
+                disabled={!isAddressCreated}
+              >
+                <RefreshIcon
+                  className={clsx("size-6", isAddressCreated && "animate-spin")}
+                />
+              </button>
+            </>
+          )}
         </div>
       </div>
 
       {/* 邮件列表主体 */}
-      <div className="grids flex flex-col flex-1 h-[488px] overflow-y-auto p-2">
+      {/* fix: 当显示详情时，移除 grids 背景和 h-[488px] 的高度限制 */}
+      <div className={clsx("flex flex-col flex-1 overflow-y-auto p-2", !selectedEmail && "grids h-[488px]")}>
         {renderBody()}
       </div>
     </div>
