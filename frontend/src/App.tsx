@@ -2,18 +2,20 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { Home } from './pages/Home'; // 假设你的主页组件
-import { MailDetail } from './pages/MailDetail'; // 假设你的邮件详情页组件
-import { ConfigContext } from './hooks/useConfig';
+// 修正导入路径，添加 .tsx 扩展名
+import { Home } from './pages/Home.tsx'; 
+import { MailDetail } from './pages/MailDetail.tsx'; 
+import { ConfigContext, AppConfig } from './hooks/useConfig.ts'; // 也修正这个
 
 const queryClient = new QueryClient();
 
 function App() {
-  const [config, setConfig] = useState(null);
+  // 明确 config 的状态类型
+  const [config, setConfig] = useState<AppConfig | null>(null);
 
   useEffect(() => {
     // 从 worker 获取前端配置
-    axios.get('/config').then((res) => {
+    axios.get<AppConfig>('/config').then((res) => {
       setConfig(res.data);
     });
   }, []);
@@ -29,7 +31,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/mails/:id" element={<MailDetail />} />
-            {/* 你可以在这里添加更多路由，例如 about, privacy 等 */}
+            {/* 你可以在这里添加更多路由 */}
           </Routes>
         </BrowserRouter>
       </QueryClientProvider>
