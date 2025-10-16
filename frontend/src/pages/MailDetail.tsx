@@ -5,8 +5,9 @@ import { useTranslation } from "react-i18next";
 import { format } from "date-fns/format";
 
 // 导入图标
-import { ArrowUturnLeft } from '../components/icons/ArrowUturnLeft.tsx';
-import { UserCircleIcon } from '../components/icons/UserCircleIcon.tsx';
+// 修复：将命名导入更改为默认导入，以匹配图标组件的导出方式
+import ArrowUturnLeft from '../components/icons/ArrowUturnLeft.tsx';
+import UserCircleIcon from '../components/icons/UserCircleIcon.tsx';
 
 export function MailDetail() {
   const { t } = useTranslation();
@@ -100,3 +101,4 @@ export function MailDetail() {
     </div>
   );
 }
+

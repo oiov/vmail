@@ -5,7 +5,7 @@ import { zhCN } from 'date-fns/locale';
 import type { Email } from 'database';
 
 // 图标导入
-import { MailIcon } from './icons/MailIcon.tsx';
+import MailIcon from './icons/MailIcon.tsx'; // 修复：将命名导入 { MailIcon } 改为默认导入 MailIcon
 import RefreshIcon from './icons/RefreshIcon.tsx';
 import Loader from './icons/Loader.tsx';
 import { TrashIcon } from './icons/TrashIcon.tsx';
@@ -134,3 +134,4 @@ export function MailList({ emails, isLoading, onDelete, isDeleting, onRefresh, s
     </div>
   );
 }
+
