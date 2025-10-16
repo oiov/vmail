@@ -3,21 +3,33 @@ import type { Email } from '../database_types';
 
 const API_BASE_URL = '/api';
 
-// 定义 Turnstile 人机验证所需的 token
-interface ApiPayload {
-  token: string;
-  [key: string]: any;
-}
+// fix: 移除不再需要的 ApiPayload 接口定义
 
 // 获取邮件列表
-export async function getEmails(address: string, token: string): Promise<Email[]> {
+// fix: 移除 getEmails 函数中的 token 参数，因为后端已不再需要它
+export async function getEmails(address: string): Promise<Email[]> {
   const response = await fetch(`${API_BASE_URL}/emails`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ address, token }),
+    // fix: 请求体中只发送 address
+    body: JSON.stringify({ address }),
   });
   if (!response.ok) {
     throw new Error('Network response was not ok');
+  }
+  return response.json();
+}
+
+// feat: 新增函数，用于在创建邮箱前验证人机校验token
+export async function verifyTurnstile(token: string): Promise<{ success: boolean }> {
+  const response = await fetch(`${API_BASE_URL}/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Turnstile verification failed');
   }
   return response.json();
 }
@@ -32,15 +44,18 @@ export async function getEmailById(id: string): Promise<Email> {
 }
 
 // 删除邮件
-export async function deleteEmails(ids: string[], token: string): Promise<void> {
+// fix: 移除 deleteEmails 函数中的 token 参数
+export async function deleteEmails(ids: string[]): Promise<{ count: number }> {
     const response = await fetch(`${API_BASE_URL}/delete-emails`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids, token }),
+      // fix: 请求体中只发送 ids
+      body: JSON.stringify({ ids }),
     });
     if (!response.ok) {
       throw new Error('Failed to delete emails');
     }
+    return response.json();
 }
 
 // feat: 添加密码登录函数
