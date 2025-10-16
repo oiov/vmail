@@ -9,7 +9,7 @@ import { Toaster, toast } from 'react-hot-toast';
 import { MailList } from '../components/MailList.tsx';
 import { CopyButton } from '../components/CopyButton.tsx';
 // feat: 导入 loginByPassword
-import { getEmails, deleteEmails, loginByPassword } from '../services/api.ts';
+import { getEmails, deleteEmails, loginByPassword, verifyTurnstile } from '../services/api.ts';
 import { useConfig } from '../hooks/useConfig.ts';
 import { getRandomCharacter } from '../lib/utlis.ts';
 
@@ -22,7 +22,6 @@ import ShieldCheck from "../components/icons/ShieldCheck.tsx";
 import Cloudflare from "../components/icons/Cloudflare.tsx";
 import Clock from "../components/icons/Clock.tsx";
 import Info from "../components/icons/Info.tsx";
-import Close from '../components/icons/Close.tsx';
 
 // refactor: 将导入从 'database' 包更改为本地的类型定义文件
 import type { Email } from '../database_types.ts';
@@ -37,6 +36,8 @@ export function Home() {
   const [address, setAddress] = useState<string | undefined>(() => Cookies.get('userMailbox'));
   const [turnstileToken, setTurnstileToken] = useState<string>('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  // fix: 新增状态，跟踪人机验证是否已通过
+  const [isTurnstileVerified, setIsTurnstileVerified] = useState(false);
 
   // feat: 初始化密码模态框
   const { PasswordModal, setShowPasswordModal } = usePasswordModal();
@@ -47,17 +48,19 @@ export function Home() {
   // feat: 新增状态来控制“查看密码”按钮的显示
   const [showViewPasswordButton, setShowViewPasswordButton] = useState(false);
 
-
   // 使用 React Query 获取邮件列表
   const { data: emails = [], isLoading, isFetching, refetch } = useQuery<Email[]>({
     queryKey: ['emails', address],
-    queryFn: () => getEmails(address!, turnstileToken),
-    // fix: 确保在 address 和 turnstileToken 都存在时，查询才被激活
-    enabled: !!address && !!turnstileToken,
+    queryFn: () => getEmails(address!),
+    // fix: 关键修复：现在查询只依赖于 `address` 是否存在。
+    // 移除了对 `turnstileToken` 的依赖，解决了页面刷新后无法加载邮件的问题。
+    enabled: !!address,
     // fix: 恢复20秒自动刷新
     refetchInterval: 20000,
     // 当查询出错时，自动刷新会停止，这里添加错误提示方便调试
     onError: (err: Error) => {
+      // 当发生错误时，给出提示
+      // fix: 修复硬编码文本问题，使用 t() 函数
       toast.error(`${t("Failed to get emails")}: ${err.message}`, { duration: 5000 });
     },
     // 失败后不自动重试
@@ -101,7 +104,7 @@ export function Home() {
               }}
               className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-cyan-400 hover:text-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-500"
             >
-              关闭
+              {t("Close")}
             </button>
           </div>
         </div>
@@ -144,14 +147,22 @@ export function Home() {
   }, [emails, address, passwordNotificationShown, showPasswordToast]);
 
   // 创建新邮箱地址的处理函数
-  const handleCreateAddress = () => {
+  const handleCreateAddress = async () => {
     if (!turnstileToken) {
       toast.error(t('No captcha response'));
       return;
     }
-    const mailbox = `${randomName("", getRandomCharacter())}@${config.emailDomain}`;
-    Cookies.set('userMailbox', mailbox, { expires: 1 }); // cookie 有效期1天
-    setAddress(mailbox);
+    // fix: 在创建地址前，先调用后端进行人机验证
+    try {
+      await verifyTurnstile(turnstileToken);
+      setIsTurnstileVerified(true); // 验证通过
+      const mailbox = `${randomName("", getRandomCharacter())}@${config.emailDomain}`;
+      Cookies.set('userMailbox', mailbox, { expires: 1 }); // cookie 有效期1天
+      setAddress(mailbox);
+    } catch (error) {
+      toast.error(t('Failed to verify captcha'));
+      console.error("Turnstile verification failed:", error);
+    }
   };
 
   // 停止使用当前邮箱地址
@@ -165,14 +176,17 @@ export function Home() {
 
   // 删除邮件的 useMutation hook
   const deleteMutation = useMutation({
-    mutationFn: (ids: string[]) => deleteEmails(ids, turnstileToken),
+    // fix: 删除邮件不再需要 turnstile token
+    mutationFn: (ids: string[]) => deleteEmails(ids),
     onSuccess: () => {
+      // fix: 修复硬编码文本问题，使用 t() 函数
       toast.success(t('Emails deleted'));
       setSelectedIds([]); // 清空选择
       // 使邮件列表的查询失效，触发一次刷新
       queryClient.invalidateQueries({ queryKey: ['emails', address] });
     },
     onError: () => {
+      // fix: 修复硬编码文本问题，使用 t() 函数
       toast.error(t('Deletion failed'));
     }
   });
@@ -180,6 +194,7 @@ export function Home() {
   // 定义 handleDeleteEmails 函数
   const handleDeleteEmails = (ids: string[]) => {
     if (ids.length === 0) {
+      // fix: 修复硬编码文本问题，使用 t() 函数
       toast.error(t('Please select emails to delete'));
       return;
     }
@@ -194,6 +209,7 @@ export function Home() {
     }
     setIsLoggingIn(true);
     try {
+      // fix: 登录时也需要传递 turnstile token
       const data = await loginByPassword(password, turnstileToken);
       Cookies.set('userMailbox', data.address, { expires: 1 });
       setAddress(data.address);
@@ -299,3 +315,4 @@ export function Home() {
     </div>
   );
 }
+
