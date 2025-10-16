@@ -167,13 +167,15 @@ api.post('/login', async (c) => {
 
 // 前端配置接口
 app.get('/config', (c) => {
-  // fix: 将 COOKIES_SECRET 添加到配置响应中，以便前端进行加密
+  // feat: 将 emailDomain 拆分为数组以支持多域名
+  const emailDomain = c.env.EMAIL_DOMAIN ? c.env.EMAIL_DOMAIN.split(',').map(d => d.trim()) : [];
   return c.json({
-    emailDomain: c.env.EMAIL_DOMAIN,
+    emailDomain: emailDomain, // 返回域名数组
     turnstileKey: c.env.TURNSTILE_KEY,
     cookiesSecret: c.env.COOKIES_SECRET,
   });
 });
+
 
 // 静态资源服务 (放在最后，作为默认路由)
 app.get('*', serveStatic({ root: './' }));

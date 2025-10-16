@@ -2,10 +2,10 @@ import { createContext, useContext } from 'react';
 
 // 定义配置的类型
 export interface AppConfig {
-  emailDomain: string;
+  emailDomain: string[]; // 修改为字符串数组
   turnstileKey: string;
   // feat: 添加 cookiesSecret 到配置中，以便前端加密时使用
-  cookiesSecret: string; 
+  cookiesSecret: string;
 }
 
 // 创建 React Context

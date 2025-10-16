@@ -39,11 +39,12 @@ export function Home() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isTurnstileVerified, setIsTurnstileVerified] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null); // 新增状态，用于存储当前选中的邮件
+  const [selectedDomain, setSelectedDomain] = useState<string>(config.emailDomain[0]); // feat: 新增状态，用于存储当前选中的域名
 
   // feat: 初始化密码模态框
   const { PasswordModal, setShowPasswordModal } = usePasswordModal();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  
+
   // feat: 新增状态，用于跟踪当前邮箱地址是否曾经收到过邮件
   const [hasReceivedEmail, setHasReceivedEmail] = useState(false);
 
@@ -120,7 +121,8 @@ export function Home() {
     try {
       await verifyTurnstile(turnstileToken);
       setIsTurnstileVerified(true); // 验证通过
-      const mailbox = `${randomName("", getRandomCharacter())}@${config.emailDomain}`;
+      // feat: 使用选定的域名创建邮箱
+      const mailbox = `${randomName("", getRandomCharacter())}@${selectedDomain}`;
       Cookies.set('userMailbox', mailbox, { expires: 1 }); // cookie 有效期1天
       setAddress(mailbox);
       setHasReceivedEmail(false); // 重置接收邮件状态
@@ -139,7 +141,7 @@ export function Home() {
     setSelectedEmail(null); // 清除选中的邮件
     queryClient.invalidateQueries({ queryKey: ['emails'] }); // 清理缓存
   };
-  
+
   // feat: 手动刷新邮件
   const handleRefresh = () => {
     refetch();
@@ -196,12 +198,12 @@ export function Home() {
     }
     return null;
   }, [address, config.cookiesSecret]);
-  
+
   // 新增：处理邮件选择
   const handleSelectEmail = (email: Email) => {
     setSelectedEmail(email);
   };
-  
+
   // 新增：关闭邮件详情
   const handleCloseDetail = () => {
     setSelectedEmail(null);
@@ -240,6 +242,21 @@ export function Home() {
           </div>
         ) : (
           <div className="w-full md:max-w-[350px]">
+             {/* feat: 添加域名选择下拉框 */}
+             <div className="mb-4">
+                <div className="mb-3 font-semibold">{t("Domain")}</div>
+                <select
+                  value={selectedDomain}
+                  onChange={(e) => setSelectedDomain(e.target.value)}
+                  className="w-full p-2.5 rounded-md bg-white/10 text-white border border-cyan-50/20"
+                >
+                  {config.emailDomain.map((domain) => (
+                    <option key={domain} value={domain} className="text-black">
+                      @{domain}
+                    </option>
+                  ))}
+                </select>
+              </div>
             <div className="text-sm relative mb-4">
               <div className="mb-3 font-semibold">{t("Validater")}</div>
               <div className="[&_iframe]:!w-full h-[65px] max-w-[300px] bg-gray-700">
