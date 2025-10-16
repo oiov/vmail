@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom'; // <--- 关键修正：使用 react-router-dom
+import { Link } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { Email } from 'database/schema';
-import { TrashIcon } from './icons/TrashIcon'; // 确保图标路径正确
-import { WaitingEmail } from './icons/waiting-email'; // 确保图标路径正确
+// 关键修正：为图标导入添加 .tsx 扩展名
+import { TrashIcon } from './icons/TrashIcon.tsx'; 
+import { WaitingEmail } from './icons/waiting-email.tsx'; 
 
-// 组件 props 定义
 interface MailListProps {
   emails: Email[];
   onDelete: (ids: string[]) => void;
@@ -31,7 +31,6 @@ export function MailList({ emails, onDelete, isDeleting }: MailListProps) {
     }
   };
 
-  // 如果没有邮件，显示提示信息
   if (emails.length === 0) {
     return (
       <div className="text-center p-8 bg-white rounded-lg shadow-md">
@@ -43,7 +42,6 @@ export function MailList({ emails, onDelete, isDeleting }: MailListProps) {
 
   return (
     <div className="bg-white rounded-lg shadow-md">
-      {/* 操作按钮 */}
       <div className="p-4 border-b flex items-center space-x-4">
         <input
           type="checkbox"
@@ -61,7 +59,6 @@ export function MailList({ emails, onDelete, isDeleting }: MailListProps) {
         </button>
       </div>
 
-      {/* 邮件列表 */}
       <ul className="divide-y">
         {emails.map((email) => (
           <li key={email.id} className="flex items-center p-4 hover:bg-gray-50">

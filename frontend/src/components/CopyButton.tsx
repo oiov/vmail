@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { CheckIcon } from './icons/CheckIcon'; // 确保图标路径正确
-import { CopyIcon } from './icons/CopyIcon';   // 确保图标路径正确
+// 关键修正：为图标导入添加 .tsx 扩展名
+import { CheckIcon } from './icons/CheckIcon.tsx'; 
+import { CopyIcon } from './icons/CopyIcon.tsx';   
 
 interface CopyButtonProps {
   text: string;
@@ -22,7 +23,7 @@ export function CopyButton({ text }: CopyButtonProps) {
     if (isCopied) {
       const timer = setTimeout(() => {
         setIsCopied(false);
-      }, 2000); // 2秒后重置状态
+      }, 2000); 
       return () => clearTimeout(timer);
     }
   }, [isCopied]);
