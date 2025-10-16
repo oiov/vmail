@@ -11,7 +11,8 @@ import { CopyButton } from '../components/CopyButton.tsx';
 // feat: 导入 loginByPassword
 import { getEmails, deleteEmails, loginByPassword, verifyTurnstile } from '../services/api.ts';
 import { useConfig } from '../hooks/useConfig.ts';
-import { getRandomCharacter } from '../lib/utlis.ts';
+// feat: 导入加密函数
+import { getRandomCharacter, encrypt } from '../lib/utlis.ts';
 
 // feat: 导入密码模态框和相关 hook
 import { usePasswordModal } from '../components/password.tsx';
@@ -32,43 +33,31 @@ export function Home() {
   const queryClient = useQueryClient();
 
   // 状态管理
-  // fix: 简化 address state 的初始化
   const [address, setAddress] = useState<string | undefined>(() => Cookies.get('userMailbox'));
   const [turnstileToken, setTurnstileToken] = useState<string>('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  // fix: 新增状态，跟踪人机验证是否已通过
   const [isTurnstileVerified, setIsTurnstileVerified] = useState(false);
 
   // feat: 初始化密码模态框
   const { PasswordModal, setShowPasswordModal } = usePasswordModal();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   
-  // feat: 新增状态来跟踪密码通知是否已显示
-  const [passwordNotificationShown, setPasswordNotificationShown] = useState(false);
-  // feat: 新增状态来控制“查看密码”按钮的显示
-  const [showViewPasswordButton, setShowViewPasswordButton] = useState(false);
+  // feat: 新增状态，用于跟踪当前邮箱地址是否曾经收到过邮件
+  const [hasReceivedEmail, setHasReceivedEmail] = useState(false);
 
   // 使用 React Query 获取邮件列表
   const { data: emails = [], isLoading, isFetching, refetch } = useQuery<Email[]>({
     queryKey: ['emails', address],
     queryFn: () => getEmails(address!),
-    // fix: 关键修复：现在查询只依赖于 `address` 是否存在。
-    // 移除了对 `turnstileToken` 的依赖，解决了页面刷新后无法加载邮件的问题。
-    enabled: !!address,
-    // fix: 恢复20秒自动刷新
-    refetchInterval: 20000,
-    // 当查询出错时，自动刷新会停止，这里添加错误提示方便调试
+    enabled: !!address, // 只有在 address 存在时才执行查询
+    refetchInterval: 20000, // 恢复20秒自动刷新
     onError: (err: Error) => {
-      // 当发生错误时，给出提示
-      // fix: 修复硬编码文本问题，使用 t() 函数
       toast.error(`${t("Failed to get emails")}: ${err.message}`, { duration: 5000 });
     },
-    // 失败后不自动重试
-    retry: false,
+    retry: false, // 失败后不自动重试
   });
 
-  // feat(fix): 将密码提示封装成一个函数，并用 useCallback 包裹以优化性能。
-  // 此函数现在只负责显示密码提示，不再控制“查看密码”按钮的显示与隐藏。
+  // feat: 将密码提示封装成一个函数，并用 useCallback 包裹以优化性能。
   const showPasswordToast = useCallback((password: string) => {
     toast.custom(
       (toastInstance) => (
@@ -83,7 +72,6 @@ export function Home() {
                 <PasswordIcon className="h-8 w-8 text-cyan-400" />
               </div>
               <div className="ml-3 flex-1">
-                {/* feat: 将标题文本更改为更合适的描述 */}
                 <p className="text-sm font-medium text-gray-100">
                   {t('Save your password and continue using this email in 1 day')}
                 </p>
@@ -99,9 +87,7 @@ export function Home() {
           </div>
           <div className="flex border-l border-gray-700">
             <button
-              onClick={() => {
-                toast.dismiss(toastInstance.id);
-              }}
+              onClick={() => toast.dismiss(toastInstance.id)}
               className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-cyan-400 hover:text-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-500"
             >
               {t("Close")}
@@ -111,8 +97,8 @@ export function Home() {
       ),
       {
         id: 'password-notification', // 防止重复通知
-        duration: 5000, // feat: 5秒后自动关闭
-        position: 'top-center', // feat: 移动到上方显示
+        duration: 5000, // 5秒后自动关闭
+        position: 'top-center',
       }
     );
   }, [t]);
@@ -120,31 +106,20 @@ export function Home() {
   // feat(fix): 使用useEffect来检测新邮件、显示密码通知，并控制“查看密码”按钮的可见性
   const prevEmailsLength = useRef(emails.length);
   useEffect(() => {
-    // 检查邮箱列表是否从空变为非空，且密码通知未曾显示
-    if (prevEmailsLength.current === 0 && emails.length > 0 && !passwordNotificationShown && address) {
-      // 邮件按时间倒序排列，所以第一封邮件是数组的最后一项
-      const firstEmail = emails[emails.length - 1];
-      const password = firstEmail.id;
-
-      showPasswordToast(password);
-      setPasswordNotificationShown(true);
+    // 检查邮箱列表是否从空变为非空，且尚未标记为“已接收邮件”
+    if (prevEmailsLength.current === 0 && emails.length > 0 && !hasReceivedEmail) {
+      setHasReceivedEmail(true); // 标记此邮箱地址已收到过邮件
     }
 
-    // feat(fix): 核心修改：只要收到邮件（emails.length > 0），就一直显示“查看密码”按钮
-    if (emails.length > 0 && address) {
-        setShowViewPasswordButton(true);
-    }
-
-    // 当用户停止使用邮箱时，重置状态并关闭通知和按钮
+    // 当用户停止使用邮箱时，重置状态并关闭通知
     if (!address) {
-      setPasswordNotificationShown(false);
-      setShowViewPasswordButton(false);
+      setHasReceivedEmail(false);
       toast.dismiss('password-notification');
     }
 
-    // 更新上一次的邮件数量，用于下一次渲染时比较
     prevEmailsLength.current = emails.length;
-  }, [emails, address, passwordNotificationShown, showPasswordToast]);
+  }, [emails, address, hasReceivedEmail]);
+
 
   // 创建新邮箱地址的处理函数
   const handleCreateAddress = async () => {
@@ -152,13 +127,13 @@ export function Home() {
       toast.error(t('No captcha response'));
       return;
     }
-    // fix: 在创建地址前，先调用后端进行人机验证
     try {
       await verifyTurnstile(turnstileToken);
       setIsTurnstileVerified(true); // 验证通过
       const mailbox = `${randomName("", getRandomCharacter())}@${config.emailDomain}`;
       Cookies.set('userMailbox', mailbox, { expires: 1 }); // cookie 有效期1天
       setAddress(mailbox);
+      setHasReceivedEmail(false); // 重置接收邮件状态
     } catch (error) {
       toast.error(t('Failed to verify captcha'));
       console.error("Turnstile verification failed:", error);
@@ -169,24 +144,19 @@ export function Home() {
   const handleStopAddress = () => {
     Cookies.remove('userMailbox');
     setAddress(undefined);
-    setShowViewPasswordButton(false); // 停止时也隐藏按钮
-    // 清理相关的查询缓存
-    queryClient.invalidateQueries({ queryKey: ['emails'] });
+    setHasReceivedEmail(false); // 重置状态
+    queryClient.invalidateQueries({ queryKey: ['emails'] }); // 清理缓存
   };
 
   // 删除邮件的 useMutation hook
   const deleteMutation = useMutation({
-    // fix: 删除邮件不再需要 turnstile token
     mutationFn: (ids: string[]) => deleteEmails(ids),
     onSuccess: () => {
-      // fix: 修复硬编码文本问题，使用 t() 函数
       toast.success(t('Emails deleted'));
       setSelectedIds([]); // 清空选择
-      // 使邮件列表的查询失效，触发一次刷新
-      queryClient.invalidateQueries({ queryKey: ['emails', address] });
+      queryClient.invalidateQueries({ queryKey: ['emails', address] }); // 刷新列表
     },
     onError: () => {
-      // fix: 修复硬编码文本问题，使用 t() 函数
       toast.error(t('Deletion failed'));
     }
   });
@@ -194,7 +164,6 @@ export function Home() {
   // 定义 handleDeleteEmails 函数
   const handleDeleteEmails = (ids: string[]) => {
     if (ids.length === 0) {
-      // fix: 修复硬编码文本问题，使用 t() 函数
       toast.error(t('Please select emails to delete'));
       return;
     }
@@ -209,7 +178,6 @@ export function Home() {
     }
     setIsLoggingIn(true);
     try {
-      // fix: 登录时也需要传递 turnstile token
       const data = await loginByPassword(password, turnstileToken);
       Cookies.set('userMailbox', data.address, { expires: 1 });
       setAddress(data.address);
@@ -222,19 +190,17 @@ export function Home() {
     }
   };
 
-  // feat: 获取密码（第一封邮件的ID）
-  const getPassword = () => {
-    if (emails && emails.length > 0) {
-      // 邮件是倒序的，所以第一封邮件是最后一项
-      return emails[emails.length - 1].id;
+  // feat: 获取密码（基于当前邮箱地址和 COOKIES_SECRET 加密）
+  const getPassword = useCallback(() => {
+    if (address && config.cookiesSecret) {
+      return encrypt(address, config.cookiesSecret);
     }
     return null;
-  }
+  }, [address, config.cookiesSecret]);
 
   return (
     <div className="h-full flex flex-col gap-4 md:flex-row justify-center items-start mt-24 mx-6 md:mx-10">
       <Toaster position="top-center" />
-      {/* feat: 渲染密码模态框 */}
       <PasswordModal onLogin={handleLogin} isLoggingIn={isLoggingIn} />
       <div className="flex flex-col text-white items-start w-full md:w-[350px] mx-auto gap-2">
         {/* 左侧信息面板 */}
@@ -278,7 +244,6 @@ export function Home() {
               className="py-2.5 rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500">
               {t("Create temporary email")}
             </button>
-            {/* feat: 添加登录按钮 */}
             <p
               className="mt-4 text-sm text-cyan-500 cursor-pointer"
               onClick={() => setShowPasswordModal(true)}>
@@ -294,7 +259,6 @@ export function Home() {
         <MailList
           isAddressCreated={!!address}
           emails={emails}
-          // fix: 传递正确的加载状态
           isLoading={isLoading}
           isFetching={isFetching}
           onDelete={handleDeleteEmails}
@@ -303,7 +267,7 @@ export function Home() {
           selectedIds={selectedIds}
           setSelectedIds={setSelectedIds}
           // feat: 传递新状态和回调函数
-          showViewPasswordButton={showViewPasswordButton}
+          showViewPasswordButton={hasReceivedEmail}
           onShowPassword={() => {
             const password = getPassword();
             if (password) {
@@ -315,4 +279,3 @@ export function Home() {
     </div>
   );
 }
-

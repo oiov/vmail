@@ -2,11 +2,14 @@ import { Hono } from 'hono';
 import { serveStatic } from 'hono/cloudflare-workers';
 import { cors } from 'hono/cors';
 // 导入数据库相关的模块
-import { deleteEmails, findEmailById, getEmailByPassword, getEmailsByMessageTo, insertEmail, deleteExpiredEmails } from './database/dao';
+import { deleteEmails, findEmailById, getEmailsByMessageTo, insertEmail, deleteExpiredEmails } from './database/dao';
 import { getD1DB } from './database/db';
 import { InsertEmail, insertEmailSchema } from './database/schema';
 import { nanoid } from 'nanoid/non-secure';
 import PostalMime from 'postal-mime';
+// 导入加解密工具函数
+import { decrypt } from './utils';
+
 
 // 定义 Cloudflare 绑定和环境变量的类型
 export interface Env {
@@ -138,14 +141,27 @@ api.post('/login', turnstile, async (c) => {
   // fix: 从上下文中获取已解析的请求体，并进行安全访问
   const body = c.get('parsedBody');
   const password = body?.password;
+
   if (!password) {
     return c.json({ message: 'Password is required' }, 400);
   }
-  const email = await getEmailByPassword(db, password as string);
-  if (!email) {
-    return c.json({ message: 'Invalid password' }, 404);
+
+  try {
+    // 解密密码以获取邮箱地址
+    const address = decrypt(password, c.env.COOKIES_SECRET);
+    // 验证邮箱地址是否存在
+    const emails = await getEmailsByMessageTo(db, address);
+    if (emails.length === 0) {
+      // 如果该地址从未收到过邮件，则视为无效密码
+      return c.json({ message: 'Invalid password' }, 404);
+    }
+    // 登录成功，返回邮箱地址
+    return c.json({ address });
+  } catch (e) {
+    console.error("Login error:", e);
+    // 如果解密失败或发生其他错误，返回无效密码错误
+    return c.json({ message: 'Invalid password' }, 400);
   }
-  return c.json({ address: email.messageTo });
 });
 
 

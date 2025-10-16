@@ -37,19 +37,10 @@ export async function findEmailById(db: DrizzleD1Database, id: string) {
   }
 }
 
-export async function getEmailByPassword(db: DrizzleD1Database, id: string) {
-  try {
-    const result = await db
-      .select({ messageTo: emails.messageTo })
-      .from(emails)
-      .where(and(eq(emails.id, id)))
-      .limit(1)
-      .execute();
-    return result[0];
-  } catch (e) {
-    return null;
-  }
-}
+// 该函数已不再需要，因为密码现在是邮箱地址的加密版本
+// export async function getEmailByPassword(db: DrizzleD1Database, id: string) {
+// ...
+// }
 
 export async function getEmailsByMessageTo(
   db: DrizzleD1Database,
