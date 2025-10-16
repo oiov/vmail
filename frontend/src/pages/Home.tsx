@@ -18,6 +18,7 @@ import { getRandomCharacter, encrypt } from '../lib/utlis.ts';
 // feat: 导入密码模态框和相关 hook
 import { usePasswordModal } from '../components/password.tsx';
 import PasswordIcon from '../components/icons/Password.tsx';
+import Close from '../components/icons/Close.tsx'; // 导入关闭图标
 
 // 图标导入
 import ShieldCheck from "../components/icons/ShieldCheck.tsx";
@@ -65,30 +66,49 @@ export function Home() {
   const showPasswordToast = useCallback((password: string) => {
     toast(
       (toastInstance) => (
-        <div className="flex-1 w-0 p-4">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <PasswordIcon className="h-8 w-8 text-cyan-400" />
-              </div>
-              <div className="ml-3 flex-1">
-                <p className="text-sm font-medium text-gray-100">
-                  {t('Save your password and continue using this email in 1 day')}
-                </p>
-                <div className="mt-1 flex items-center text-sm text-gray-300 bg-slate-700 px-2 py-1 rounded">
-                  <span className="flex-1 font-mono break-all">{password}</span>
-                  <CopyButton text={password} className="p-1" />
+        // 优化：为弹窗添加独立的标题栏和关闭按钮，并调整整体样式
+        <div className="w-full max-w-md p-4 bg-slate-800 text-white rounded-lg shadow-lg border border-slate-700">
+            {/* 标题栏：包含图标、标题和关闭按钮 */}
+            <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-700">
+                <div className="flex items-center gap-2">
+                    <PasswordIcon className="h-6 w-6 text-cyan-400" />
+                    <h3 className="text-lg font-semibold">{t('View password')}</h3>
                 </div>
-                <p className="mt-2 text-xs text-yellow-400">
-                  {t("Remember your password, otherwise your email will expire and cannot be retrieved")}
-                </p>
-              </div>
+                <button
+                    onClick={() => toast.dismiss(toastInstance.id)}
+                    className="p-1 rounded-full text-gray-400 hover:bg-slate-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    aria-label="Close"
+                >
+                    <Close className="h-5 w-5" />
+                </button>
             </div>
-          </div>
+            
+            {/* 内容区域 */}
+            <div>
+                <p className="text-sm text-gray-300">
+                    {t('Save your password and continue using this email in 1 day')}
+                </p>
+                <div className="mt-2 flex items-center text-sm bg-slate-700 px-2 py-1 rounded">
+                    <span className="flex-1 font-mono break-all text-gray-100">{password}</span>
+                    <CopyButton text={password} className="p-1" />
+                </div>
+                <p className="mt-3 text-xs text-yellow-400">
+                    {t("Remember your password, otherwise your email will expire and cannot be retrieved")}
+                </p>
+            </div>
+        </div>
       ),
       {
         id: 'password-notification', // 防止重复通知
         duration: 5000, // 5秒后自动关闭
         position: 'top-center',
+        // 优化：移除默认样式，让自定义组件完全控制外观
+        style: {
+            background: 'transparent',
+            border: 'none',
+            padding: 0,
+            boxShadow: 'none',
+        },
       }
     );
   }, [t]);
