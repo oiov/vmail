@@ -1,57 +1,31 @@
 {
-  "name": "vmail-web",
-  "version": "1.0.0",
+  "name": "frontend",
   "private": true,
-  "sideEffects": false,
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "build": "remix build",
-    "dev": "remix dev --manual",
-    "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
-    "start": "remix-serve ./build/index.js",
-    "typecheck": "tsc"
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@marsidev/react-turnstile": "^0.4.1",
-    "@remix-run/cloudflare": "^2.5.0",
-    "@remix-run/cloudflare-pages": "^2.5.0",
-    "@remix-run/node": "^2.5.0",
-    "@remix-run/react": "^2.5.0",
-    "@remix-run/serve": "^2.5.0",
-    "@scaleway/random-name": "^4.0.2",
-    "database": "workspace:^",
-    "framer-motion": "^11.0.24",
-    "i18next": "^23.10.1",
-    "i18next-browser-languagedetector": "^7.2.0",
-    "i18next-fs-backend": "^2.3.1",
-    "i18next-http-backend": "^2.5.0",
-    "icons": "workspace:^",
-    "isbot": "^4.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-hot-toast": "^2.4.1",
-    "react-i18next": "^14.1.0",
-    "remix-i18next": "^6.0.1"
+    "react-router-dom": "^6.22.3",
+    "@tanstack/react-query": "^5.17.10",
+    "axios": "^1.6.7",
+    "date-fns": "^3.2.0",
+    "clsx": "^2.1.0"
   },
   "devDependencies": {
-    "@remix-run/dev": "^2.5.0",
-    "@tailwindcss/typography": "^0.5.10",
-    "@types/react": "^18.2.20",
-    "@types/react-dom": "^18.2.7",
-    "@typescript-eslint/eslint-plugin": "^6.7.4",
-    "autoprefixer": "^10.4.16",
-    "eslint": "^8.38.0",
-    "eslint-config-prettier": "^9.0.0",
-    "eslint-import-resolver-typescript": "^3.6.1",
-    "eslint-plugin-import": "^2.28.1",
-    "eslint-plugin-jsx-a11y": "^6.7.1",
-    "eslint-plugin-react": "^7.33.2",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "postcss": "^8.4.33",
+    "@types/react": "^18.2.55",
+    "@types/react-dom": "^18.2.19",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5.1.6"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "typescript": "^5.2.2",
+    "vite": "^5.1.0"
   }
 }
