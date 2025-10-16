@@ -1,44 +1,43 @@
-import { CheckIcon, CopyIcon, ExclamationCircle } from "icons";
-import { ButtonHTMLAttributes, DetailedHTMLProps, useState } from "react";
+import { useState, useEffect } from 'react';
+import { CheckIcon } from './icons/CheckIcon'; // 确保图标路径正确
+import { CopyIcon } from './icons/CopyIcon';   // 确保图标路径正确
 
-interface CopyButtonProps
-  extends DetailedHTMLProps<
-    ButtonHTMLAttributes<HTMLButtonElement>,
-    HTMLButtonElement
-  > {
-  content: string;
+interface CopyButtonProps {
+  text: string;
 }
 
-export default function CopyButton(props: CopyButtonProps) {
-  const [status, setStatus] = useState<keyof typeof icons>("idle");
+export function CopyButton({ text }: CopyButtonProps) {
+  const [isCopied, setIsCopied] = useState(false);
 
-  const icons = {
-    idle: <CopyIcon className="" />,
-    error: <ExclamationCircle className="text-red-500" />,
-    success: <CheckIcon className="text-green-500" />,
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setIsCopied(true);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
   };
 
-  function copy() {
-    if (navigator.clipboard) {
-      navigator.clipboard
-        .writeText(props.content)
-        .then(() => setStatus("success"))
-        .catch(() => setStatus("error"))
-        .finally(() => setTimeout(() => setStatus("idle"), 1000));
-    } else {
-      const textArea = document.createElement("textarea");
-      textArea.value = props.content;
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textArea);
+  useEffect(() => {
+    if (isCopied) {
+      const timer = setTimeout(() => {
+        setIsCopied(false);
+      }, 2000); // 2秒后重置状态
+      return () => clearTimeout(timer);
     }
-  }
+  }, [isCopied]);
 
   return (
-    <button type="button" {...props} onClick={copy}>
-      {icons[status]}
+    <button
+      onClick={handleCopy}
+      className="p-2 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400"
+      aria-label="Copy to clipboard"
+    >
+      {isCopied ? (
+        <CheckIcon className="h-5 w-5 text-green-500" />
+      ) : (
+        <CopyIcon className="h-5 w-5 text-gray-500" />
+      )}
     </button>
   );
 }
