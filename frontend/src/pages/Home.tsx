@@ -44,6 +44,9 @@ export function Home() {
   
   // feat: 新增状态来跟踪密码通知是否已显示
   const [passwordNotificationShown, setPasswordNotificationShown] = useState(false);
+  // feat: 新增状态来控制“查看密码”按钮的显示
+  const [showViewPasswordButton, setShowViewPasswordButton] = useState(false);
+
 
   // 使用 React Query 获取邮件列表
   const { data: emails = [], isLoading, isFetching, refetch } = useQuery<Email[]>({
@@ -61,6 +64,57 @@ export function Home() {
     retry: false,
   });
 
+  // feat: 将密码提示封装成一个函数，以便重复调用
+  const showPasswordToast = (password: string) => {
+    // 调用时，先隐藏“查看密码”按钮，因为提示框会显示出来
+    setShowViewPasswordButton(false);
+    toast.custom(
+      (toastInstance) => (
+        <div
+          className={`max-w-md w-full bg-slate-800 text-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 transition-all duration-300 ${
+            toastInstance.visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
+          }`}
+        >
+          <div className="flex-1 w-0 p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 pt-0.5">
+                <PasswordIcon className="h-8 w-8 text-cyan-400" />
+              </div>
+              <div className="ml-3 flex-1">
+                {/* feat: 将标题文本更改为更合适的描述 */}
+                <p className="text-sm font-medium text-gray-100">
+                  {t('Save your password and continue using this email in 1 day')}
+                </p>
+                <div className="mt-1 flex items-center text-sm text-gray-300 bg-slate-700 px-2 py-1 rounded">
+                  <span className="truncate flex-1 font-mono">{password}</span>
+                  <CopyButton text={password} className="p-1" />
+                </div>
+                <p className="mt-2 text-xs text-yellow-400">
+                  {t("Remember your password, otherwise your email will expire and cannot be retrieved")}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="flex border-l border-gray-700">
+            <button
+              onClick={() => toast.dismiss(toastInstance.id)}
+              className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-cyan-400 hover:text-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+            >
+              关闭
+            </button>
+          </div>
+        </div>
+      ),
+      {
+        id: 'password-notification', // 防止重复通知
+        duration: 5000, // feat: 5秒后自动关闭
+        position: 'top-center', // feat: 移动到上方显示
+        // feat: 当提示框关闭时，显示“查看密码”按钮
+        onDismiss: () => setShowViewPasswordButton(true),
+      }
+    );
+  };
+
   // feat: 使用useEffect来检测新邮件并显示密码通知
   const prevEmailsLength = useRef(emails.length);
   useEffect(() => {
@@ -70,55 +124,14 @@ export function Home() {
       const firstEmail = emails[emails.length - 1];
       const password = firstEmail.id;
 
-      toast.custom(
-        (toastInstance) => (
-          <div
-            className={`max-w-md w-full bg-slate-800 text-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5 transition-all duration-300 ${
-              toastInstance.visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-            }`}
-          >
-            <div className="flex-1 w-0 p-4">
-              <div className="flex items-start">
-                <div className="flex-shrink-0 pt-0.5">
-                  <PasswordIcon className="h-8 w-8 text-cyan-400" />
-                </div>
-                <div className="ml-3 flex-1">
-                  {/* style: 使用现有翻译作为标题，并调整样式 */}
-                  <p className="text-sm font-medium text-gray-100">
-                    {t('Save password')}
-                  </p>
-                  <div className="mt-1 flex items-center text-sm text-gray-300 bg-slate-700 px-2 py-1 rounded">
-                    <span className="truncate flex-1 font-mono">{password}</span>
-                    <CopyButton text={password} className="p-1" />
-                  </div>
-                  <p className="mt-2 text-xs text-yellow-400">
-                    {t("Remember your password, otherwise your email will expire and cannot be retrieved")}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex border-l border-gray-700">
-              <button
-                onClick={() => toast.dismiss(toastInstance.id)}
-                className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-cyan-400 hover:text-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-              >
-                关闭
-              </button>
-            </div>
-          </div>
-        ),
-        {
-          id: 'password-notification', // 防止重复通知
-          duration: Infinity, // 持续显示直到用户关闭
-          position: 'bottom-center',
-        }
-      );
+      showPasswordToast(password);
       setPasswordNotificationShown(true);
     }
 
     // 当用户停止使用邮箱时，重置状态并关闭通知
     if (!address) {
       setPasswordNotificationShown(false);
+      setShowViewPasswordButton(false);
       toast.dismiss('password-notification');
     }
 
@@ -142,6 +155,7 @@ export function Home() {
   const handleStopAddress = () => {
     Cookies.remove('userMailbox');
     setAddress(undefined);
+    setShowViewPasswordButton(false); // 停止时也隐藏按钮
     // 清理相关的查询缓存
     queryClient.invalidateQueries({ queryKey: ['emails'] });
   };
@@ -189,6 +203,14 @@ export function Home() {
     }
   };
 
+  // feat: 获取密码（第一封邮件的ID）
+  const getPassword = () => {
+    if (emails && emails.length > 0) {
+      // 邮件是倒序的，所以第一封邮件是最后一项
+      return emails[emails.length - 1].id;
+    }
+    return null;
+  }
 
   return (
     <div className="h-full flex flex-col gap-4 md:flex-row justify-center items-start mt-24 mx-6 md:mx-10">
@@ -261,9 +283,16 @@ export function Home() {
           onRefresh={refetch}
           selectedIds={selectedIds}
           setSelectedIds={setSelectedIds}
+          // feat: 传递新状态和回调函数
+          showViewPasswordButton={showViewPasswordButton}
+          onShowPassword={() => {
+            const password = getPassword();
+            if (password) {
+                showPasswordToast(password);
+            }
+          }}
         />
       </div>
     </div>
   );
 }
-
