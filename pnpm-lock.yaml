@@ -23,6 +23,15 @@ importers:
       drizzle-zod:
         specifier: ^0.5.1
         version: 0.5.1(drizzle-orm@0.29.5(@libsql/client@0.4.0-pre.7)(@types/react@18.3.26)(react@18.2.0))(zod@3.25.76)
+      hono:
+        specifier: ^4.5.1
+        version: 4.9.12
+      nanoid:
+        specifier: ^5.0.7
+        version: 5.1.6
+      postal-mime:
+        specifier: ^2.0.2
+        version: 2.4.7
       zod:
         specifier: ^3.25.76
         version: 3.25.76
@@ -1830,6 +1839,10 @@ packages:
   heap@0.2.7:
     resolution: {integrity: sha512-2bsegYkkHO+h/9MGbn6KWcE45cHZgPANo5LXF7EvWdT0yT2EguSVO1nDgU5c8+ZOPwp2vMNa7YFsJhVcDR9Sdg==}
 
+  hono@4.9.12:
+    resolution: {integrity: sha512-SrTC0YxqPwnN7yKa8gg/giLyQ2pILCKoideIHbYbFQlWZjYt68D2A4Ae1hehO/aDQ6RmTcpqOV/O2yBtMzx/VQ==}
+    engines: {node: '>=16.9.0'}
+
   inflight@1.0.6:
     resolution: {integrity: sha512-k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==}
 
@@ -2004,6 +2017,11 @@ packages:
     engines: {node: ^10 || ^12 || ^13.7 || ^14 || >=15.0.1}
     hasBin: true
 
+  nanoid@5.1.6:
+    resolution: {integrity: sha512-c7+7RQ+dMB5dPwwCp4ee1/iV/q2P6aK1mTZcfr1BTuVlyW9hJYiMPybJCcnBlQtuSmTIWNeazm/zqNoZSSElBg==}
+    engines: {node: ^18 || >=20}
+    hasBin: true
+
   next-tick@1.1.0:
     resolution: {integrity: sha512-CXdUiJembsNjuToQvxayPZF9Vqht7hewsvy2sOWafLvi2awflj9mOC6bHIg50orX8IJvWKY9wYQ/zB2kogPslQ==}
 
@@ -2084,6 +2102,9 @@ packages:
   pirates@4.0.6:
     resolution: {integrity: sha512-saLsH7WeYYPiD25LDuLRRY/i+6HaPYr6G1OUlN39otzkSTxKnubR9RTxS3/Kk50s1g2JTgFwWQDQyplC5/SHZg==}
     engines: {node: '>= 6'}
+
+  postal-mime@2.4.7:
+    resolution: {integrity: sha512-OzDRJTF9rUxnMJQYqyXH6tUbSP8JD6sANDqr9kqqf90J/pskJOkpFyfGpMdW4MMejRbOZSRK6edMD3j+Ikfh6g==}
 
   postcss-import@15.1.0:
     resolution: {integrity: sha512-hpr+J05B2FVYUAXHeK1YyI267J/dDDhMU6B6civm8hSY1jYJnBXxzKDKDswzJmtLHryrjhnDjqqp/49t8FALew==}
@@ -3877,6 +3898,8 @@ snapshots:
 
   heap@0.2.7: {}
 
+  hono@4.9.12: {}
+
   inflight@1.0.6:
     dependencies:
       once: 1.4.0
@@ -4047,6 +4070,8 @@ snapshots:
 
   nanoid@3.3.11: {}
 
+  nanoid@5.1.6: {}
+
   next-tick@1.1.0: {}
 
   node-domexception@1.0.0: {}
@@ -4099,6 +4124,8 @@ snapshots:
   pify@2.3.0: {}
 
   pirates@4.0.6: {}
+
+  postal-mime@2.4.7: {}
 
   postcss-import@15.1.0(postcss@8.5.6):
     dependencies:
