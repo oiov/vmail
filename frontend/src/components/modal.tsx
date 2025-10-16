@@ -44,12 +44,15 @@ export function Modal({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onKeyDown]);
 
+  // 修复：在移动端，只有当 showModal 为 true 时才渲染 Leaflet 组件。
+  // 这可以防止它在所有页面加载时都默认弹出。
+  // 同时，添加 showBlur={true} 属性以显示背景遮罩。
   if (isMobile) {
-    return (
-      <Leaflet show={showModal} setShow={setShowModal}>
+    return showModal ? (
+      <Leaflet setShow={setShowModal} showBlur={true}>
         {children}
       </Leaflet>
-    );
+    ) : null;
   }
 
   return (
