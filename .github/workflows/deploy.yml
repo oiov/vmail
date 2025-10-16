@@ -53,8 +53,21 @@ jobs:
           TURNSTILE_KEY: ${{ secrets.TURNSTILE_KEY }}
           TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
 
+      # 检查 Cloudflare 密钥是否存在
+      - name: Check for Cloudflare credentials
+        id: cf_creds
+        run: |
+          if [ -z "${{ secrets.CF_API_TOKEN }}" ] || [ -z "${{ secrets.CF_ACCOUNT_ID }}" ]; then
+            echo "Cloudflare credentials not found, skipping deployment."
+            echo "has_creds=false" >> $GITHUB_ENV
+          else
+            echo "has_creds=true" >> $GITHUB_ENV
+          fi
+
       # 部署到 Cloudflare Workers
       - name: Deploy
+        # 添加此条件判断：仅在 has_creds 为 'true' 时执行此步骤
+        if: env.has_creds == 'true'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
