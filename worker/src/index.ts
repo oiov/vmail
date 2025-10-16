@@ -1,12 +1,12 @@
 import { Hono } from 'hono';
 import { serveStatic } from 'hono/cloudflare-workers';
 import { cors } from 'hono/cors';
-import { deleteEmails, findEmailById, getEmails, insertEmail } from 'database/dao';
-import { getD1DB } from 'database/db';
-import { InsertEmail, insertEmailSchema } from 'database/schema';
+// 路径修正：使用相对路径并导入正确的函数
+import { deleteEmails, findEmailById, getEmailsByMessageTo, insertEmail } from '../../packages/database/dao';
+import { getD1DB } from '../../packages/database/db';
+import { InsertEmail, insertEmailSchema } from '../../packages/database/schema';
 import { nanoid } from 'nanoid/non-secure';
 import PostalMime from 'postal-mime';
-import { z } from 'zod';
 
 // 定义 Cloudflare 绑定和环境变量的类型
 export interface Env {
@@ -61,7 +61,8 @@ const api = app.basePath('/api');
 api.post('/emails', turnstile, async (c) => {
   const db = getD1DB(c.env.DB);
   const { address } = await c.req.json();
-  const emails = await getEmails(db, address as string);
+  // 函数调用修正：使用 getEmailsByMessageTo 函数
+  const emails = await getEmailsByMessageTo(db, address as string);
   return c.json(emails);
 });
 
@@ -69,6 +70,7 @@ api.post('/emails', turnstile, async (c) => {
 api.get('/emails/:id', async (c) => {
   const db = getD1DB(c.env.DB);
   const { id } = c.req.param();
+  // 函数调用修正：使用 findEmailById 函数
   const email = await findEmailById(db, id);
   return c.json(email);
 });

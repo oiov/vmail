@@ -1,4 +1,4 @@
-import { count, desc, eq, and } from "drizzle-orm";
+import { count, desc, eq, and, inArray } from "drizzle-orm";
 import { LibSQLDatabase } from "drizzle-orm/libsql";
 import { emails, InsertEmail } from "./schema";
 
@@ -18,7 +18,8 @@ export async function getEmails(db: LibSQLDatabase) {
   }
 }
 
-export async function getEmail(db: LibSQLDatabase, id: string) {
+// 函数重命名：将 getEmail 重命名为 findEmailById 以匹配 worker 中的调用
+export async function findEmailById(db: LibSQLDatabase, id: string) {
   try {
     const result = await db
       .select()
@@ -71,4 +72,18 @@ export async function getEmailsCount(db: LibSQLDatabase) {
   } catch (e) {
     return 0;
   }
+}
+
+// 新增函数：添加 worker 中缺失的 deleteEmails 函数
+export async function deleteEmails(db: LibSQLDatabase, ids: string[]) {
+    if (!ids || ids.length === 0) {
+        return { count: 0 };
+    }
+    try {
+        const result = await db.delete(emails).where(inArray(emails.id, ids));
+        return { count: result.rowsAffected };
+    } catch (e) {
+        console.error(e);
+        return { count: 0 };
+    }
 }

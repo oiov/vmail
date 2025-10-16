@@ -30,6 +30,9 @@
     "date-fns": "^3.6.0",
     "drizzle-orm": "^0.29.5",
     "drizzle-zod": "^0.5.1",
+    "hono": "^4.5.1",
+    "nanoid": "^5.0.7",
+    "postal-mime": "^2.0.2",
     "zod": "^3.25.76"
   }
 }
