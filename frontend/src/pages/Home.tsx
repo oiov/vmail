@@ -9,7 +9,7 @@ import { CopyButton } from '../components/CopyButton.tsx';
 import { getEmails, deleteEmails } from '../services/api.ts';
 import { useConfig } from '../hooks/useConfig.ts';
 // 关键修正：为图标导入添加 .tsx 扩展名
-import { RefreshIcon } from '../components/icons/Refresh.tsx'; 
+import RefreshIcon from '../components/icons/RefreshIcon.tsx'; 
 
 export function Home() {
   const config = useConfig();
