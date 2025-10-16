@@ -135,11 +135,11 @@ api.post('/delete-emails', async (c) => {
     return c.json(result);
 });
 
-// 登录接口同样保留 turnstile 验证
-api.post('/login', turnstile, async (c) => {
+// 修复：移除登录接口的 turnstile 中间件，使其不再需要人机验证。
+api.post('/login', async (c) => {
   const db = getD1DB(c.env.DB);
-  // fix: 从上下文中获取已解析的请求体，并进行安全访问
-  const body = c.get('parsedBody');
+  // 修复：由于移除了 turnstile 中间件，现在需要在此处直接解析请求体。
+  const body = await c.req.json();
   const password = body?.password;
 
   if (!password) {

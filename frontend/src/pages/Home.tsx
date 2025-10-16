@@ -173,14 +173,12 @@ export function Home() {
   };
 
   // feat: 处理密码登录的函数
+  // fix: 移除登录时的 turnstile token 校验逻辑
   const handleLogin = async (password: string) => {
-    if (!turnstileToken) {
-      toast.error(t('No captcha response'));
-      return;
-    }
     setIsLoggingIn(true);
     try {
-      const data = await loginByPassword(password, turnstileToken);
+      // fix: 调用更新后的 loginByPassword 函数，不再传递 token
+      const data = await loginByPassword(password);
       Cookies.set('userMailbox', data.address, { expires: 1 });
       setAddress(data.address);
       setShowPasswordModal(false); // 关闭模态框
