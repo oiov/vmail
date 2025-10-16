@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Turnstile } from '@marsidev/react-turnstile';
 import randomName from "@scaleway/random-name";
@@ -64,10 +64,9 @@ export function Home() {
     retry: false,
   });
 
-  // feat: 将密码提示封装成一个函数，以便重复调用
-  const showPasswordToast = (password: string) => {
-    // 调用时，先隐藏“查看密码”按钮，因为提示框会显示出来
-    setShowViewPasswordButton(false);
+  // feat(fix): 将密码提示封装成一个函数，并用 useCallback 包裹以优化性能。
+  // 此函数现在只负责显示密码提示，不再控制“查看密码”按钮的显示与隐藏。
+  const showPasswordToast = useCallback((password: string) => {
     toast.custom(
       (toastInstance) => (
         <div
@@ -97,7 +96,9 @@ export function Home() {
           </div>
           <div className="flex border-l border-gray-700">
             <button
-              onClick={() => toast.dismiss(toastInstance.id)}
+              onClick={() => {
+                toast.dismiss(toastInstance.id);
+              }}
               className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-cyan-400 hover:text-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-500"
             >
               关闭
@@ -109,16 +110,14 @@ export function Home() {
         id: 'password-notification', // 防止重复通知
         duration: 5000, // feat: 5秒后自动关闭
         position: 'top-center', // feat: 移动到上方显示
-        // feat: 当提示框关闭时，显示“查看密码”按钮
-        onDismiss: () => setShowViewPasswordButton(true),
       }
     );
-  };
+  }, [t]);
 
-  // feat: 使用useEffect来检测新邮件并显示密码通知
+  // feat(fix): 使用useEffect来检测新邮件、显示密码通知，并控制“查看密码”按钮的可见性
   const prevEmailsLength = useRef(emails.length);
   useEffect(() => {
-    // 检查邮箱列表是否从空变为非空，且通知未曾显示
+    // 检查邮箱列表是否从空变为非空，且密码通知未曾显示
     if (prevEmailsLength.current === 0 && emails.length > 0 && !passwordNotificationShown && address) {
       // 邮件按时间倒序排列，所以第一封邮件是数组的最后一项
       const firstEmail = emails[emails.length - 1];
@@ -128,7 +127,12 @@ export function Home() {
       setPasswordNotificationShown(true);
     }
 
-    // 当用户停止使用邮箱时，重置状态并关闭通知
+    // feat(fix): 核心修改：只要收到邮件（emails.length > 0），就一直显示“查看密码”按钮
+    if (emails.length > 0 && address) {
+        setShowViewPasswordButton(true);
+    }
+
+    // 当用户停止使用邮箱时，重置状态并关闭通知和按钮
     if (!address) {
       setPasswordNotificationShown(false);
       setShowViewPasswordButton(false);
@@ -137,8 +141,7 @@ export function Home() {
 
     // 更新上一次的邮件数量，用于下一次渲染时比较
     prevEmailsLength.current = emails.length;
-    // fix: 移除 t 函数作为依赖项，防止刷新时页面崩溃
-  }, [emails, address, passwordNotificationShown]);
+  }, [emails, address, passwordNotificationShown, showPasswordToast]);
 
   // 创建新邮箱地址的处理函数
   const handleCreateAddress = () => {
