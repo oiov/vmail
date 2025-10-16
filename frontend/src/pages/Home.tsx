@@ -67,16 +67,18 @@ export function Home() {
           }`}
         >
           <div className="flex-1 w-0 p-4">
-            <div className="flex items-start">
-              <div className="flex-shrink-0 pt-0.5">
+            {/* fix: 将 items-start 改为 items-center 来实现垂直居中 */}
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
                 <PasswordIcon className="h-8 w-8 text-cyan-400" />
               </div>
               <div className="ml-3 flex-1">
                 <p className="text-sm font-medium text-gray-100">
                   {t('Save your password and continue using this email in 1 day')}
                 </p>
+                {/* fix: 移除 truncate 类，并将 break-all 直接应用在 span 上 */}
                 <div className="mt-1 flex items-center text-sm text-gray-300 bg-slate-700 px-2 py-1 rounded">
-                  <span className="truncate flex-1 font-mono">{password}</span>
+                  <span className="flex-1 font-mono break-all">{password}</span>
                   <CopyButton text={password} className="p-1" />
                 </div>
                 <p className="mt-2 text-xs text-yellow-400">
