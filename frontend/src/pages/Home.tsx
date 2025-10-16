@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Turnstile } from '@marsidev/react-turnstile';
 
-import { Header } from '../components/Header';
-import { Footer } from '../components/Footer';
-import { MailList } from '../components/MailList';
-import { CopyButton } from '../components/CopyButton'; // 引入 CopyButton
-import { getEmails, deleteEmails } from '../services/api';
+import { Header } from '../components/Header.tsx';
+import { Footer } from '../components/Footer.tsx';
+import { MailList } from '../components/MailList.tsx';
+import { CopyButton } from '../components/CopyButton.tsx';
+import { getEmails, deleteEmails } from '../services/api.ts';
 import { useConfig } from '../hooks/useConfig.ts';
-import { RefreshIcon } from '../components/icons/Refresh'; // 引入图标
+// 关键修正：为图标导入添加 .tsx 扩展名
+import { RefreshIcon } from '../components/icons/Refresh.tsx'; 
 
 export function Home() {
   const config = useConfig();
@@ -21,7 +22,7 @@ export function Home() {
     queryKey: ['emails', address],
     queryFn: () => getEmails(address, turnstileToken!),
     enabled: !!turnstileToken,
-    refetchInterval: 10000, // 调整为 10 秒
+    refetchInterval: 10000,
   });
 
   const deleteMutation = useMutation({
@@ -48,7 +49,6 @@ export function Home() {
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-grow container mx-auto p-4">
-        {/* 地址操作区域 */}
         <div className="bg-white p-4 rounded-lg shadow-md mb-6">
           <div className="flex items-center border rounded-md">
             <input type="text" value={address} readOnly className="p-2 w-full bg-gray-50 border-none rounded-l-md"/>
@@ -64,7 +64,6 @@ export function Home() {
           </div>
         </div>
 
-        {/* Turnstile 人机验证组件 */}
         {!turnstileToken && (
           <div className="flex justify-center my-4">
             <Turnstile
@@ -75,7 +74,6 @@ export function Home() {
           </div>
         )}
 
-        {/* 邮件列表 */}
         {isLoading && <div className="text-center p-4">加载邮件中...</div>}
         {isError && <div className="text-center p-4 text-red-500">加载失败，请重试。</div>}
         {turnstileToken && emails && (
