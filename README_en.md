@@ -2,8 +2,7 @@
   <h1>𝐕𝐌𝐀𝐈𝐋.𝐃𝐄𝐕</h1>
   <p><a href="https://discord.gg/d68kWCBDEs">Discord</a> · English | <a href="/README.md">简体中文</a></p>
   <p>Temporary email service build with email worker.</p>
-  <!-- <img src="https://img.inke.app/file/beb0212f96c6cd37eaeb8.jpg"/> -->
-</div>
+  </div>
 
 ## Features
 
@@ -11,49 +10,80 @@
 - ✈️ Support email sending and receiving
 - ✨ Support saving passwords and retrieving email addresses
 - 😄 Support multiple domain name suffixes
-- 🚀 100% open source, quick deployment, no server required
+- 🚀 100% open source, quick deployment, pure Cloudflare solution, no server required
 
-Principles： 
+Principles：
 
-- Receiving emails (email worker)
-- Display email (remix)
-- Mail Storage (sqlite)
-- [Nodejs](https://nodejs.org) >= 18
+- Receiving emails (Cloudflare Email Worker)
+- Display email (Vite + React on Cloudflare Pages)
+- Mail Storage (Cloudflare D1)
+- [Node.js](https://nodejs.org) >= 18
 
-> Worker receives email -> saves to database -> client queries email
+> Worker receives email -> saves to D1 database -> client queries email
 
 ## Self-hosted Tutorial
+
+This project is now fully based on Cloudflare Pages and Cloudflare D1, which greatly simplifies the deployment process. All you need is a domain name hosted on Cloudflare.
 
 ### Requirements
 
 - [Cloudflare](https://dash.cloudflare.com/) account and a domain name hosted on Cloudflare
-- [turso](https://turso.tech) sqlite (a free plan available for personal use)
-- [Vercel](https://vercel.com) or [fly.io](https://fly.io) to deploy Remix app
+- Local installation of [Node.js](https://nodejs.org) (version >= 18.x) and [pnpm](https://pnpm.io/installation)
 
-### Receiving Emails steps
+### Automatic Deployment (Recommended)
 
-See [receive-tutorial-en.md](/docs//receive-tutorial-en.md)
+This project includes a pre-configured GitHub Action workflow to help you automatically deploy the vMail application to Cloudflare.
 
-### Sending Emails steps
+For detailed steps, please refer to the [GitHub Action Auto-Deployment Tutorial](/docs/github-action-tutorial.md).
 
-See [send-tutorial-en.md](/docs/send-tutorial-en.md)
+### Manual Deployment Steps
+
+1.  **Clone the project locally**
+    ```bash
+    git clone https://github.com/oiov/vmail
+    cd vmail
+    pnpm install
+    ```
+
+2.  **Create a Cloudflare D1 Database**
+    Create a D1 database in the Cloudflare dashboard or using the Wrangler CLI.
+
+3.  **Configure `wrangler.toml`**
+    Replace the `${...}` placeholders in the `wrangler.toml` file in the root directory with your Cloudflare and D1 configuration information. You can also set these values through environment variables in Cloudflare Pages.
+
+4.  **Build and Deploy**
+    ```bash
+    # Build the frontend application
+    pnpm run build
+    
+    # Deploy to Cloudflare
+    pnpm run deploy
+    ```
+    Wrangler will automatically handle the deployment of frontend static assets and the Worker, and apply database migrations according to the configuration.
+
+5.  **Configure Email Routing Rules**
+    In your Cloudflare domain management interface, go to `Email` -> `Email Routing` -> `Routes`, set up a `Catch-all` rule, and set the action to `Send to a Worker`, selecting the Worker you just deployed.
 
 ## Local development
 
-copy `apps/remix/.env.example` to `apps/remix/.env` and fill in the necessary environment variables.
+1.  **Copy the environment variable file**
+    ```bash
+    # This command creates a local environment variable file that wrangler dev will load automatically
+    cp .env.example .env
+    ```
 
-```bash
-git clone https://github.com/oiov/vmail
-cd vmail
-pnpm install
+2.  **Fill in local environment variables**
+    Fill in the necessary environment variables in the `.env` file, especially `D1_DATABASE_ID`, etc. You need to create a D1 database in Cloudflare for local development first.
 
-# run on localhost:3000
-pnpm run remix:dev
-```
+3.  **Start the development server**
+    ```bash
+    pnpm run dev
+    ```
+    This command starts both the frontend Vite development server and the local Wrangler Worker environment at the same time.
+
 
 ## Community Group
 
-- 加微信 `yesmore_cc` 拉讨论群 (**备注你的职业**)
 - Discord: https://discord.gg/d68kWCBDEs
 
 ## License
