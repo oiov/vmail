@@ -17,7 +17,6 @@ import ShieldCheck from "../components/icons/ShieldCheck.tsx";
 import Cloudflare from "../components/icons/Cloudflare.tsx";
 import Clock from "../components/icons/Clock.tsx";
 import Info from "../components/icons/Info.tsx";
-import RefreshIcon from '../components/icons/RefreshIcon.tsx';
 
 // 假设 Email 类型定义在 'database' 包中
 import type { Email } from 'database';
@@ -74,6 +73,16 @@ export function Home() {
       toast.error('删除失败');
     }
   });
+
+  // feat: 定义 handleDeleteEmails 函数
+  // 修复了点击删除邮件时由于函数未定义而导致的白屏问题。
+  const handleDeleteEmails = (ids: string[]) => {
+    if (ids.length === 0) {
+      toast.error('请选择要删除的邮件');
+      return;
+    }
+    deleteMutation.mutate(ids);
+  };
 
   return (
     <div className="h-full flex flex-col gap-4 md:flex-row justify-center items-start mt-24 mx-6 md:mx-10">
