@@ -1,0 +1,61 @@
+# 工作流名称
+name: Deploy to Cloudflare
+
+# 触发条件
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy
+    steps:
+      # 检出代码
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 设置 pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      # 设置 Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+          cache: 'pnpm'
+
+      # 安装依赖
+      - name: Install dependencies
+        run: pnpm install
+
+      # 运行构建
+      - name: Build
+        run: pnpm run build
+
+      # 配置 Wrangler (替换占位符)
+      - name: Configure Wrangler
+        run: |
+          sed -i "s/\\${D1_DATABASE_ID}/${D1_DATABASE_ID}/g" wrangler.toml
+          sed -i "s/\\${D1_DATABASE_NAME}/${D1_DATABASE_NAME}/g" wrangler.toml
+          sed -i "s/\\${EMAIL_DOMAIN}/${EMAIL_DOMAIN}/g" wrangler.toml
+          sed -i "s/\\${COOKIES_SECRET}/${COOKIES_SECRET}/g" wrangler.toml
+          sed -i "s/\\${TURNSTILE_KEY}/${TURNSTILE_KEY}/g" wrangler.toml
+          sed -i "s/\\${TURNSTILE_SECRET}/${TURNSTILE_SECRET}/g" wrangler.toml
+        env:
+          D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+          D1_DATABASE_NAME: ${{ secrets.D1_DATABASE_NAME }}
+          EMAIL_DOMAIN: ${{ secrets.EMAIL_DOMAIN }}
+          COOKIES_SECRET: ${{ secrets.COOKIES_SECRET }}
+          TURNSTILE_KEY: ${{ secrets.TURNSTILE_KEY }}
+          TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
+
+      # 部署到 Cloudflare Workers
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
