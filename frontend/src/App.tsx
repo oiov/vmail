@@ -5,9 +5,9 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { Home } from './pages/Home.tsx';
 // MailDetail 组件不再作为独立页面，因此移除其路由
 // import { MailDetail } from './pages/MailDetail.tsx';
-import { About } from './pages/About.tsx';
-import { Privacy } from './pages/Privacy.tsx';
-import { Terms } from './pages/Terms.tsx';
+// import { About } from './pages/About.tsx';  // 移除
+// import { Privacy } from './pages/Privacy.tsx'; // 移除
+// import { Terms } from './pages/Terms.tsx'; // 移除
 import { ConfigContext, AppConfig } from './hooks/useConfig.ts';
 import { Layout } from './Layout.tsx';
 
@@ -40,10 +40,7 @@ function App() {
             {/* 使用 Layout 组件作为所有页面的布局框架 */}
             <Route element={<Layout />}>
               <Route path="/" element={<Home />} />
-              {/* 移除 /mails/:id 路由，因为邮件详情现在是 Home 的一部分 */}
-              <Route path="/about" element={<About />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/terms" element={<Terms />} />
+              {/* 移除 /mails/:id, /about, /privacy, /terms 路由 */}
             </Route>
           </Routes>
         </BrowserRouter>

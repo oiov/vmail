@@ -1,11 +1,8 @@
 // 这个文件内容直接从您的 _h.privacy.tsx 迁移而来
 export function Privacy() {
   return (
-    <div className="mx-10 mt-24 text-white">
+    <div className="text-black">
       <div className="max-w-[1400px] ">
-        <h1 className="text-4xl font-bold" id="about">
-          Privacy Policy
-        </h1>
         <p className="mt-8">
           At Vmail.DEV, we value the privacy of our users and are committed to
           protecting their personal information. This Privacy Policy outlines
