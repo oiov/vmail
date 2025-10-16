@@ -166,9 +166,9 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
               // fix: 只有在创建地址后，刷新按钮才响应加载状态
               disabled={!isAddressCreated}
             >
-              {/* 修复：只要正在获取数据或邮箱为空，刷新图标就应该旋转 */}
+              {/* 修复：只要正在获取数据，刷新图标就应该旋转 */}
               <RefreshIcon
-                className={clsx("size-6", isAddressCreated && (isFetching || emails.length === 0) && "animate-spin")}
+                className={clsx("size-6", isAddressCreated && isFetching && "animate-spin")}
               />
             </button>
         </div>
