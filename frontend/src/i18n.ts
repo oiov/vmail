@@ -17,6 +17,9 @@ i18n
     debug: true,
     // 如果检测到的语言不受支持，则回退到该语言
     fallbackLng: "en",
+    // fix: 显式指定要加载的命名空间为 'common'
+    // 修复 i18next 默认请求 translation.json 的问题
+    ns: ["common"],
     // 默认的命名空间
     defaultNS: "common",
     // 支持的语言列表
