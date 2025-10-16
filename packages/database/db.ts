@@ -1,14 +1,6 @@
-import { createClient as createWebClient } from "@libsql/client/web";
-import { drizzle, LibSQLDatabase } from "drizzle-orm/libsql";
+import { drizzle, DrizzleD1Database } from "drizzle-orm/d1";
 
-export function getWebTursoDBFromEnv(): LibSQLDatabase {
-  const client = createWebClient({
-    url: process.env.TURSO_DB_URL || "",
-    authToken: process.env.TURSO_DB_AUTH_TOKEN || "",
-  });
-  return drizzle(client);
-}
-
-export function getWebTursoDB(url: string, authToken: string): LibSQLDatabase {
-  return drizzle(createWebClient({ url, authToken }));
+// 修改 getWebTursoDB 为 getD1DB，并适配 D1 数据库
+export function getD1DB(db: D1Database): DrizzleD1Database {
+  return drizzle(db);
 }
