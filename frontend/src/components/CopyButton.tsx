@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 // 关键修正：为图标导入添加 .tsx 扩展名
-import { CheckIcon } from './icons/CheckIcon.tsx'; 
-import { CopyIcon } from './icons/CopyIcon.tsx';   
+import CheckIcon from './icons/CheckIcon.tsx'; 
+import CopyIcon from './icons/CopyIcon.tsx';   
 
 interface CopyButtonProps {
   text: string;

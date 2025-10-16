@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'; // <--- 关键修正
-import { Cloudflare } from './icons/Cloudflare';
-import { GitHubPlat } from './icons/GitHubPlat';
+import Cloudflare from './icons/Cloudflare'; // <--- 关键修正：修复了导入方式
+import GitHubPlat from './icons/GitHubPlat';
 
 export function Footer() {
   const year = new Date().getFullYear();

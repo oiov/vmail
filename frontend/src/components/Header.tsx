@@ -1,5 +1,5 @@
 import { Link, NavLink } from 'react-router-dom'; // <--- 关键修正：从 react-router-dom 导入
-import { Vmail } from './icons/vmail'; // 假设 vmail 图标组件已迁移
+import { VmailLogo as Vmail } from './icons/vmail.tsx'; // 假设 vmail 图标组件已迁移
 
 // NavLink 的样式函数，用于激活状态
 const getNavLinkClass = ({ isActive }: { isActive: boolean }) => {

@@ -1,4 +1,4 @@
-export function WaitingEmailLoader() {
+export function WaitingEmail() { // 名称与 MailList.tsx 中的导入匹配
   return (
     <svg
       id="iconce.com"
