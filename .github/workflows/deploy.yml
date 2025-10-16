@@ -9,9 +9,30 @@ on:
   workflow_dispatch:
 
 jobs:
+  # 新增一个 job 用于检查密钥是否存在
+  check_credentials:
+    runs-on: ubuntu-latest
+    name: Check for Cloudflare Credentials
+    outputs:
+      has_creds: ${{ steps.cf_creds.outputs.has_creds }}
+    steps:
+      - name: Check for Cloudflare credentials
+        id: cf_creds
+        run: |
+          if [ -z "${{ secrets.CF_API_TOKEN }}" ] || [ -z "${{ secrets.CF_ACCOUNT_ID }}" ]; then
+            echo "Cloudflare credentials not found, skipping deployment."
+            echo "has_creds=false" >> $GITHUB_OUTPUT
+          else
+            echo "Cloudflare credentials found."
+            echo "has_creds=true" >> $GITHUB_OUTPUT
+          fi
+
+  # 部署 job，依赖于 check_credentials job 的结果
   deploy:
     runs-on: ubuntu-latest
     name: Deploy
+    needs: check_credentials # 依赖于上一个 job
+    if: needs.check_credentials.outputs.has_creds == 'true' # 只有在密钥存在时才运行
     steps:
       # 检出代码
       - name: Checkout
@@ -39,12 +60,12 @@ jobs:
       # 配置 Wrangler (替换占位符)
       - name: Configure Wrangler
         run: |
-          sed -i "s/\\${D1_DATABASE_ID}/${D1_DATABASE_ID}/g" wrangler.toml
-          sed -i "s/\\${D1_DATABASE_NAME}/${D1_DATABASE_NAME}/g" wrangler.toml
-          sed -i "s/\\${EMAIL_DOMAIN}/${EMAIL_DOMAIN}/g" wrangler.toml
-          sed -i "s/\\${COOKIES_SECRET}/${COOKIES_SECRET}/g" wrangler.toml
-          sed -i "s/\\${TURNSTILE_KEY}/${TURNSTILE_KEY}/g" wrangler.toml
-          sed -i "s/\\${TURNSTILE_SECRET}/${TURNSTILE_SECRET}/g" wrangler.toml
+          sed -i "s#\${D1_DATABASE_ID}#${D1_DATABASE_ID}#g" wrangler.toml
+          sed -i "s#\${D1_DATABASE_NAME}#${D1_DATABASE_NAME}#g" wrangler.toml
+          sed -i "s#\${EMAIL_DOMAIN}#${EMAIL_DOMAIN}#g" wrangler.toml
+          sed -i "s#\${COOKIES_SECRET}#${COOKIES_SECRET}#g" wrangler.toml
+          sed -i "s#\${TURNSTILE_KEY}#${TURNSTILE_KEY}#g" wrangler.toml
+          sed -i "s#\${TURNSTILE_SECRET}#${TURNSTILE_SECRET}#g" wrangler.toml
         env:
           D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
           D1_DATABASE_NAME: ${{ secrets.D1_DATABASE_NAME }}
@@ -53,20 +74,8 @@ jobs:
           TURNSTILE_KEY: ${{ secrets.TURNSTILE_KEY }}
           TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
 
-      # 检查 Cloudflare 密钥是否存在
-      - name: Check for Cloudflare credentials
-        id: cf_creds
-        run: |
-          if [ -z "${{ secrets.CF_API_TOKEN }}" ] || [ -z "${{ secrets.CF_ACCOUNT_ID }}" ]; then
-            echo "Cloudflare credentials not found, skipping deployment."
-            echo "has_creds=false" >> $GITHUB_ENV
-          else
-            echo "has_creds=true" >> $GITHUB_ENV
-          fi
-
       # 部署到 Cloudflare Workers
       - name: Deploy
-        if: env.has_creds == 'true'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
