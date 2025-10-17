@@ -55,5 +55,6 @@
   "View password": "パスワードを表示",
   "Select all": "すべて選択",
   "Delete selected": "選択したものを削除",
-  "Please create a temporary email address first": "最初に一時的なメールアドレスを作成してください"
+  "Please create a temporary email address first": "最初に一時的なメールアドレスを作成してください",
+  "Email Detail": "メールの詳細"
 }
