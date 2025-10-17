@@ -245,8 +245,8 @@ export default {
   // 定时任务 (清理过期邮件)
   async scheduled(event, env, ctx) {
       const db = getD1DB(env.DB);
-      // 清理一小时前的邮件
-      const oneHourAgo = new Date(Date.now() - 1000 * 60 * 60);
-      await deleteExpiredEmails(db, oneHourAgo);
+      // 修复：将清理时间从1小时修改为24小时（1天）
+      const oneDayAgo = new Date(Date.now() - 1000 * 60 * 60 * 24);
+      await deleteExpiredEmails(db, oneDayAgo);
   },
 };
