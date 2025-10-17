@@ -8,10 +8,12 @@ export function Modal({
   children,
   showModal,
   setShowModal,
+  theme = 'light', // 新增：添加 theme 属性，并设置默认值为 'light'
 }: {
   children: React.ReactNode;
   showModal: boolean;
   setShowModal: Dispatch<SetStateAction<boolean>>;
+  theme?: 'light' | 'dark'; // 新增：定义 theme 属性类型
 }) {
   const modalRef = useRef<HTMLDivElement>(null);
   const { isMobile } = useWindowSize();
@@ -49,7 +51,8 @@ export function Modal({
   // 同时，添加 showBlur={true} 属性以显示背景遮罩。
   if (isMobile) {
     return showModal ? (
-      <Leaflet setShow={setShowModal} showBlur={true}>
+      // feat: 将 theme 属性传递给 Leaflet 组件
+      <Leaflet setShow={setShowModal} showBlur={true} theme={theme}>
         {children}
       </Leaflet>
     ) : null;
