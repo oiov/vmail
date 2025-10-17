@@ -41,7 +41,7 @@
   "Deletion failed": "Échec de la suppression",
   "Close": "Fermer",
   "Login successful": "Connexion réussie",
-  "Login failed: Invalid password": "Échec de la connexion : Mot de passe invalide",
+  "Invalid password": "Mot de passe invalide",
   "Login failed": "Échec de la connexion",
   "Email created successfully": "E-mail créé avec succès",
   "Emails deleted successfully": "E-mails supprimés avec succès",

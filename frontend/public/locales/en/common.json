@@ -45,7 +45,7 @@
   "Deletion failed": "Deletion failed",
   "Close": "Close",
   "Login successful": "Login successful",
-  "Login failed: Invalid password": "Login failed: Invalid password",
+  "Invalid password": "Invalid password",
   "Login failed": "Login failed",
   "Email created successfully": "Email created successfully",
   "Emails deleted successfully": "Emails deleted successfully",

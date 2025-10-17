@@ -41,7 +41,7 @@
   "Deletion failed": "Silme işlemi başarısız oldu",
   "Close": "Kapat",
   "Login successful": "Giriş başarılı",
-  "Login failed: Invalid password": "Giriş başarısız: Geçersiz parola",
+  "Invalid password": "Geçersiz parola",
   "Login failed": "Giriş başarısız",
   "Email created successfully": "E-posta başarıyla oluşturuldu",
   "Emails deleted successfully": "E-postalar başarıyla silindi",

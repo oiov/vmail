@@ -41,7 +41,7 @@
   "Deletion failed": "削除に失敗しました",
   "Close": "閉じる",
   "Login successful": "ログインに成功しました",
-  "Login failed: Invalid password": "ログインに失敗しました：パスワードが無効です",
+  "Invalid password": "パスワードが無効です",
   "Login failed": "ログインに失敗しました",
   "Email created successfully": "メールの作成に成功しました",
   "Emails deleted successfully": "メールの削除に成功しました",

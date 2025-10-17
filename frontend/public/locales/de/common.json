@@ -42,7 +42,7 @@
   "Deletion failed": "Löschen fehlgeschlagen",
   "Close": "Schließen",
   "Login successful": "Anmeldung erfolgreich",
-  "Login failed: Invalid password": "Anmeldung fehlgeschlagen: Ungültiges Passwort",
+  "Invalid password": "Ungültiges Passwort",
   "Login failed": "Anmeldung fehlgeschlagen",
   "Email created successfully": "E-Mail erfolgreich erstellt",
   "Emails deleted successfully": "E-Mails erfolgreich gelöscht",

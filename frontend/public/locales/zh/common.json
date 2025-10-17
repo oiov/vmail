@@ -45,7 +45,7 @@
   "Deletion failed": "删除失败",
   "Close": "关闭",
   "Login successful": "登录成功",
-  "Login failed: Invalid password": "登录失败：密码无效",
+  "Invalid password": "密码无效",
   "Login failed": "登录失败",
   "Email created successfully": "邮箱创建成功",
   "Emails deleted successfully": "邮件删除成功",
