@@ -16,6 +16,7 @@ import PasswordIcon from './icons/Password.tsx'; // feat: 导入密码图标
 // feat: 导入新组件
 import { MailDetail } from '../pages/MailDetail.tsx';
 import ArrowUturnLeft from './icons/ArrowUturnLeft.tsx';
+import Expand from './icons/Expand.tsx'; // feat: 导入 Expand 图标
 
 interface MailListProps {
   emails: Email[];
@@ -33,9 +34,10 @@ interface MailListProps {
   // feat: 新增 props，用于接收当前选中的邮件和关闭详情页的回调
   selectedEmail: Email | null;
   onCloseDetail: () => void;
+  onExpand: () => void; // feat: 新增 onExpand 回调
 }
 
-export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, onRefresh, selectedIds, setSelectedIds, isAddressCreated, onSelectEmail, showViewPasswordButton, onShowPassword, selectedEmail, onCloseDetail }: MailListProps) {
+export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, onRefresh, selectedIds, setSelectedIds, isAddressCreated, onSelectEmail, showViewPasswordButton, onShowPassword, selectedEmail, onCloseDetail, onExpand }: MailListProps) {
   const { t } = useTranslation();
 
   const handleSelect = (id: string) => {
@@ -154,14 +156,23 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
         <div className="ml-auto flex items-center gap-2">
           {/* feat: 详情页模式下的操作按钮 */}
           {selectedEmail ? (
-            <button
-              onClick={() => onDelete([selectedEmail.id])}
-              disabled={isDeleting}
-              className="p-1 rounded text-red-500 disabled:text-gray-500 hover:text-red-400"
-              title="删除"
-            >
-              <TrashIcon className="w-5 h-5" />
-            </button>
+            <>
+              <button
+                onClick={onExpand}
+                className="p-1 rounded text-cyan-400 hover:text-cyan-300"
+                title="放大"
+              >
+                <Expand className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => onDelete([selectedEmail.id])}
+                disabled={isDeleting}
+                className="p-1 rounded text-red-500 disabled:text-gray-500 hover:text-red-400"
+                title="删除"
+              >
+                <TrashIcon className="w-5 h-5" />
+              </button>
+            </>
           ) : (
             <>
               {/* 列表页模式下的操作按钮 */}

@@ -28,6 +28,8 @@ import Info from "../components/icons/Info.tsx";
 
 // refactor: 将导入从 'database' 包更改为本地的类型定义文件
 import type { Email } from '../database_types.ts';
+import { InfoModal } from '../components/InfoModal.tsx';
+import { MailDetail } from './MailDetail.tsx';
 
 export function Home() {
   const config = useConfig();
@@ -41,6 +43,7 @@ export function Home() {
   const [isTurnstileVerified, setIsTurnstileVerified] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null); // 新增状态，用于存储当前选中的邮件
   const [selectedDomain, setSelectedDomain] = useState<string>(config.emailDomain[0]); // feat: 新增状态，用于存储当前选中的域名
+  const [showEmailModal, setShowEmailModal] = useState(false); // feat: 新增状态，用于控制邮件详情模态框的显示
 
   // feat: 初始化密码模态框
   const { PasswordModal, setShowPasswordModal } = usePasswordModal();
@@ -230,9 +233,19 @@ export function Home() {
     setSelectedEmail(null);
   };
 
+  // feat: 新增处理函数，用于在模态框中显示邮件
+  const handleExpandEmail = () => {
+    setShowEmailModal(true);
+  };
+
   return (
     <div className="h-full flex flex-col gap-4 md:flex-row justify-center items-start mt-24 mx-6 md:mx-10">
       <PasswordModal onLogin={handleLogin} isLoggingIn={isLoggingIn} />
+      {selectedEmail && (
+        <InfoModal showModal={showEmailModal} setShowModal={setShowEmailModal} title={t('Email Detail')}>
+          <MailDetail email={selectedEmail} onClose={() => setShowEmailModal(false)} />
+        </InfoModal>
+      )}
       <div className="flex flex-col text-white items-start w-full md:w-[350px] mx-auto gap-2">
         {/* 左侧信息面板 */}
         <div className="w-full mb-4 md:max-w-[350px] shrink-0 group group-hover:before:duration-500 group-hover:after:duration-500 after:duration-500 hover:border-cyan-600 hover:before:[box-shadow:_20px_20px_20px_30px_#a21caf] duration-500 before:duration-500 hover:duration-500 hover:after:-right-8 hover:before:right-12 hover:before:-bottom-8 hover:before:blur origin-left hover:decoration-2 relative bg-neutral-800 h-full border text-left p-4 rounded-lg overflow-hidden border-cyan-50/20 before:absolute before:w-12 before:h-12 before:content[''] before:right-1 before:top-1 before:z-10 before:bg-violet-500 before:rounded-full before:blur-lg  after:absolute after:z-10 after:w-20 after:h-20 after:content['']  after:bg-rose-300 after:right-8 after:top-3 after:rounded-full after:blur-lg">
@@ -325,6 +338,7 @@ export function Home() {
           // feat: 传递当前选中的邮件和关闭详情页的回调
           selectedEmail={selectedEmail}
           onCloseDetail={handleCloseDetail}
+          onExpand={handleExpandEmail} // feat: 传递展开邮件的回调
         />
       </div>
     </div>
