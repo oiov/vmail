@@ -67,7 +67,7 @@ export function Home() {
     toast(
       (toastInstance) => (
         // 优化：为弹窗添加独立的标题栏和关闭按钮，并调整整体样式
-        <div className="w-full max-w-md p-4 bg-slate-800 text-white rounded-lg shadow-lg border border-slate-700">
+        <div className="w-full max-w-lg p-4 bg-slate-800 text-white rounded-lg shadow-lg border border-slate-700">
             {/* 标题栏：包含图标、标题和关闭按钮 */}
             <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-700">
                 <div className="flex items-center gap-2">
@@ -205,7 +205,8 @@ export function Home() {
       setShowPasswordModal(false); // 关闭模态框
       toast.success(t("Login successful"));
     } catch (error: any) {
-      toast.error(`${t("Login failed")}: ${error.message}`);
+      // fix: 使用 i18n 翻译错误信息
+      toast.error(`${t("Login failed")}: ${t(error.message)}`);
     } finally {
       setIsLoggingIn(false);
     }

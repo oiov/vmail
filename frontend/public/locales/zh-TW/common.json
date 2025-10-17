@@ -42,7 +42,7 @@
   "Deletion failed": "刪除失敗",
   "Close": "關閉",
   "Login successful": "登入成功",
-  "Login failed: Invalid password": "登入失敗：密碼無效",
+  "Invalid password": "密碼無效",
   "Login failed": "登入失敗",
   "Email created successfully": "郵件創建成功",
   "Emails deleted successfully": "郵件刪除成功",

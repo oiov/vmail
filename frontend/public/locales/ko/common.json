@@ -41,7 +41,7 @@
   "Deletion failed": "삭제 실패",
   "Close": "닫기",
   "Login successful": "로그인 성공",
-  "Login failed: Invalid password": "로그인 실패: 잘못된 비밀번호",
+  "Invalid password": "잘못된 비밀번호",
   "Login failed": "로그인 실패",
   "Email created successfully": "이메일이 성공적으로 생성되었습니다",
   "Emails deleted successfully": "이메일이 성공적으로 삭제되었습니다",

@@ -41,7 +41,7 @@
   "Deletion failed": "Ошибка удаления",
   "Close": "Закрыть",
   "Login successful": "Вход выполнен успешно",
-  "Login failed: Invalid password": "Ошибка входа: неверный пароль",
+  "Invalid password": "неверный пароль",
   "Login failed": "Ошибка входа",
   "Email created successfully": "Письмо успешно создано",
   "Emails deleted successfully": "Письма успешно удалены",

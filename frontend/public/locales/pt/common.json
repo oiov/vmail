@@ -41,7 +41,7 @@
   "Deletion failed": "Falha na exclusão",
   "Close": "Fechar",
   "Login successful": "Login bem-sucedido",
-  "Login failed: Invalid password": "Falha no login: Senha inválida",
+  "Invalid password": "Senha inválida",
   "Login failed": "Falha no login",
   "Email created successfully": "E-mail criado com sucesso",
   "Emails deleted successfully": "E-mails excluídos com sucesso",

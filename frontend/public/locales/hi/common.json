@@ -41,7 +41,7 @@
   "Deletion failed": "हटाना विफल रहा",
   "Close": "बंद करें",
   "Login successful": "लॉगिन सफल",
-  "Login failed: Invalid password": "लॉगिन विफल: अमान्य पासवर्ड",
+  "Invalid password": "अमान्य पासवर्ड",
   "Login failed": "लॉगिन विफल",
   "Email created successfully": "ईमेल सफलतापूर्वक बनाया गया",
   "Emails deleted successfully": "ईमेल सफलतापूर्वक हटा दिए गए",
