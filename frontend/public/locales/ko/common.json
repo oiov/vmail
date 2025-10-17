@@ -55,5 +55,6 @@
   "View password": "비밀번호 보기",
   "Select all": "모두 선택",
   "Delete selected": "선택 항목 삭제",
-  "Please create a temporary email address first": "먼저 임시 이메일 주소를 만드세요"
+  "Please create a temporary email address first": "먼저 임시 이메일 주소를 만드세요",
+  "Email Detail": "이메일 세부 정보"
 }
