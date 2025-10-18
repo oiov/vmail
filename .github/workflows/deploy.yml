@@ -1,0 +1,93 @@
+# 工作流名称
+name: Deploy to Cloudflare
+
+# 触发条件
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  # 新增一个 job 用于检查密钥是否存在
+  check_credentials:
+    runs-on: ubuntu-latest
+    name: Check for Cloudflare Credentials
+    outputs:
+      has_creds: ${{ steps.cf_creds.outputs.has_creds }}
+    steps:
+      - name: Check for Cloudflare credentials
+        id: cf_creds
+        run: |
+          if [ -z "${{ secrets.CF_API_TOKEN }}" ] || [ -z "${{ secrets.CF_ACCOUNT_ID }}" ]; then
+            echo "Cloudflare credentials not found, skipping deployment."
+            echo "has_creds=false" >> $GITHUB_OUTPUT
+          else
+            echo "Cloudflare credentials found."
+            echo "has_creds=true" >> $GITHUB_OUTPUT
+          fi
+
+  # 部署 job，依赖于 check_credentials job 的结果
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy
+    needs: check_credentials # 依赖于上一个 job
+    if: needs.check_credentials.outputs.has_creds == 'true' # 只有在密钥存在时才运行
+    steps:
+      # 检出代码
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 设置 pnpm (版本由根目录 package.json 的 "packageManager" 字段决定)
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      # 设置 Node.js 环境
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+          cache: 'pnpm'
+
+      # 安装依赖
+      - name: Install dependencies
+        # 修复：添加 --no-frozen-lockfile 标志
+        # 这会告诉 pnpm 根据 package.json 的内容来安装依赖，即使 pnpm-lock.yaml 文件不是最新的。
+        # 这样就解决了在部署环境中因锁文件不同步导致的安装失败问题。
+        run: pnpm install --no-frozen-lockfile
+
+      # 运行构建
+      - name: Build
+        run: pnpm run build
+
+      # 配置 Wrangler (替换占位符)
+      - name: Configure Wrangler
+        run: |
+          sed -i "s#\${D1_DATABASE_ID}#${D1_DATABASE_ID}#g" wrangler.toml
+          sed -i "s#\${D1_DATABASE_NAME}#${D1_DATABASE_NAME}#g" wrangler.toml
+          sed -i "s#\${EMAIL_DOMAIN}#${EMAIL_DOMAIN}#g" wrangler.toml
+          sed -i "s#\${COOKIES_SECRET}#${COOKIES_SECRET}#g" wrangler.toml
+          sed -i "s#\${TURNSTILE_KEY}#${TURNSTILE_KEY}#g" wrangler.toml
+          sed -i "s#\${TURNSTILE_SECRET}#${TURNSTILE_SECRET}#g" wrangler.toml
+        env:
+          D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+          D1_DATABASE_NAME: ${{ secrets.D1_DATABASE_NAME }}
+          EMAIL_DOMAIN: ${{ secrets.EMAIL_DOMAIN }}
+          COOKIES_SECRET: ${{ secrets.COOKIES_SECRET }}
+          TURNSTILE_KEY: ${{ secrets.TURNSTILE_KEY }}
+          TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
+      
+      # 新增：在部署前应用 D1 数据库迁移
+      # 这一步会明确地告诉 Wrangler 远程执行 D1 数据库的迁移脚本。
+      - name: Apply D1 Migrations
+        run: npx wrangler d1 migrations apply ${{ secrets.D1_DATABASE_NAME }} --remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+
+      # 部署到 Cloudflare Workers
+      - name: Deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
