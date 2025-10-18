@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["browser-route-module:routes/api.mails._index.ts?browser"],
+  "sourcesContent": ["module.exports = {};"],
+  "mappings": ";;;;;AAAA;AAAA;AAAA,WAAO,UAAU,CAAC;AAAA;AAAA;",
+  "names": []
+}
