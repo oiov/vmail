@@ -1,11 +1,9 @@
 <div align="center">
+  <a href="https://trendshift.io/repositories/8681" target="_blank"><img src="https://trendshift.io/api/badge/repositories/8681" alt="yesmore%2Fvmail | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
   <h1>𝐕𝐌𝐀𝐈𝐋.𝐃𝐄𝐕</h1>
   <p><a href="https://discord.gg/d68kWCBDEs">Discord</a> · <a href="https://github.com/oiov/vmail/blob/main/README_en.md">English</a> | 简体中文</p>
   <p>使用 Cloudflare Email Worker 实现的临时电子邮件服务</p>
-  <a href="https://trendshift.io/repositories/8681" target="_blank"><img src="https://trendshift.io/api/badge/repositories/8681" alt="yesmore%2Fvmail | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
 </div>
-
-[WR.DO](https://wr.do) 临时邮箱已上线，与 Vmail 同款原理，使用 CF 转发邮件，并支持发件，支持多域名。仓库：[oiov/wr.do](https://github.com/oiov/wr.do)，体验地址: [wr.do/emails](https://wr.do/emails)
 
 ## 🌈 特点
 
@@ -82,20 +80,6 @@
     ```
     该命令会同时启动前端 Vite 开发服务器和本地的 Wrangler Worker 环境。
 
-## ❤️ 交流群
-
-有任何问题或意见，欢迎加入交流群讨论。
-
-- 添加微信 `oiovdev` (**备注你的职业**) 拉讨论群
-- Discord: https://discord.gg/d68kWCBDEs
-
-## 🎨 Inspired By
-
-Please check out these previous works that helped inspire the creation of vmail. 🙏
-
-- [akazwz/smail](https://github.com/akazwz/smail)
-- [email.ml](https://email.ml)
-
 ## 📝 License
 
 GNU General Public License v3.0
@@ -103,6 +87,3 @@ GNU General Public License v3.0
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=oiov/vmail&type=Date)](https://star-history.com/#oiov/vmail&Date)
-
-
-[![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Powered by DartNode - Free VPS for Open Source")
