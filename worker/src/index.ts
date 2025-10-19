@@ -137,7 +137,7 @@ api.post('/delete-emails', async (c) => {
 
 // 修复：移除登录接口的 turnstile 中间件，使其不再需要人机验证。
 api.post('/login', async (c) => {
-  const db = getD1DB(c.env.DB);
+  // const db = getD1DB(c.env.DB); // 数据库连接不再需要用于验证
   // 修复：由于移除了 turnstile 中间件，现在需要在此处直接解析请求体。
   const body = await c.req.json();
   const password = body?.password;
@@ -149,12 +149,22 @@ api.post('/login', async (c) => {
   try {
     // 解密密码以获取邮箱地址
     const address = decrypt(password, c.env.COOKIES_SECRET);
-    // 验证邮箱地址是否存在
-    const emails = await getEmailsByMessageTo(db, address);
-    if (emails.length === 0) {
+    
+    // **核心修复**：移除数据库邮件检查逻辑
+    // 不再需要查询数据库中是否存在该地址的邮件
+    // const emails = await getEmailsByMessageTo(db, address);
+    // if (emails.length === 0) {
       // 如果该地址从未收到过邮件，则视为无效密码
-      return c.json({ message: 'Invalid password' }, 404);
+      // return c.json({ message: 'Invalid password' }, 404);
+    // }
+
+    // 可选：添加一个简单的邮箱地址格式校验，增加健壮性
+    // 例如，检查是否包含 '@' 符号
+    if (!address || typeof address !== 'string' || !address.includes('@')) {
+        console.error("解密后的地址格式无效:", address);
+        return c.json({ message: 'Invalid password' }, 400); // 地址格式不对也视为密码无效
     }
+
     // 登录成功，返回邮箱地址
     return c.json({ address });
   } catch (e) {
@@ -178,7 +188,11 @@ app.get('/config', (c) => {
 
 
 // 静态资源服务 (放在最后，作为默认路由)
-app.get('*', serveStatic({ root: './' }));
+// 修正: 确保 serveStatic 正确指向静态文件目录
+// Hono v4 中 serveStatic 默认处理根路径，我们需要确保它指向正确的子目录
+app.get('/*', serveStatic({ root: './' }))
+app.get('/assets/*', serveStatic({ root: './' }))
+
 
 // Worker 主处理逻辑
 export default {
@@ -233,13 +247,15 @@ export default {
 
   // HTTP 请求处理逻辑
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    // 修正: 使用 Hono 的 env.ASSETS.fetch 来处理静态资源
+    // 这样可以确保 Cloudflare Pages 正确处理前端构建产物
     const url = new URL(request.url);
-    // 优先处理静态资源
-    if (url.pathname.startsWith('/assets/')) {
-      return env.ASSETS.fetch(request);
+    // API 路由
+    if (url.pathname.startsWith('/api/') || url.pathname === '/config') {
+      return app.fetch(request, env, ctx);
     }
-    // API 和页面路由
-    return app.fetch(request, env, ctx);
+    // 静态资源和其他请求由 Pages 的静态资源处理器处理
+    return env.ASSETS.fetch(request);
   },
 
   // 定时任务 (清理过期邮件)
@@ -248,5 +264,6 @@ export default {
       // 修复：将清理时间从1小时修改为24小时（1天）
       const oneDayAgo = new Date(Date.now() - 1000 * 60 * 60 * 24);
       await deleteExpiredEmails(db, oneDayAgo);
+      console.log(`已清理 ${oneDayAgo.toISOString()} 之前的过期邮件`); // 添加日志
   },
 };
