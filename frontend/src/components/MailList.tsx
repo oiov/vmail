@@ -1,22 +1,22 @@
-import { Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { formatDistanceToNow } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
-import clsx from 'clsx';
+import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
+import { formatDistanceToNow } from "date-fns";
+import { zhCN } from "date-fns/locale";
+import clsx from "clsx";
 // refactor: 将导入从 'database' 包更改为本地的类型定义文件
-import type { Email } from '../database_types';
+import type { Email } from "../database_types";
 
 // 图标导入
-import MailIcon from './icons/MailIcon.tsx';
-import RefreshIcon from './icons/RefreshIcon.tsx';
-import Loader from './icons/Loader.tsx';
-import { WaitingEmail } from './icons/waiting-email.tsx';
-import { TrashIcon } from './icons/TrashIcon.tsx';
-import PasswordIcon from './icons/Password.tsx'; // feat: 导入密码图标
+import MailIcon from "./icons/MailIcon.tsx";
+import RefreshIcon from "./icons/RefreshIcon.tsx";
+import Loader from "./icons/Loader.tsx";
+import { WaitingEmail } from "./icons/waiting-email.tsx";
+import { TrashIcon } from "./icons/TrashIcon.tsx";
+import PasswordIcon from "./icons/Password.tsx"; // feat: 导入密码图标
 // feat: 导入新组件
-import { MailDetail } from '../pages/MailDetail.tsx';
-import ArrowUturnLeft from './icons/ArrowUturnLeft.tsx';
-import Expand from './icons/Expand.tsx'; // feat: 导入 Expand 图标
+import { MailDetail } from "../pages/MailDetail.tsx";
+import ArrowUturnLeft from "./icons/ArrowUturnLeft.tsx";
+import Expand from "./icons/Expand.tsx"; // feat: 导入 Expand 图标
 
 interface MailListProps {
   emails: Email[];
@@ -37,7 +37,23 @@ interface MailListProps {
   onExpand: () => void; // feat: 新增 onExpand 回调
 }
 
-export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, onRefresh, selectedIds, setSelectedIds, isAddressCreated, onSelectEmail, showViewPasswordButton, onShowPassword, selectedEmail, onCloseDetail, onExpand }: MailListProps) {
+export function MailList({
+  emails,
+  isLoading,
+  isFetching,
+  onDelete,
+  isDeleting,
+  onRefresh,
+  selectedIds,
+  setSelectedIds,
+  isAddressCreated,
+  onSelectEmail,
+  showViewPasswordButton,
+  onShowPassword,
+  selectedEmail,
+  onCloseDetail,
+  onExpand,
+}: MailListProps) {
   const { t } = useTranslation();
 
   const handleSelect = (id: string) => {
@@ -51,7 +67,7 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
     if (selectedIds.length === emails.length) {
       setSelectedIds([]);
     } else {
-      setSelectedIds(emails.map(e => e.id));
+      setSelectedIds(emails.map((e) => e.id));
     }
   };
 
@@ -97,19 +113,21 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
       <div key={email.id} className="flex items-center gap-2 mb-1">
         <input
           type="checkbox"
-          className="h-4 w-4 rounded bg-zinc-700 border-zinc-600 text-cyan-600 focus:ring-cyan-500"
+          className="h-4 w-4 rounded border-neutral-300 bg-neutral-100 data-[state=checked]:border-neutral-900 data-[state=checked]:bg-neutral-600 data-[state=checked]:text-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 dark:data-[state=checked]:border-neutral-300 dark:data-[state=checked]:bg-neutral-300"
           checked={selectedIds.includes(email.id)}
           onChange={() => handleSelect(email.id)}
         />
         <div
           onClick={() => onSelectEmail(email)}
-          className="cursor-pointer flex-1 flex flex-col items-start gap-2 rounded-lg border border-zinc-600 p-3 text-left text-sm transition-all hover:bg-zinc-700"
-        >
+          className="cursor-pointer flex-1 flex flex-col items-start gap-2 rounded-lg border border-zinc-600 p-3 text-left text-sm transition-all hover:bg-zinc-700">
           <div className="flex w-full flex-col gap-1">
             <div className="flex items-center">
               <div className="flex items-center gap-2">
                 {/* feat: 在用户名后显示邮箱地址 */}
-                <div className="font-semibold">{email.from?.name || email.messageFrom} {email.from?.address && `(${email.from.address})`}</div>
+                <div className="font-semibold">
+                  {email.from?.name || email.messageFrom}{" "}
+                  {email.from?.address && `(${email.from.address})`}
+                </div>
               </div>
               <div className={"ml-auto text-xs"}>
                 {formatDistanceToNow(new Date(email.date || email.createdAt), {
@@ -126,7 +144,7 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
         </div>
       </div>
     ));
-  }
+  };
 
   return (
     <div className="rounded-md border border-cyan-50/20 text-white">
@@ -144,8 +162,7 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
           {selectedEmail && (
             <button
               onClick={onCloseDetail}
-              className="flex items-center gap-1 text-sm font-semibold text-cyan-400 hover:text-cyan-300 ml-2"
-            >
+              className="flex items-center gap-1 text-sm font-semibold text-cyan-400 hover:text-cyan-300 ml-2">
               <ArrowUturnLeft />
               返回邮件列表
             </button>
@@ -160,16 +177,14 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
               <button
                 onClick={onExpand}
                 className="p-1 rounded text-cyan-400 hover:text-cyan-300"
-                title="放大"
-              >
+                title="放大">
                 <Expand className="w-5 h-5" />
               </button>
               <button
                 onClick={() => onDelete([selectedEmail.id])}
                 disabled={isDeleting}
                 className="p-1 rounded text-red-500 disabled:text-gray-500 hover:text-red-400"
-                title="删除"
-              >
+                title="删除">
                 <TrashIcon className="w-5 h-5" />
               </button>
             </>
@@ -180,8 +195,7 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
                 <button
                   className="p-1 rounded text-cyan-400 hover:text-cyan-300"
                   title="查看密码"
-                  onClick={onShowPassword}
-                >
+                  onClick={onShowPassword}>
                   <PasswordIcon className="w-5 h-5" />
                 </button>
               )}
@@ -190,16 +204,17 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
                   <input
                     type="checkbox"
                     className="h-4 w-4 rounded bg-zinc-700 border-zinc-600 text-cyan-600 focus:ring-cyan-500"
-                    title='全选'
-                    checked={selectedIds.length === emails.length && emails.length > 0}
+                    title="全选"
+                    checked={
+                      selectedIds.length === emails.length && emails.length > 0
+                    }
                     onChange={handleSelectAll}
                   />
                   <button
                     onClick={() => onDelete(selectedIds)}
                     disabled={selectedIds.length === 0 || isDeleting}
                     className="p-1 rounded text-red-500 disabled:text-gray-500 hover:text-red-400"
-                    title="删除选中"
-                  >
+                    title="删除选中">
                     <TrashIcon className="w-5 h-5" />
                   </button>
                 </>
@@ -209,8 +224,7 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
                 title="refresh"
                 onClick={onRefresh} // feat: 添加手动刷新事件
                 // fix: 只有在创建地址后，刷新按钮才可用, 且在加载中时禁用
-                disabled={!isAddressCreated || isFetching}
-              >
+                disabled={!isAddressCreated || isFetching}>
                 <RefreshIcon
                   className={clsx("size-6", isAddressCreated && "animate-spin")}
                 />
@@ -222,7 +236,11 @@ export function MailList({ emails, isLoading, isFetching, onDelete, isDeleting, 
 
       {/* 邮件列表主体 */}
       {/* fix: 当显示详情时，移除 grids 背景和 h-[488px] 的高度限制 */}
-      <div className={clsx("flex flex-col flex-1 overflow-y-auto p-2", !selectedEmail && "grids h-[488px]")}>
+      <div
+        className={clsx(
+          "flex flex-col flex-1 overflow-y-auto p-2",
+          !selectedEmail && "grids h-[488px]"
+        )}>
         {renderBody()}
       </div>
     </div>
