@@ -56,5 +56,7 @@
   "Select all": "すべて選択",
   "Delete selected": "選択したものを削除",
   "Please create a temporary email address first": "最初に一時的なメールアドレスを作成してください",
-  "Email Detail": "メールの詳細"
+  "Email Detail": "メールの詳細",
+  "Expires in": "有効期限",
+  "Email expired": "メールの有効期限が切れました"
 }

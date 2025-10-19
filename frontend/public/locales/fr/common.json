@@ -56,5 +56,7 @@
   "Select all": "Tout sélectionner",
   "Delete selected": "Supprimer la sélection",
   "Please create a temporary email address first": "Veuillez d'abord créer une adresse e-mail temporaire",
-  "Email Detail": "Détail de l'e-mail"
+  "Email Detail": "Détail de l'e-mail",
+  "Expires in": "Expire dans",
+  "Email expired": "E-mail expiré"
 }

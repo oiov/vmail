@@ -56,5 +56,7 @@
   "Select all": "Выбрать все",
   "Delete selected": "Удалить выбранные",
   "Please create a temporary email address first": "Пожалуйста, сначала создайте временный адрес электронной почты",
-  "Email Detail": "Детали письма"
+  "Email Detail": "Детали письма",
+  "Expires in": "Истекает через",
+  "Email expired": "Срок действия электронной почты истек"
 }

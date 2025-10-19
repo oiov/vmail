@@ -56,5 +56,7 @@
   "Select all": "모두 선택",
   "Delete selected": "선택 항목 삭제",
   "Please create a temporary email address first": "먼저 임시 이메일 주소를 만드세요",
-  "Email Detail": "이메일 세부 정보"
+  "Email Detail": "이메일 세부 정보",
+  "Expires in": "만료까지 남은 시간",
+  "Email expired": "이메일이 만료되었습니다"
 }
