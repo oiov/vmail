@@ -59,5 +59,7 @@
   "Please create a temporary email address first": "請先創建一個臨時郵箱地址",
   "Email Detail": "郵件詳情",
   "Expires in": "有效期剩餘",
-  "Email expired": "郵箱已過期"
+  "Email expired": "郵箱已過期",
+  "Extend validity": "延長有效期",
+  "Validity extended successfully": "有效期延長成功"
 }

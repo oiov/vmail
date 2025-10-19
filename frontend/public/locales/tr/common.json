@@ -58,5 +58,7 @@
   "Please create a temporary email address first": "Lütfen önce geçici bir e-posta adresi oluşturun",
   "Email Detail": "E-posta Detayı",
   "Expires in": "Şu tarihte sona eriyor:",
-  "Email expired": "E-posta süresi doldu"
+  "Email expired": "E-posta süresi doldu",
+  "Extend validity": "Geçerliliği Uzat",
+  "Validity extended successfully": "Geçerlilik başarıyla uzatıldı"
 }

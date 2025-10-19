@@ -58,5 +58,7 @@
   "Please create a temporary email address first": "Пожалуйста, сначала создайте временный адрес электронной почты",
   "Email Detail": "Детали письма",
   "Expires in": "Истекает через",
-  "Email expired": "Срок действия электронной почты истек"
+  "Email expired": "Срок действия электронной почты истек",
+  "Extend validity": "Продлить срок действия",
+  "Validity extended successfully": "Срок действия успешно продлен"
 }
