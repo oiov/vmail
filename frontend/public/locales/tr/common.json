@@ -56,5 +56,7 @@
   "Select all": "Tümünü seç",
   "Delete selected": "Seçilenleri sil",
   "Please create a temporary email address first": "Lütfen önce geçici bir e-posta adresi oluşturun",
-  "Email Detail": "E-posta Detayı"
+  "Email Detail": "E-posta Detayı",
+  "Expires in": "Şu tarihte sona eriyor:",
+  "Email expired": "E-posta süresi doldu"
 }

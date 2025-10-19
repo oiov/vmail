@@ -57,5 +57,7 @@
   "Select all": "全選",
   "Delete selected": "刪除選中",
   "Please create a temporary email address first": "請先創建一個臨時郵箱地址",
-  "Email Detail": "郵件詳情"
+  "Email Detail": "郵件詳情",
+  "Expires in": "有效期剩餘",
+  "Email expired": "郵箱已過期"
 }

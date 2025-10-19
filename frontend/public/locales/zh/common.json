@@ -60,5 +60,7 @@
   "Select all": "全选",
   "Delete selected": "删除选中",
   "Please create a temporary email address first": "请先创建一个临时邮箱地址",
-  "Email Detail": "邮件详情"
+  "Email Detail": "邮件详情",
+  "Expires in": "有效期剩余",
+  "Email expired": "邮箱已过期"
 }

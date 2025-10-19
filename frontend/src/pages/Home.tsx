@@ -30,6 +30,8 @@ import Info from "../components/icons/Info.tsx";
 import type { Email } from '../database_types.ts';
 import { InfoModal } from '../components/InfoModal.tsx';
 import { MailDetail } from './MailDetail.tsx';
+// feat: 导入倒计时组件
+import { CountdownTimer } from '../components/CountdownTimer.tsx';
 
 export function Home() {
   const config = useConfig();
@@ -38,6 +40,11 @@ export function Home() {
 
   // 状态管理
   const [address, setAddress] = useState<string | undefined>(() => Cookies.get('userMailbox'));
+  // feat: 新增状态，用于存储邮箱过期时间戳
+  const [expiryTimestamp, setExpiryTimestamp] = useState<number | undefined>(() => {
+      const expiry = Cookies.get('emailExpiry');
+      return expiry ? parseInt(expiry, 10) : undefined;
+  });
   const [turnstileToken, setTurnstileToken] = useState<string>('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isTurnstileVerified, setIsTurnstileVerified] = useState(false);
@@ -85,7 +92,7 @@ export function Home() {
                     <Close className="h-5 w-5" />
                 </button>
             </div>
-            
+
             {/* 内容区域 */}
             <div>
                 <p className="text-sm text-gray-300">
@@ -128,12 +135,21 @@ export function Home() {
     // 当用户停止使用邮箱时（地址被清除），重置状态并关闭通知
     if (!address) {
       setHasReceivedEmail(false);
+      // feat: 清除过期时间戳状态
+      setExpiryTimestamp(undefined);
       toast.dismiss('password-notification');
+    } else {
+        // feat: 当地址存在时，尝试读取过期时间 cookie
+        const expiry = Cookies.get('emailExpiry');
+        if (expiry && !expiryTimestamp) {
+            setExpiryTimestamp(parseInt(expiry, 10));
+        }
     }
 
     prevEmailsLength.current = emails.length;
-  }, [emails, address, hasReceivedEmail]); // 依赖项包含 emails, address 和 hasReceivedEmail 以响应所有相关变化
-
+  // }, [emails, address, hasReceivedEmail]); // 依赖项包含 emails, address 和 hasReceivedEmail 以响应所有相关变化
+  // feat: 添加 expiryTimestamp 到依赖项
+  }, [emails, address, hasReceivedEmail, expiryTimestamp]);
 
   // 创建新邮箱地址的处理函数
   const handleCreateAddress = async () => {
@@ -146,8 +162,13 @@ export function Home() {
       setIsTurnstileVerified(true); // 验证通过
       // feat: 使用选定的域名创建邮箱
       const mailbox = `${randomName("", getRandomCharacter())}@${selectedDomain}`;
+      // feat: 计算并存储过期时间戳 (当前时间 + 24小时)
+      const now = Date.now();
+      const expires = now + 24 * 60 * 60 * 1000;
       Cookies.set('userMailbox', mailbox, { expires: 1 }); // cookie 有效期1天
+      Cookies.set('emailExpiry', expires.toString(), { expires: 1 }); // 存储过期时间戳
       setAddress(mailbox);
+      setExpiryTimestamp(expires); // 更新状态
       setHasReceivedEmail(false); // 重置接收邮件状态
       toast.success(t('Email created successfully')); // feat: 使用全局 toast 提示
     } catch (error) {
@@ -159,9 +180,12 @@ export function Home() {
   // 停止使用当前邮箱地址
   const handleStopAddress = () => {
     Cookies.remove('userMailbox');
+    // feat: 移除过期时间 cookie
+    Cookies.remove('emailExpiry');
     setAddress(undefined);
     setHasReceivedEmail(false); // 重置状态
     setSelectedEmail(null); // 清除选中的邮件
+    setExpiryTimestamp(undefined); // 清除过期时间状态
     queryClient.invalidateQueries({ queryKey: ['emails'] }); // 清理缓存
   };
 
@@ -203,8 +227,13 @@ export function Home() {
     try {
       // fix: 调用更新后的 loginByPassword 函数，不再传递 token
       const data = await loginByPassword(password);
+      // feat: 登录成功后也设置过期时间戳
+      const now = Date.now();
+      const expires = now + 24 * 60 * 60 * 1000;
       Cookies.set('userMailbox', data.address, { expires: 1 });
+      Cookies.set('emailExpiry', expires.toString(), { expires: 1 });
       setAddress(data.address);
+      setExpiryTimestamp(expires); // 更新状态
       setShowPasswordModal(false); // 关闭模态框
       toast.success(t("Login successful"));
     } catch (error: any) {
@@ -264,10 +293,12 @@ export function Home() {
         {address ? (
           <div className="w-full md:max-w-[350px] mb-4">
             <div className="mb-4 font-semibold text-sm">{t("Email address")}</div>
-            <div className="flex items-center mb-6 text-zinc-100 bg-white/10 backdrop-blur-xl shadow-inner px-4 py-4 rounded-md w-full">
+            <div className="flex items-center text-zinc-100 bg-white/10 backdrop-blur-xl shadow-inner px-4 py-4 rounded-md w-full">
               <span className="truncate">{address}</span>
               <CopyButton text={address} className="p-1 rounded-md ml-auto" />
             </div>
+            {/* feat: 在地址和停止按钮之间添加倒计时组件 */}
+            {expiryTimestamp && <CountdownTimer expiryTimestamp={expiryTimestamp} />}
             <button
               onClick={handleStopAddress}
               className="py-2.5 rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500">

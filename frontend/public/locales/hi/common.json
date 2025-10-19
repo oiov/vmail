@@ -56,5 +56,7 @@
   "Select all": "सभी का चयन करें",
   "Delete selected": "चयनित हटाएं",
   "Please create a temporary email address first": "कृपया पहले एक अस्थायी ईमेल पता बनाएं",
-  "Email Detail": "ईमेल विवरण"
+  "Email Detail": "ईमेल विवरण",
+  "Expires in": "में समाप्त होता है",
+  "Email expired": "ईमेल समाप्त हो गया है"
 }
