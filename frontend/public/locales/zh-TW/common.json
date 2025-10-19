@@ -60,6 +60,6 @@
   "Email Detail": "郵件詳情",
   "Expires in": "有效期剩餘",
   "Email expired": "郵箱已過期",
-  "Extend validity": "延長有效期",
-  "Validity extended successfully": "有效期延長成功"
+  "Reset validity": "重設有效期",
+  "Validity reset successfully": "有效期重設成功"
 }

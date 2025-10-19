@@ -6,7 +6,7 @@ import RefreshIcon from './icons/RefreshIcon'; // 导入刷新图标
 // 定义组件的 props 类型
 interface CountdownTimerProps {
   expiryTimestamp: number; // 过期时间戳 (毫秒)
-  onExtend: () => void; // 新增：延长有效期的回调函数
+  onReset: () => void; // 修改：回调函数名称从 onExtend 改为 onReset
 }
 
 // 格式化时间单位，确保总是显示两位数
@@ -14,7 +14,8 @@ const formatTimeUnit = (unit: number): string => {
   return unit < 10 ? `0${unit}` : `${unit}`;
 };
 
-export function CountdownTimer({ expiryTimestamp, onExtend }: CountdownTimerProps) {
+// 修改：组件名称和 prop 名称修改
+export function CountdownTimer({ expiryTimestamp, onReset }: CountdownTimerProps) {
   const { t } = useTranslation(); // 用于国际化
 
   // 计算剩余时间的函数 (使用 useCallback 避免不必要的重新创建)
@@ -85,12 +86,12 @@ export function CountdownTimer({ expiryTimestamp, onExtend }: CountdownTimerProp
           </span> // 显示剩余时间 时:分:秒
         )}
       </div>
-      {/* feat: 添加延长有效期按钮, 仅在未过期时显示 */}
+      {/* feat: 添加重置有效期按钮, 仅在未过期时显示 */}
       {!timeLeft.expired && (
         <button
-          onClick={onExtend}
+          onClick={onReset} // 修改：调用 onReset 回调
           className="p-1 rounded text-cyan-400 hover:text-cyan-300 focus:outline-none focus:ring-1 focus:ring-cyan-500"
-          title={t('Extend validity')} // 添加 tooltip
+          title={t('Reset validity')} // 修改：更新 tooltip 提示文字
         >
           <RefreshIcon className="w-5 h-5" /> {/* 使用刷新图标 */}
         </button>

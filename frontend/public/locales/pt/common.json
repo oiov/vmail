@@ -59,6 +59,6 @@
   "Email Detail": "Detalhes do email",
   "Expires in": "Expira em",
   "Email expired": "E-mail expirado",
-  "Extend validity": "Estender validade",
-  "Validity extended successfully": "Validade estendida com sucesso"
+  "Reset validity": "Redefinir validade",
+  "Validity reset successfully": "Validade redefinida com sucesso"
 }

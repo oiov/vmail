@@ -59,6 +59,6 @@
   "Email Detail": "E-posta Detayı",
   "Expires in": "Şu tarihte sona eriyor:",
   "Email expired": "E-posta süresi doldu",
-  "Extend validity": "Geçerliliği Uzat",
-  "Validity extended successfully": "Geçerlilik başarıyla uzatıldı"
+  "Reset validity": "Geçerliliği Sıfırla",
+  "Validity reset successfully": "Geçerlilik başarıyla sıfırlandı"
 }
