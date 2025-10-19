@@ -58,5 +58,7 @@
   "Please create a temporary email address first": "먼저 임시 이메일 주소를 만드세요",
   "Email Detail": "이메일 세부 정보",
   "Expires in": "만료까지 남은 시간",
-  "Email expired": "이메일이 만료되었습니다"
+  "Email expired": "이메일이 만료되었습니다",
+  "Extend validity": "유효 기간 연장",
+  "Validity extended successfully": "유효 기간이 성공적으로 연장되었습니다"
 }

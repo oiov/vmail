@@ -59,5 +59,7 @@
   "Please create a temporary email address first": "Bitte erstellen Sie zuerst eine temporäre E-Mail-Adresse",
   "Email Detail": "E-Mail-Detail",
   "Expires in": "Läuft ab in",
-  "Email expired": "E-Mail abgelaufen"
+  "Email expired": "E-Mail abgelaufen",
+  "Extend validity": "Gültigkeit verlängern",
+  "Validity extended successfully": "Gültigkeit erfolgreich verlängert"
 }

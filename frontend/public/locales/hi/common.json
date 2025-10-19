@@ -58,5 +58,7 @@
   "Please create a temporary email address first": "कृपया पहले एक अस्थायी ईमेल पता बनाएं",
   "Email Detail": "ईमेल विवरण",
   "Expires in": "में समाप्त होता है",
-  "Email expired": "ईमेल समाप्त हो गया है"
+  "Email expired": "ईमेल समाप्त हो गया है",
+  "Extend validity": "वैधता बढ़ाएँ",
+  "Validity extended successfully": "वैधता सफलतापूर्वक बढ़ा दी गई"
 }

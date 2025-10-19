@@ -58,5 +58,7 @@
   "Please create a temporary email address first": "最初に一時的なメールアドレスを作成してください",
   "Email Detail": "メールの詳細",
   "Expires in": "有効期限",
-  "Email expired": "メールの有効期限が切れました"
+  "Email expired": "メールの有効期限が切れました",
+  "Extend validity": "有効期限を延長",
+  "Validity extended successfully": "有効期限が正常に延長されました"
 }

@@ -62,5 +62,7 @@
   "Please create a temporary email address first": "Please create a temporary email address first",
   "Email Detail": "Email Detail",
   "Expires in": "Expires in",
-  "Email expired": "Email expired"
+  "Email expired": "Email expired",
+  "Extend validity": "Extend validity", 
+  "Validity extended successfully": "Validity extended successfully" 
 }

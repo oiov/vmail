@@ -62,5 +62,7 @@
   "Please create a temporary email address first": "请先创建一个临时邮箱地址",
   "Email Detail": "邮件详情",
   "Expires in": "有效期剩余",
-  "Email expired": "邮箱已过期"
+  "Email expired": "邮箱已过期",
+  "Extend validity": "延长有效期", 
+  "Validity extended successfully": "有效期延长成功" 
 }

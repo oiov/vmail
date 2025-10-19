@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import ClockIcon from './icons/Clock'; // 导入时钟图标
+import RefreshIcon from './icons/RefreshIcon'; // 导入刷新图标
 
 // 定义组件的 props 类型
 interface CountdownTimerProps {
   expiryTimestamp: number; // 过期时间戳 (毫秒)
+  onExtend: () => void; // 新增：延长有效期的回调函数
 }
 
 // 格式化时间单位，确保总是显示两位数
@@ -12,7 +14,7 @@ const formatTimeUnit = (unit: number): string => {
   return unit < 10 ? `0${unit}` : `${unit}`;
 };
 
-export function CountdownTimer({ expiryTimestamp }: CountdownTimerProps) {
+export function CountdownTimer({ expiryTimestamp, onExtend }: CountdownTimerProps) {
   const { t } = useTranslation(); // 用于国际化
 
   // 计算剩余时间的函数
@@ -56,14 +58,27 @@ export function CountdownTimer({ expiryTimestamp }: CountdownTimerProps) {
   }, [expiryTimestamp, timeLeft.expired]); // 依赖项包含过期时间戳和是否过期状态
 
   return (
-    <div className="flex items-center justify-center gap-2 text-sm text-cyan-400 my-4 p-3 bg-white/5 rounded-md border border-cyan-50/20 shadow-inner">
-      <ClockIcon className="w-5 h-5" />
-      {timeLeft.expired ? (
-        <span>{t('Email expired')}</span> // 邮箱已过期提示
-      ) : (
-        <span>
-          {t('Expires in')}: {timeLeft.hours}:{timeLeft.minutes}:{timeLeft.seconds}
-        </span> // 显示剩余时间 时:分:秒
+    // feat: 将容器改为 flex-row 并添加按钮
+    <div className="flex items-center justify-between gap-2 text-sm text-cyan-400 my-4 p-3 bg-white/5 rounded-md border border-cyan-50/20 shadow-inner">
+      <div className="flex items-center gap-2"> {/* 将图标和文本包裹起来 */}
+        <ClockIcon className="w-5 h-5" />
+        {timeLeft.expired ? (
+          <span>{t('Email expired')}</span> // 邮箱已过期提示
+        ) : (
+          <span>
+            {t('Expires in')}: {timeLeft.hours}:{timeLeft.minutes}:{timeLeft.seconds}
+          </span> // 显示剩余时间 时:分:秒
+        )}
+      </div>
+      {/* feat: 添加延长有效期按钮 */}
+      {!timeLeft.expired && (
+        <button
+          onClick={onExtend}
+          className="p-1 rounded text-cyan-400 hover:text-cyan-300 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+          title={t('Extend validity')} // 添加 tooltip
+        >
+          <RefreshIcon className="w-5 h-5" /> {/* 使用刷新图标 */}
+        </button>
       )}
     </div>
   );
