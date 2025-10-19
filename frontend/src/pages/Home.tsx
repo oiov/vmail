@@ -195,18 +195,17 @@ export function Home() {
     toast.success(t('Mailbox refreshed'));
   };
 
-  // feat: 延长邮箱有效期
-  const handleExtendExpiry = useCallback(() => {
-    if (!expiryTimestamp) return; // 如果没有有效期，则不执行任何操作
-
-    const newExpiry = expiryTimestamp + 24 * 60 * 60 * 1000; // 延长 24 小时
+  // 修改：将延长邮箱有效期改为重置邮箱有效期
+  const handleResetExpiry = useCallback(() => {
+    // feat: 计算新的过期时间戳 (当前时间 + 24小时)
+    const newExpiry = Date.now() + 24 * 60 * 60 * 1000;
     // 计算新的 Cookie 过期时间（相对于当前时间1天）
     const cookieExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     Cookies.set('emailExpiry', newExpiry.toString(), { expires: cookieExpires }); // 更新 Cookie，有效期设为从现在起1天
     setExpiryTimestamp(newExpiry); // 更新状态
-    toast.success(t('Validity extended successfully')); // 显示成功提示
-  }, [expiryTimestamp, t]); // 依赖项包含 expiryTimestamp 和 t
+    toast.success(t('Validity reset successfully')); // 修改：显示重置成功提示
+  }, [t]); // 依赖项仅包含 t，因为函数内部不再依赖 expiryTimestamp
 
   // 删除邮件的 useMutation hook
   const deleteMutation = useMutation({
@@ -310,8 +309,8 @@ export function Home() {
               <span className="truncate">{address}</span>
               <CopyButton text={address} className="p-1 rounded-md ml-auto" />
             </div>
-            {/* feat: 在地址和停止按钮之间添加倒计时组件, 并传入延长回调 */}
-            {expiryTimestamp && <CountdownTimer expiryTimestamp={expiryTimestamp} onExtend={handleExtendExpiry} />}
+            {/* 修改：将 onExtend 更改为 onReset 并传递 handleResetExpiry */}
+            {expiryTimestamp && <CountdownTimer expiryTimestamp={expiryTimestamp} onReset={handleResetExpiry} />}
             <button
               onClick={handleStopAddress}
               className="py-2.5 rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500">

@@ -59,6 +59,6 @@
   "Email Detail": "Детали письма",
   "Expires in": "Истекает через",
   "Email expired": "Срок действия электронной почты истек",
-  "Extend validity": "Продлить срок действия",
-  "Validity extended successfully": "Срок действия успешно продлен"
+  "Reset validity": "Сбросить срок действия",
+  "Validity reset successfully": "Срок действия успешно сброшен"
 }

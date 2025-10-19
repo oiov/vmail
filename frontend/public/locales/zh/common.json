@@ -63,6 +63,6 @@
   "Email Detail": "邮件详情",
   "Expires in": "有效期剩余",
   "Email expired": "邮箱已过期",
-  "Extend validity": "延长有效期", 
-  "Validity extended successfully": "有效期延长成功" 
+  "Reset validity": "重置有效期",
+  "Validity reset successfully": "有效期重置成功"
 }

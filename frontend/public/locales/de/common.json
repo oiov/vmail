@@ -60,6 +60,6 @@
   "Email Detail": "E-Mail-Detail",
   "Expires in": "Läuft ab in",
   "Email expired": "E-Mail abgelaufen",
-  "Extend validity": "Gültigkeit verlängern",
-  "Validity extended successfully": "Gültigkeit erfolgreich verlängert"
+  "Reset validity": "Gültigkeit zurücksetzen",
+  "Validity reset successfully": "Gültigkeit erfolgreich zurückgesetzt"
 }

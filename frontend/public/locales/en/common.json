@@ -63,6 +63,6 @@
   "Email Detail": "Email Detail",
   "Expires in": "Expires in",
   "Email expired": "Email expired",
-  "Extend validity": "Extend validity", 
-  "Validity extended successfully": "Validity extended successfully" 
+  "Reset validity": "Reset validity", 
+  "Validity reset successfully": "Validity reset successfully"
 }

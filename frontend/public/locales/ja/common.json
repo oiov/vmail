@@ -59,6 +59,6 @@
   "Email Detail": "メールの詳細",
   "Expires in": "有効期限",
   "Email expired": "メールの有効期限が切れました",
-  "Extend validity": "有効期限を延長",
-  "Validity extended successfully": "有効期限が正常に延長されました"
+  "Reset validity": "有効期限をリセット",
+  "Validity reset successfully": "有効期限が正常にリセットされました"
 }

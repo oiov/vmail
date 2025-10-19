@@ -59,6 +59,6 @@
   "Email Detail": "이메일 세부 정보",
   "Expires in": "만료까지 남은 시간",
   "Email expired": "이메일이 만료되었습니다",
-  "Extend validity": "유효 기간 연장",
-  "Validity extended successfully": "유효 기간이 성공적으로 연장되었습니다"
+  "Reset validity": "유효 기간 재설정",
+  "Validity reset successfully": "유효 기간이 성공적으로 재설정되었습니다"
 }
