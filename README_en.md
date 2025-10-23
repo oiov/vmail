@@ -61,6 +61,16 @@ For detailed steps, please refer to the [GitHub Action Auto-Deployment Tutorial]
     ```
     Wrangler will automatically handle the deployment of frontend static assets and the Worker, and apply database migrations according to the configuration.
 
+### Environment Variables
+
+When deploying to Cloudflare Pages, you need to configure the following environment variables:
+
+-   `DATABASE_NAME`: Your D1 database name.
+-   `DATABASE_ID`: Your D1 database ID.
+-   `TURNSTILE_KEY`: Your Turnstile site key.
+-   `TURNSTILE_SECRET`: Your Turnstile secret key.
+-   `COOKIES_SECRET`: A secret used to sign cookies.
+
 5.  **Configure Email Routing Rules**
     In your Cloudflare domain management interface, go to `Email` -> `Email Routing` -> `Routes`, set up a `Catch-all` rule, and set the action to `Send to a Worker`, selecting the Worker you just deployed.
 
