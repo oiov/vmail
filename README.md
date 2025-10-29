@@ -31,7 +31,7 @@
 
 ### 自动部署 (推荐)
 
-本项目已包含一个预先配置好的 GitHub Action 工作流，可以帮助您自动将 vMail 应用部署到 Cloudflare。
+本项目已包含一个预先配置好的 GitHub Action 工作流，可以帮助您自动将 Vmail 应用部署到 Cloudflare。
 
 详细步骤请参考 [GitHub Action 自动部署教程](/docs/github-action-tutorial.md)。
 
@@ -62,6 +62,16 @@
 
 5.  **配置电子邮件路由**
     在您的 Cloudflare 域名管理界面，进入 `Email` -> `Email Routing` -> `Routes`，设置一个 `Catch-all` 规则，将所有发送到您域名的邮件 `Send to a Worker`，选择您刚刚部署的 Worker。
+
+### 环境变量
+
+在部署到 Cloudflare Pages 时，您需要配置以下环境变量：
+
+-   `DATABASE_NAME`: 您的 D1 数据库名称。
+-   `DATABASE_ID`: 您的 D1 数据库 ID。
+-   `TURNSTILE_KEY`: 您的 Turnstile 站点密钥。
+-   `TURNSTILE_SECRET`: 您的 Turnstile 密钥。
+-   `COOKIES_SECRET`: 用于签名 Cookie 的密钥。
 
 ## 🔨 本地运行调试
 
