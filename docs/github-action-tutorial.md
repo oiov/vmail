@@ -1,6 +1,6 @@
 # GitHub Action 自动部署教程
 
-本项目已包含一个预先配置好的 GitHub Action 工作流文件 (`.github/workflows/deploy.yml`)，可以帮助您自动将 vMail 应用部署到 Cloudflare Workers。
+本项目已包含一个预先配置好的 GitHub Action 工作流文件 (`.github/workflows/deploy.yml`)，可以帮助您自动将 Vmail 应用部署到 Cloudflare Workers。
 
 ## 准备工作
 
@@ -12,16 +12,16 @@
 
 前往您的 GitHub 仓库页面，点击 `Settings` -> `Secrets and variables` -> `Actions`，然后添加以下 `Repository secrets`：
 
-| Secret Name        | 说明                                                                                               | 示例值                             |
-| :----------------- | :------------------------------------------------------------------------------------------------- | :--------------------------------- |
-| `CF_API_TOKEN`     | Cloudflare API Token，用于授权 Wrangler 操作。请确保该 Token 具有编辑 Workers 和 D1 数据库的权限。 | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` |
-| `CF_ACCOUNT_ID`    | 您的 Cloudflare 账户 ID，可以在 Cloudflare 控制台主页的右侧找到。                                | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` |
+| Secret Name        | 说明                                                                                               | 示例值                                 |
+| :----------------- | :------------------------------------------------------------------------------------------------- | :------------------------------------- |
+| `CF_API_TOKEN`     | Cloudflare API Token，用于授权 Wrangler 操作。请确保该 Token 具有编辑 Workers 和 D1 数据库的权限。 | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`     |
+| `CF_ACCOUNT_ID`    | 您的 Cloudflare 账户 ID，可以在 Cloudflare 控制台主页的右侧找到。                                  | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`     |
 | `D1_DATABASE_ID`   | 您的 D1 数据库 ID。                                                                                | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
-| `D1_DATABASE_NAME` | 您的 D1 数据库名称。                                                                               | `vmail`                            |
-| `EMAIL_DOMAIN`     | 您的邮箱域名，如果多个域名请用逗号隔开。                                                           | `vmail.dev,example.com`            |
-| `COOKIES_SECRET`   | 用于加密 Cookie 的密钥，请设置为一个随机且足够复杂的字符串。                                         | `a-very-strong-and-random-secret`  |
-| `TURNSTILE_KEY`    | Cloudflare Turnstile 网站密钥 (Site Key)。                                                         | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`   |
-| `TURNSTILE_SECRET` | Cloudflare Turnstile 密钥 (Secret Key)。                                                           | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`   |
+| `D1_DATABASE_NAME` | 您的 D1 数据库名称。                                                                               | `vmail`                                |
+| `EMAIL_DOMAIN`     | 您的邮箱域名，如果多个域名请用逗号隔开。                                                           | `vmail.dev,example.com`                |
+| `COOKIES_SECRET`   | 用于加密 Cookie 的密钥，请设置为一个随机且足够复杂的字符串。                                       | `a-very-strong-and-random-secret`      |
+| `TURNSTILE_KEY`    | Cloudflare Turnstile 网站密钥 (Site Key)。                                                         | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`       |
+| `TURNSTILE_SECRET` | Cloudflare Turnstile 密钥 (Secret Key)。                                                           | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`       |
 
 ## 触发自动部署
 

@@ -32,7 +32,7 @@ This project is now fully based on Cloudflare Pages and Cloudflare D1, which gre
 
 ### Automatic Deployment (Recommended)
 
-This project includes a pre-configured GitHub Action workflow to help you automatically deploy the vMail application to Cloudflare.
+This project includes a pre-configured GitHub Action workflow to help you automatically deploy the Vmail application to Cloudflare.
 
 For detailed steps, please refer to the [GitHub Action Auto-Deployment Tutorial](/docs/github-action-tutorial.md).
 
@@ -81,6 +81,16 @@ For detailed steps, please refer to the [GitHub Action Auto-Deployment Tutorial]
     ```
     This command starts both the frontend Vite development server and the local Wrangler Worker environment at the same time.
 
+
+### Environment Variables
+
+When deploying to Cloudflare Pages, you need to configure the following environment variables:
+
+-   `DATABASE_NAME`: Your D1 database name.
+-   `DATABASE_ID`: Your D1 database ID.
+-   `TURNSTILE_KEY`: Your Turnstile site key.
+-   `TURNSTILE_SECRET`: Your Turnstile secret key.
+-   `COOKIES_SECRET`: A secret used to sign cookies.
 
 ## Community Group
 
