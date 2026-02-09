@@ -28,10 +28,10 @@ export function Footer() {
       <div className="inline-flex justify-center mt-4 space-x-5 sm:ml-auto sm:mt-0 sm:justify-start">
         {/* 社交媒体和联系方式链接 */}
         <a
-          href="https://wr.do"
+          href="https://like.do"
           target="_blank"
           rel="noopener noreferrer"
-          title="WR.DO"
+          title="LikeDo"
           className="text-gray-400 hover:text-gray-500  scale-[1.2]">
           <WrdoLogo className="w-6 h-6" />
         </a>
