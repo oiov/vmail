@@ -14,7 +14,7 @@ i18n
   // 初始化 i18next
   .init({
     // 调试模式，将在控制台输出 i18n 相关信息
-    debug: true,
+    debug: false,
     // 如果检测到的语言不受支持，则回退到该语言
     fallbackLng: "en",
     // fix: 显式指定要加载的命名空间为 'common'
@@ -24,6 +24,10 @@ i18n
     defaultNS: "common",
     // 支持的语言列表
     supportedLngs: ["en", "zh", "fr", "ja", "hi", "de", "ko", "zh-TW", "it", "pt", "tr", "ru"],
+    // React 已经处理了转义，所以这里不需要
+    interpolation: {
+      escapeValue: false,
+    },
     // 后端插件的配置
     backend: {
       // 翻译文件的加载路径, e.g., /locales/en/common.json
@@ -31,10 +35,13 @@ i18n
     },
     // 语言检测器的配置
     detection: {
-      // 检测语言的顺序
-      order: ["cookie", "localStorage", "htmlTag", "path", "subdomain"],
+      // 检测语言的顺序：先检查缓存，再检测浏览器语言
+      order: ["cookie", "localStorage", "navigator", "htmlTag", "path", "subdomain"],
       // 缓存检测到的语言到这些位置
       caches: ["cookie", "localStorage"],
+      // 用于缓存的 key 名称
+      lookupCookie: "i18next",
+      lookupLocalStorage: "i18nextLng",
     },
   });
 
