@@ -71,6 +71,7 @@
   "Validity reset successfully": "Validity reset successfully",
   "Expand": "Expand",
   "Delete": "Delete",
+  "API Documentation": "API Documentation",
   "RESTful API for programmatic access to temporary email services": "RESTful API for programmatic access to temporary email services",
   "Authentication": "Authentication",
   "All API requests require an API Key. Include it in the request header:": "All API requests require an API Key. Include it in the request header:",

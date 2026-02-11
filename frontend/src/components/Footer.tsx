@@ -14,7 +14,7 @@ export function Footer() {
         VMAIL.DEV
       </Link>{" "}
       <p className="mt-4 text-sm text-gray-400 sm:ml-4 sm:pl-4 sm:border-l sm:border-gray-200 sm:mt-0">
-        © 2024 Products of{" "}
+        © 2024-2026 Products of{" "}
         <a
           className="font-semibold underline hover:text-gray-600"
           href="https://www.oiov.dev"

@@ -85,7 +85,7 @@ export function ApiDocs() {
         {/* Header */}
         <div className="mb-8 pb-6 border-b border-gray-700">
           <h1 className="text-3xl font-bold text-cyan-400 mb-2">
-            API Documentation
+            {t("API Documentation")}
           </h1>
           <p className="text-gray-400">
             {t(
