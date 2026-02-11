@@ -1,7 +1,8 @@
 <div align="center">
   <a href="https://trendshift.io/repositories/8681" target="_blank"><img src="https://trendshift.io/api/badge/repositories/8681" alt="yesmore%2Fvmail | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
   <h1>𝐕𝐌𝐀𝐈𝐋.𝐃𝐄𝐕</h1>
-  <p><a href="https://discord.gg/d68kWCBDEs">Discord</a> · <a href="https://github.com/oiov/vmail/blob/main/README_en.md">English</a> | 简体中文</p>
+  <p><a href="/docs/github-action-tutorial.md">部署教程</a>  ·  
+  <a href="https://vmail.dev/api-docs" target="_blank">API 文档</a> · <a href="https://discord.gg/d68kWCBDEs">Discord</a> · <a href="https://github.com/oiov/vmail/blob/main/README_en.md">English</a> | 简体中文</p>
   <p>使用 Cloudflare Email Worker 实现的临时电子邮件服务</p>
 </div>
 
@@ -31,13 +32,13 @@ Vmail 提供完整的 RESTful API，支持通过程序化方式创建临时邮�
 
 ### API 端点
 
-| 方法 | 端点 | 说明 |
-|------|------|------|
-| `POST` | `/api/v1/mailboxes` | 创建临时邮箱 |
-| `GET` | `/api/v1/mailboxes/:id` | 获取邮箱信息 |
-| `GET` | `/api/v1/mailboxes/:id/messages` | 获取收件箱（支持分页） |
-| `GET` | `/api/v1/mailboxes/:id/messages/:messageId` | 获取邮件详情 |
-| `DELETE` | `/api/v1/mailboxes/:id/messages/:messageId` | 删除邮件 |
+| 方法     | 端点                                        | 说明                   |
+| -------- | ------------------------------------------- | ---------------------- |
+| `POST`   | `/api/v1/mailboxes`                         | 创建临时邮箱           |
+| `GET`    | `/api/v1/mailboxes/:id`                     | 获取邮箱信息           |
+| `GET`    | `/api/v1/mailboxes/:id/messages`            | 获取收件箱（支持分页） |
+| `GET`    | `/api/v1/mailboxes/:id/messages/:messageId` | 获取邮件详情           |
+| `DELETE` | `/api/v1/mailboxes/:id/messages/:messageId` | 删除邮件               |
 
 ### 快速开始
 

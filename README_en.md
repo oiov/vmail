@@ -10,6 +10,7 @@
 - ✈️ Support email sending and receiving
 - ✨ Support saving passwords and retrieving email addresses
 - 😄 Support multiple domain name suffixes
+- 🔌 **Open RESTful API**, support programmatic access
 - 🚀 100% open source, quick deployment, pure Cloudflare solution, no server required
 
 Principles：
@@ -17,9 +18,46 @@ Principles：
 - Receiving emails (Cloudflare Email Worker)
 - Display email (Vite + React on Cloudflare Pages)
 - Mail Storage (Cloudflare D1)
-- [Node.js](https://nodejs.org) >= 18
+- Send email using MailChannels API
 
-> Worker receives email -> saves to D1 database -> client queries email
+## 📖 API Documentation
+
+Vmail provides a complete RESTful API for programmatic access to create temporary mailboxes and query inboxes.
+
+### Get API Key
+
+Visit the [API Documentation Page](https://vmail.dev/api-docs) to create a free API Key.
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/mailboxes` | Create temporary mailbox |
+| `GET` | `/api/v1/mailboxes/:id` | Get mailbox information |
+| `GET` | `/api/v1/mailboxes/:id/messages` | Get inbox (with pagination) |
+| `GET` | `/api/v1/mailboxes/:id/messages/:messageId` | Get message details |
+| `DELETE` | `/api/v1/mailboxes/:id/messages/:messageId` | Delete message |
+
+### Quick Start
+
+```bash
+# 1. Create temporary mailbox
+curl -X POST https://vmail.dev/api/v1/mailboxes \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json"
+
+# Response: { "data": { "id": "abc123", "address": "random@domain.com", ... } }
+
+# 2. Query inbox
+curl https://vmail.dev/api/v1/mailboxes/abc123/messages \
+  -H "X-API-Key: your-api-key"
+
+# 3. Get message details
+curl https://vmail.dev/api/v1/mailboxes/abc123/messages/msg_001 \
+  -H "X-API-Key: your-api-key"
+```
+
+Full documentation: [https://vmail.dev/api-docs](https://vmail.dev/api-docs)
 
 ## Self-hosted Tutorial
 

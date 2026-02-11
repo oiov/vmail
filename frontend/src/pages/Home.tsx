@@ -39,8 +39,6 @@ import { InfoModal } from "../components/InfoModal.tsx";
 import { MailDetail } from "./MailDetail.tsx";
 // feat: 导入倒计时组件
 import { CountdownTimer } from "../components/CountdownTimer.tsx";
-import Github from "../components/icons/GitHub.tsx";
-import Cloudflare from "../components/icons/Cloudflare.tsx";
 
 export function Home() {
   const config = useConfig();
@@ -334,21 +332,22 @@ export function Home() {
               href="https://github.com/oiov/vmail"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 hover:text-cyan-400 transition-colors cursor-pointer">
-              <Github /> {t("Open Source")}
+              className="flex items-center after:content-['↗'] gap-1.5 hover:text-cyan-400 transition-colors cursor-pointer">
+              <CodeBracketIcon className="size-5 text-blue-400" />{" "}
+              {t("Open Source")}
             </a>
             <div className="flex items-center gap-1.5">
-              <Cloudflare />
+              <ServerIcon className="size-5 text-blue-400" />
               {t("Stable - 1M+ emails processed")}
             </div>
             <Link
               to="/api-docs"
-              className="flex items-center gap-1.5 hover:text-cyan-400 transition-colors cursor-pointer">
-              <ApiIcon />
+              className="flex items-center after:content-['↗'] gap-1.5 hover:text-cyan-400 transition-colors cursor-pointer">
+              <ApiIcon className="size-5 text-blue-400" />
               {t("Open RESTful API")}
             </Link>
             <div className="flex items-center gap-1.5">
-              <GlobeAltIcon />
+              <GlobeAltIcon className="size-5 text-blue-400" />
               {t("Multi-domain configurable")}
             </div>
           </div>

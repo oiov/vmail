@@ -19,8 +19,7 @@ export function Footer() {
           className="font-semibold underline hover:text-gray-600"
           href="https://www.oiov.dev"
           target="_blank"
-          rel="noopener noreferrer"
-        >
+          rel="noopener noreferrer">
           oiov
         </a>
         .
@@ -33,7 +32,7 @@ export function Footer() {
           rel="noopener noreferrer"
           title="LikeDo"
           className="text-gray-400 hover:text-gray-500  scale-[1.2]">
-          <WrdoLogo className="w-6 h-6" />
+          <img src="/likedo.svg" alt="LikeDo" className="w-6 h-6" />
         </a>
         <a
           href="mailto:hi@oiov.dev"

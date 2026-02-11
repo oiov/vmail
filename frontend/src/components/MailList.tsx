@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { formatDistanceToNow } from "date-fns";
-import { zhCN } from "date-fns/locale";
+import { zhCN, enUS, fr, ja, de, ko, zhTW, it, pt, tr, ru } from "date-fns/locale";
 import clsx from "clsx";
 // refactor: 将导入从 'database' 包更改为本地的类型定义文件
 import type { Email } from "../database_types";
@@ -17,6 +17,21 @@ import PasswordIcon from "./icons/Password.tsx"; // feat: 导入密码图标
 import { MailDetail } from "../pages/MailDetail.tsx";
 import ArrowUturnLeft from "./icons/ArrowUturnLeft.tsx";
 import Expand from "./icons/Expand.tsx"; // feat: 导入 Expand 图标
+
+// 语言到 date-fns locale 的映射
+const localeMap: Record<string, Locale> = {
+  zh: zhCN,
+  "zh-TW": zhTW,
+  en: enUS,
+  fr: fr,
+  ja: ja,
+  de: de,
+  ko: ko,
+  it: it,
+  pt: pt,
+  tr: tr,
+  ru: ru,
+};
 
 interface MailListProps {
   emails: Email[];
@@ -54,11 +69,14 @@ export function MailList({
   onCloseDetail,
   onExpand,
 }: MailListProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  // 获取当前语言对应的 date-fns locale
+  const currentLocale = localeMap[i18n.language] || enUS;
 
   const handleSelect = (id: string) => {
     setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   };
 
@@ -82,7 +100,9 @@ export function MailList({
       return (
         <div className="w-full items-center h-full flex-col justify-center flex">
           <WaitingEmail />
-          <p className="text-zinc-400 mt-6">请先创建一个临时邮箱地址</p>
+          <p className="text-zinc-400 mt-6">
+            {t("Please create a temporary email address first")}
+          </p>
         </div>
       );
     }
@@ -132,7 +152,7 @@ export function MailList({
               <div className={"ml-auto text-xs"}>
                 {formatDistanceToNow(new Date(email.date || email.createdAt), {
                   addSuffix: true,
-                  locale: zhCN,
+                  locale: currentLocale,
                 })}
               </div>
             </div>
@@ -164,7 +184,7 @@ export function MailList({
               onClick={onCloseDetail}
               className="flex items-center gap-1 text-sm font-semibold text-cyan-400 hover:text-cyan-300 ml-2">
               <ArrowUturnLeft />
-              返回邮件列表
+              {t("Return to email list")}
             </button>
           )}
         </div>
@@ -177,14 +197,14 @@ export function MailList({
               <button
                 onClick={onExpand}
                 className="p-1 rounded text-cyan-400 hover:text-cyan-300"
-                title="放大">
+                title={t("Expand")}>
                 <Expand className="w-5 h-5" />
               </button>
               <button
                 onClick={() => onDelete([selectedEmail.id])}
                 disabled={isDeleting}
                 className="p-1 rounded text-red-500 disabled:text-gray-500 hover:text-red-400"
-                title="删除">
+                title={t("Delete")}>
                 <TrashIcon className="w-5 h-5" />
               </button>
             </>
@@ -194,7 +214,7 @@ export function MailList({
               {showViewPasswordButton && (
                 <button
                   className="p-1 rounded text-cyan-400 hover:text-cyan-300"
-                  title="查看密码"
+                  title={t("View password")}
                   onClick={onShowPassword}>
                   <PasswordIcon className="w-5 h-5" />
                 </button>
@@ -239,7 +259,7 @@ export function MailList({
       <div
         className={clsx(
           "flex flex-col flex-1 overflow-y-auto p-2",
-          !selectedEmail && "grids h-[488px]"
+          !selectedEmail && "grids h-[488px]",
         )}>
         {renderBody()}
       </div>

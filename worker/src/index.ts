@@ -308,15 +308,23 @@ export default {
 
   // HTTP 请求处理逻辑
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    // 修正: 使用 Hono 的 env.ASSETS.fetch 来处理静态资源
-    // 这样可以确保 Cloudflare Pages 正确处理前端构建产物
     const url = new URL(request.url);
     // API 路由
     if (url.pathname.startsWith('/api/') || url.pathname === '/config') {
       return app.fetch(request, env, ctx);
     }
-    // 静态资源和其他请求由 Pages 的静态资源处理器处理
-    return env.ASSETS.fetch(request);
+
+    // 静态资源请求
+    const response = await env.ASSETS.fetch(request);
+
+    // SPA 路由回退：如果静态资源返回 404，则返回 index.html
+    // 这样可以支持直接访问 /api-docs 等前端路由
+    if (response.status === 404) {
+      const indexRequest = new Request(new URL('/', request.url).toString(), request);
+      return env.ASSETS.fetch(indexRequest);
+    }
+
+    return response;
   },
 
   // 定时任务 (清理过期邮件)
