@@ -3,6 +3,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Home } from "./pages/Home.tsx";
+import { ApiDocs } from "./pages/ApiDocs.tsx";
 // MailDetail 组件不再作为独立页面，因此移除其路由
 // import { MailDetail } from './pages/MailDetail.tsx';
 // import { About } from './pages/About.tsx';  // 移除
@@ -44,6 +45,7 @@ function App() {
             {/* 使用 Layout 组件作为所有页面的布局框架 */}
             <Route element={<Layout />}>
               <Route path="/" element={<Home />} />
+              <Route path="/api-docs" element={<ApiDocs />} />
               {/* 移除 /mails/:id, /about, /privacy, /terms 路由 */}
             </Route>
           </Routes>

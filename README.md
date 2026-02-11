@@ -11,6 +11,7 @@
 - ✈️ 支持邮件收发
 - ✨ 支持保存密码，找回邮箱
 - 😄 支持多域名后缀
+- 🔌 **开放 RESTful API**，支持程序化调用
 - 🚀 快速部署，纯 Cloudflare 方案，无需服务器
 
 原理：
@@ -19,6 +20,45 @@
 - 前端 (Vite + React) 显示电子邮件
 - 邮件存储 (Cloudflare D1)
 - 发信使用 MailChannels API
+
+## 📖 API 文档
+
+Vmail 提供完整的 RESTful API，支持通过程序化方式创建临时邮箱、查询收件箱。
+
+### 获取 API Key
+
+访问 [API 文档页面](https://vmail.dev/api-docs) 创建免费的 API Key。
+
+### API 端点
+
+| 方法 | 端点 | 说明 |
+|------|------|------|
+| `POST` | `/api/v1/mailboxes` | 创建临时邮箱 |
+| `GET` | `/api/v1/mailboxes/:id` | 获取邮箱信息 |
+| `GET` | `/api/v1/mailboxes/:id/messages` | 获取收件箱（支持分页） |
+| `GET` | `/api/v1/mailboxes/:id/messages/:messageId` | 获取邮件详情 |
+| `DELETE` | `/api/v1/mailboxes/:id/messages/:messageId` | 删除邮件 |
+
+### 快速开始
+
+```bash
+# 1. 创建临时邮箱
+curl -X POST https://vmail.dev/api/v1/mailboxes \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json"
+
+# 响应: { "data": { "id": "abc123", "address": "random@domain.com", ... } }
+
+# 2. 查询收件箱
+curl https://vmail.dev/api/v1/mailboxes/abc123/messages \
+  -H "X-API-Key: your-api-key"
+
+# 3. 获取邮件详情
+curl https://vmail.dev/api/v1/mailboxes/abc123/messages/msg_001 \
+  -H "X-API-Key: your-api-key"
+```
+
+完整文档请访问：[https://vmail.dev/api-docs](https://vmail.dev/api-docs)
 
 ## 👋 自部署教程
 

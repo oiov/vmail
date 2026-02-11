@@ -4,6 +4,7 @@ import { Turnstile } from "@marsidev/react-turnstile";
 import randomName from "@scaleway/random-name";
 import { useTranslation } from "react-i18next";
 import Cookies from "js-cookie";
+import { Link } from "react-router-dom";
 // feat: 导入全局 toast
 import { toast } from "react-hot-toast";
 
@@ -27,9 +28,10 @@ import Close from "../components/icons/Close.tsx"; // 导入关闭图标
 
 // 图标导入
 import ShieldCheck from "../components/icons/ShieldCheck.tsx";
-import Cloudflare from "../components/icons/Cloudflare.tsx";
-import Clock from "../components/icons/Clock.tsx";
-import Info from "../components/icons/Info.tsx";
+import CodeBracketIcon from "../components/icons/CodeBracket.tsx";
+import ServerIcon from "../components/icons/ServerIcon.tsx";
+import ApiIcon from "../components/icons/ApiIcon.tsx";
+import GlobeAltIcon from "../components/icons/GlobeAltIcon.tsx";
 
 // refactor: 将导入从 'database' 包更改为本地的类型定义文件
 import type { Email } from "../database_types.ts";
@@ -37,6 +39,8 @@ import { InfoModal } from "../components/InfoModal.tsx";
 import { MailDetail } from "./MailDetail.tsx";
 // feat: 导入倒计时组件
 import { CountdownTimer } from "../components/CountdownTimer.tsx";
+import Github from "../components/icons/GitHub.tsx";
+import Cloudflare from "../components/icons/Cloudflare.tsx";
 
 export function Home() {
   const config = useConfig();
@@ -45,21 +49,21 @@ export function Home() {
 
   // 状态管理
   const [address, setAddress] = useState<string | undefined>(() =>
-    Cookies.get("userMailbox")
+    Cookies.get("userMailbox"),
   );
   // feat: 新增状态，用于存储邮箱过期时间戳
   const [expiryTimestamp, setExpiryTimestamp] = useState<number | undefined>(
     () => {
       const expiry = Cookies.get("emailExpiry");
       return expiry ? parseInt(expiry, 10) : undefined;
-    }
+    },
   );
   const [turnstileToken, setTurnstileToken] = useState<string>("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isTurnstileVerified, setIsTurnstileVerified] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null); // 新增状态，用于存储当前选中的邮件
   const [selectedDomain, setSelectedDomain] = useState<string>(
-    config.emailDomain[0]
+    config.emailDomain[0],
   ); // feat: 新增状态，用于存储当前选中的域名
   const [showEmailModal, setShowEmailModal] = useState(false); // feat: 新增状态，用于控制邮件详情模态框的显示
 
@@ -124,7 +128,7 @@ export function Home() {
               </div>
               <p className="mt-3 text-xs text-yellow-400">
                 {t(
-                  "Remember your password, otherwise your email will expire and cannot be retrieved"
+                  "Remember your password, otherwise your email will expire and cannot be retrieved",
                 )}
               </p>
             </div>
@@ -141,10 +145,10 @@ export function Home() {
             padding: 0,
             boxShadow: "none",
           },
-        }
+        },
       );
     },
-    [t]
+    [t],
   );
 
   // feat(fix): 使用useEffect来检测新邮件、显示密码通知，并控制“查看密码”按钮的可见性
@@ -326,20 +330,26 @@ export function Home() {
             {t("Virtual Temporary Email")}
           </h1>
           <div className="flex flex-col gap-4 text-sm text-gray-200">
+            <a
+              href="https://github.com/oiov/vmail"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 hover:text-cyan-400 transition-colors cursor-pointer">
+              <Github /> {t("Open Source")}
+            </a>
             <div className="flex items-center gap-1.5">
-              <ShieldCheck /> {t("Privacy friendly")}
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Clock />
-              {t("Valid for 1 Day")}
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Info />
-              {t("AD friendly")}
-            </div>
-            <div className="flex items-center gap-2">
               <Cloudflare />
-              {t("100% Run on Cloudflare")}
+              {t("Stable - 1M+ emails processed")}
+            </div>
+            <Link
+              to="/api-docs"
+              className="flex items-center gap-1.5 hover:text-cyan-400 transition-colors cursor-pointer">
+              <ApiIcon />
+              {t("Open RESTful API")}
+            </Link>
+            <div className="flex items-center gap-1.5">
+              <GlobeAltIcon />
+              {t("Multi-domain configurable")}
             </div>
           </div>
         </div>

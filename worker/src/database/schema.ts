@@ -1,6 +1,39 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import * as z from "zod";
+
+// ==================== API Keys 表 ====================
+export const apiKeys = sqliteTable("api_keys", {
+  id: text("id").primaryKey(),
+  key: text("key").notNull().unique(),            // API Key 值
+  keyPrefix: text("key_prefix").notNull(),        // Key 前缀用于显示 (如 vmail_xxx...)
+  name: text("name"),                             // API Key 名称
+  rateLimit: integer("rate_limit").default(100),  // 每分钟请求限制
+  isActive: integer("is_active", { mode: "boolean" }).default(true).notNull(),
+  lastUsedAt: integer("last_used_at", { mode: "timestamp" }),
+  expiresAt: integer("expires_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+export const insertApiKeySchema = createInsertSchema(apiKeys);
+export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
+export type ApiKey = typeof apiKeys.$inferSelect;
+
+// ==================== Mailboxes 表 ====================
+export const mailboxes = sqliteTable("mailboxes", {
+  id: text("id").primaryKey(),
+  address: text("address").notNull().unique(),    // 完整邮箱地址
+  domain: text("domain").notNull(),               // 邮箱域名
+  expiresAt: integer("expires_at", { mode: "timestamp" }),
+  apiKeyId: text("api_key_id").notNull(),         // 关联的 API Key ID
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+export const insertMailboxSchema = createInsertSchema(mailboxes);
+export type InsertMailbox = z.infer<typeof insertMailboxSchema>;
+export type Mailbox = typeof mailboxes.$inferSelect;
 
 // 定义 Header 类型，用于存储邮件头信息
 export type Header = Record<string, string>;

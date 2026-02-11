@@ -2,13 +2,15 @@ import { Hono } from 'hono';
 import { serveStatic } from 'hono/cloudflare-workers';
 import { cors } from 'hono/cors';
 // 导入数据库相关的模块
-import { deleteEmails, findEmailById, getEmailsByMessageTo, insertEmail, deleteExpiredEmails } from './database/dao';
+import { deleteEmails, findEmailById, getEmailsByMessageTo, insertEmail, deleteExpiredEmails, insertApiKey } from './database/dao';
 import { getD1DB } from './database/db';
 import { InsertEmail, insertEmailSchema } from './database/schema';
 import { nanoid } from 'nanoid/non-secure';
 import PostalMime from 'postal-mime';
 // 导入加解密工具函数
 import { decrypt } from './utils';
+// 导入 v1 API
+import v1Api from './api/v1';
 
 
 // 定义 Cloudflare 绑定和环境变量的类型
@@ -89,6 +91,62 @@ api.post('/verify', turnstile, async (c) => {
   // turnstile 中间件已经完成了验证工作。
   // 如果代码能执行到这里，说明验证成功。
   return c.json({ success: true });
+});
+
+// 生成 API Key 的函数
+function generateApiKey(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let key = 'vmail_';
+  for (let i = 0; i < 32; i++) {
+    key += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return key;
+}
+
+// 创建 API Key 接口（需要 Turnstile 验证）
+api.post('/api-keys', turnstile, async (c) => {
+  const db = getD1DB(c.env.DB);
+  const body = c.get('parsedBody') as { name?: string };
+
+  const now = new Date();
+  const apiKey = generateApiKey();
+  const keyPrefix = apiKey.substring(0, 12) + '...';
+
+  const newApiKey = {
+    id: nanoid(),
+    key: apiKey,
+    keyPrefix: keyPrefix,
+    name: body?.name || null,
+    rateLimit: 100,
+    isActive: true,
+    lastUsedAt: null,
+    expiresAt: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  try {
+    await insertApiKey(db, newApiKey);
+    // 只返回一次完整的 API Key，之后无法再获取
+    return c.json({
+      data: {
+        id: newApiKey.id,
+        key: apiKey,  // 完整的 API Key，只展示这一次
+        keyPrefix: keyPrefix,
+        name: newApiKey.name,
+        createdAt: now.toISOString(),
+      },
+      message: 'API Key created successfully. Please save it now, it will not be shown again!'
+    }, 201);
+  } catch (e: any) {
+    console.error('Create API Key error:', e);
+    return c.json({
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to create API Key',
+      }
+    }, 500);
+  }
 });
 
 // fix: 移除获取邮件列表接口的 turnstile 验证。
@@ -185,6 +243,9 @@ app.get('/config', (c) => {
     cookiesSecret: c.env.COOKIES_SECRET,
   });
 });
+
+// 挂载 v1 API 路由
+app.route('/api/v1', v1Api);
 
 
 // 静态资源服务 (放在最后，作为默认路由)
