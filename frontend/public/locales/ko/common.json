@@ -115,5 +115,10 @@
   "Create API Key": "API 키 생성",
   "Please complete the verification first": "먼저 확인을 완료하세요",
   "API Key created successfully": "API 키가 성공적으로 생성되었습니다",
-  "Failed to create API Key": "API 키 생성 실패"
+  "Failed to create API Key": "API 키 생성 실패",
+  "Site Statistics": "사이트 통계",
+  "Addresses Created": "생성된 주소",
+  "Emails Received": "받은 이메일",
+  "API Keys Created": "생성된 API 키",
+  "API Calls": "API 호출"
 }

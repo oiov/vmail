@@ -90,6 +90,9 @@ const api = app.basePath('/api');
 api.post('/verify', turnstile, async (c) => {
   // turnstile 中间件已经完成了验证工作。
   // 如果代码能执行到这里，说明验证成功。
+  // 增加邮箱创建计数（前端验证成功后会创建邮箱地址）
+  const db = getD1DB(c.env.DB);
+  await incrementAddressesCreated(db);
   return c.json({ success: true });
 });
 
