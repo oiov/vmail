@@ -1,8 +1,8 @@
-import { count, desc, asc, eq, and, inArray, lt } from "drizzle-orm";
+import { count, desc, asc, eq, and, inArray, lt, sql } from "drizzle-orm";
 // fix: 将数据库类型从 LibSQLDatabase 更改为 DrizzleD1Database，以匹配 Cloudflare D1
 import { DrizzleD1Database } from "drizzle-orm/d1";
 // refactor: 更新 schema 的导入路径
-import { emails, InsertEmail, apiKeys, InsertApiKey, mailboxes, InsertMailbox } from "./schema";
+import { emails, InsertEmail, apiKeys, InsertApiKey, mailboxes, InsertMailbox, siteStats, SiteStats } from "./schema";
 
 export async function insertEmail(db: DrizzleD1Database, email: InsertEmail) {
   try {
@@ -313,5 +313,123 @@ export async function deleteExpiredMailboxes(db: DrizzleD1Database) {
   } catch (e) {
     console.error('deleteExpiredMailboxes error:', e);
     return { count: 0 };
+  }
+}
+
+// ==================== Site Stats 相关函数 ====================
+
+const GLOBAL_STATS_ID = 'global';
+
+/**
+ * 获取站点统计数据
+ */
+export async function getSiteStats(db: DrizzleD1Database): Promise<SiteStats | null> {
+  try {
+    const result = await db
+      .select()
+      .from(siteStats)
+      .where(eq(siteStats.id, GLOBAL_STATS_ID))
+      .execute();
+    return result.length === 1 ? result[0] : null;
+  } catch (e) {
+    console.error('getSiteStats error:', e);
+    return null;
+  }
+}
+
+/**
+ * 初始化站点统计记录（如果不存在）
+ */
+export async function initSiteStats(db: DrizzleD1Database) {
+  try {
+    const existing = await getSiteStats(db);
+    if (!existing) {
+      await db.insert(siteStats).values({
+        id: GLOBAL_STATS_ID,
+        totalAddressesCreated: 0,
+        totalEmailsReceived: 0,
+        totalApiCalls: 0,
+        totalApiKeysCreated: 0,
+        updatedAt: new Date(),
+      }).execute();
+    }
+  } catch (e) {
+    console.error('initSiteStats error:', e);
+  }
+}
+
+/**
+ * 增加邮件接收计数
+ */
+export async function incrementEmailsReceived(db: DrizzleD1Database, amount: number = 1) {
+  try {
+    await initSiteStats(db);
+    await db
+      .update(siteStats)
+      .set({
+        totalEmailsReceived: sql`${siteStats.totalEmailsReceived} + ${amount}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(siteStats.id, GLOBAL_STATS_ID))
+      .execute();
+  } catch (e) {
+    console.error('incrementEmailsReceived error:', e);
+  }
+}
+
+/**
+ * 增加邮箱地址创建计数
+ */
+export async function incrementAddressesCreated(db: DrizzleD1Database, amount: number = 1) {
+  try {
+    await initSiteStats(db);
+    await db
+      .update(siteStats)
+      .set({
+        totalAddressesCreated: sql`${siteStats.totalAddressesCreated} + ${amount}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(siteStats.id, GLOBAL_STATS_ID))
+      .execute();
+  } catch (e) {
+    console.error('incrementAddressesCreated error:', e);
+  }
+}
+
+/**
+ * 增加 API Key 创建计数
+ */
+export async function incrementApiKeysCreated(db: DrizzleD1Database, amount: number = 1) {
+  try {
+    await initSiteStats(db);
+    await db
+      .update(siteStats)
+      .set({
+        totalApiKeysCreated: sql`${siteStats.totalApiKeysCreated} + ${amount}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(siteStats.id, GLOBAL_STATS_ID))
+      .execute();
+  } catch (e) {
+    console.error('incrementApiKeysCreated error:', e);
+  }
+}
+
+/**
+ * 增加 API 调用计数
+ */
+export async function incrementApiCalls(db: DrizzleD1Database, amount: number = 1) {
+  try {
+    await initSiteStats(db);
+    await db
+      .update(siteStats)
+      .set({
+        totalApiCalls: sql`${siteStats.totalApiCalls} + ${amount}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(siteStats.id, GLOBAL_STATS_ID))
+      .execute();
+  } catch (e) {
+    console.error('incrementApiCalls error:', e);
   }
 }

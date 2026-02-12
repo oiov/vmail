@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { serveStatic } from 'hono/cloudflare-workers';
 import { cors } from 'hono/cors';
 // 导入数据库相关的模块
-import { deleteEmails, findEmailById, getEmailsByMessageTo, insertEmail, deleteExpiredEmails, insertApiKey } from './database/dao';
+import { deleteEmails, findEmailById, getEmailsByMessageTo, insertEmail, deleteExpiredEmails, insertApiKey, getSiteStats, incrementEmailsReceived, incrementApiKeysCreated, incrementAddressesCreated } from './database/dao';
 import { getD1DB } from './database/db';
 import { InsertEmail, insertEmailSchema } from './database/schema';
 import { nanoid } from 'nanoid/non-secure';
@@ -127,6 +127,8 @@ api.post('/api-keys', turnstile, async (c) => {
 
   try {
     await insertApiKey(db, newApiKey);
+    // 增加 API Key 创建计数
+    await incrementApiKeysCreated(db);
     // 只返回一次完整的 API Key，之后无法再获取
     return c.json({
       data: {
@@ -244,6 +246,26 @@ app.get('/config', (c) => {
   });
 });
 
+// 站点统计数据接口（公开）
+api.get('/stats', async (c) => {
+  const db = getD1DB(c.env.DB);
+  const stats = await getSiteStats(db);
+  if (!stats) {
+    return c.json({
+      totalAddressesCreated: 0,
+      totalEmailsReceived: 0,
+      totalApiCalls: 0,
+      totalApiKeysCreated: 0,
+    });
+  }
+  return c.json({
+    totalAddressesCreated: stats.totalAddressesCreated,
+    totalEmailsReceived: stats.totalEmailsReceived,
+    totalApiCalls: stats.totalApiCalls,
+    totalApiKeysCreated: stats.totalApiKeysCreated,
+  });
+});
+
 // 挂载 v1 API 路由
 app.route('/api/v1', v1Api);
 
@@ -297,6 +319,8 @@ export default {
       const email = insertEmailSchema.parse(newEmail);
       // 插入数据库
       await insertEmail(db, email);
+      // 增加邮件接收计数
+      await incrementEmailsReceived(db);
     } catch (e: any) {
       // **关键修复**：向 Cloudflare 发出拒绝信号
       // 当发生任何错误时，调用 message.setReject() 告知 Cloudflare 处理失败。

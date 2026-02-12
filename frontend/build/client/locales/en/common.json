@@ -119,5 +119,10 @@
   "Create API Key": "Create API Key",
   "Please complete the verification first": "Please complete the verification first",
   "API Key created successfully": "API Key created successfully",
-  "Failed to create API Key": "Failed to create API Key"
+  "Failed to create API Key": "Failed to create API Key",
+  "Site Statistics": "Site Statistics",
+  "Addresses Created": "Addresses Created",
+  "Emails Received": "Emails Received",
+  "API Keys Created": "API Keys Created",
+  "API Calls": "API Calls"
 }

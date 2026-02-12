@@ -91,3 +91,15 @@ export const insertEmailSchema = createInsertSchema(emails, {
 
 // 定义 InsertEmail 类型，从 Zod schema 推断
 export type InsertEmail = z.infer<typeof insertEmailSchema>;
+
+// ==================== Site Stats 表 ====================
+export const siteStats = sqliteTable("site_stats", {
+  id: text("id").primaryKey(),                    // 统计项 ID (固定为 'global')
+  totalAddressesCreated: integer("total_addresses_created").default(0).notNull(),  // 累计创建邮址数量
+  totalEmailsReceived: integer("total_emails_received").default(0).notNull(),       // 累计接收邮件数量
+  totalApiCalls: integer("total_api_calls").default(0).notNull(),                   // 累计 API 调用次数
+  totalApiKeysCreated: integer("total_api_keys_created").default(0).notNull(),     // 累计创建 API Key 数量
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+export type SiteStats = typeof siteStats.$inferSelect;

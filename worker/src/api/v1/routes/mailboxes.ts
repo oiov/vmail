@@ -9,6 +9,7 @@ import {
   findMailboxMessage,
   deleteMailboxMessage,
   getMailboxMessageCount,
+  incrementAddressesCreated,
 } from '../../../database/dao';
 
 // 随机邮箱名称生成
@@ -79,6 +80,8 @@ mailboxesRouter.post('/', async (c) => {
 
   try {
     await insertMailbox(db, mailbox);
+    // 增加邮箱地址创建计数
+    await incrementAddressesCreated(db);
     return c.json({
       data: {
         id: mailbox.id,

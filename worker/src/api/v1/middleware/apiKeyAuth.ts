@@ -1,6 +1,6 @@
 import { Context, Next } from 'hono';
 import { getD1DB } from '../../../database/db';
-import { findApiKeyByKey, updateApiKeyLastUsed } from '../../../database/dao';
+import { findApiKeyByKey, updateApiKeyLastUsed, incrementApiCalls } from '../../../database/dao';
 import type { Env } from '../../../index';
 
 /**
@@ -63,7 +63,10 @@ export const apiKeyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
   // 5. 更新最后使用时间 (异步，不阻塞请求)
   c.executionCtx.waitUntil(updateApiKeyLastUsed(db, keyRecord.id));
 
-  // 6. 将 API Key 信息存入上下文
+  // 6. 增加 API 调用计数 (异步，不阻塞请求)
+  c.executionCtx.waitUntil(incrementApiCalls(db));
+
+  // 7. 将 API Key 信息存入上下文
   c.set('apiKey', {
     id: keyRecord.id,
     rateLimit: keyRecord.rateLimit || 100,
