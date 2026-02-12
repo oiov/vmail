@@ -119,5 +119,10 @@
   "Create API Key": "创建 API Key",
   "Please complete the verification first": "请先完成人机验证",
   "API Key created successfully": "API Key 创建成功",
-  "Failed to create API Key": "创建 API Key 失败"
+  "Failed to create API Key": "创建 API Key 失败",
+  "Site Statistics": "站点统计",
+  "Addresses Created": "累计创建邮址",
+  "Emails Received": "累计接收邮件",
+  "API Keys Created": "累计创建 API Key",
+  "API Calls": "累计 API 调用"
 }

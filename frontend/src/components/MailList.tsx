@@ -1,6 +1,5 @@
-import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, type Locale } from "date-fns";
 import { zhCN, enUS, fr, ja, de, ko, zhTW, it, pt, tr, ru } from "date-fns/locale";
 import clsx from "clsx";
 // refactor: 将导入从 'database' 包更改为本地的类型定义文件
@@ -10,13 +9,13 @@ import type { Email } from "../database_types";
 import MailIcon from "./icons/MailIcon.tsx";
 import RefreshIcon from "./icons/RefreshIcon.tsx";
 import Loader from "./icons/Loader.tsx";
-import { WaitingEmail } from "./icons/waiting-email.tsx";
 import { TrashIcon } from "./icons/TrashIcon.tsx";
 import PasswordIcon from "./icons/Password.tsx"; // feat: 导入密码图标
 // feat: 导入新组件
 import { MailDetail } from "../pages/MailDetail.tsx";
 import ArrowUturnLeft from "./icons/ArrowUturnLeft.tsx";
 import Expand from "./icons/Expand.tsx"; // feat: 导入 Expand 图标
+import { SiteStats } from "./SiteStats.tsx"; // feat: 导入 SiteStats 组件
 
 // 语言到 date-fns locale 的映射
 const localeMap: Record<string, Locale> = {
@@ -95,14 +94,11 @@ export function MailList({
       return <MailDetail email={selectedEmail} onClose={onCloseDetail} />;
     }
 
-    // 状态 1: 还未创建地址
+    // 状态 1: 还未创建地址 - 展示站点统计数据
     if (!isAddressCreated) {
       return (
         <div className="w-full items-center h-full flex-col justify-center flex">
-          <WaitingEmail />
-          <p className="text-zinc-400 mt-6">
-            {t("Please create a temporary email address first")}
-          </p>
+          <SiteStats />
         </div>
       );
     }

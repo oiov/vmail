@@ -72,3 +72,20 @@ export async function loginByPassword(password: string): Promise<{ address: stri
   }
   return response.json();
 }
+
+// 站点统计数据类型
+export interface SiteStats {
+  totalAddressesCreated: number;
+  totalEmailsReceived: number;
+  totalApiCalls: number;
+  totalApiKeysCreated: number;
+}
+
+// 获取站点统计数据
+export async function getSiteStats(): Promise<SiteStats> {
+  const response = await fetch(`${API_BASE_URL}/stats`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch site stats');
+  }
+  return response.json();
+}
