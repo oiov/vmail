@@ -115,5 +115,10 @@
   "Create API Key": "Créer une clé API",
   "Please complete the verification first": "Veuillez d'abord compléter la vérification",
   "API Key created successfully": "Clé API créée avec succès",
-  "Failed to create API Key": "Échec de la création de la clé API"
+  "Failed to create API Key": "Échec de la création de la clé API",
+  "Site Statistics": "Statistiques du site",
+  "Addresses Created": "Adresses créées",
+  "Emails Received": "Emails reçus",
+  "API Keys Created": "Clés API créées",
+  "API Calls": "Appels API"
 }
