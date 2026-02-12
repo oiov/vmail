@@ -16,7 +16,9 @@ const VMAIL_DEV_BASE_STATS = {
 
 // 检查是否是 vmail.dev 域名
 function isVmailDev(): boolean {
-  return typeof window !== "undefined" && window.location.hostname === "vmail.dev";
+  return (
+    typeof window !== "undefined" && window.location.hostname === "vmail.dev"
+  );
 }
 
 // 格式化数字，添加千分位分隔符
@@ -34,15 +36,11 @@ interface StatCardProps {
 function StatCard({ icon, label, value, color }: StatCardProps) {
   return (
     <div className="flex flex-col items-center p-4 rounded-lg bg-zinc-800/50 border border-zinc-700/50 hover:border-zinc-600 transition-colors">
-      <div className={`p-2 rounded-full mb-2 ${color}`}>
-        {icon}
-      </div>
+      <div className={`p-2 rounded-full mb-2 ${color}`}>{icon}</div>
       <span className="text-2xl font-bold text-white mb-1">
         {formatNumber(value)}
       </span>
-      <span className="text-xs text-zinc-400 text-center">
-        {label}
-      </span>
+      <span className="text-xs text-zinc-400 text-center">{label}</span>
     </div>
   );
 }
@@ -59,10 +57,17 @@ export function SiteStats() {
         // 如果是 vmail.dev 域名，加上历史基础值
         if (isVmailDev()) {
           setStats({
-            totalAddressesCreated: data.totalAddressesCreated + VMAIL_DEV_BASE_STATS.totalAddressesCreated,
-            totalEmailsReceived: data.totalEmailsReceived + VMAIL_DEV_BASE_STATS.totalEmailsReceived,
-            totalApiKeysCreated: data.totalApiKeysCreated + VMAIL_DEV_BASE_STATS.totalApiKeysCreated,
-            totalApiCalls: data.totalApiCalls + VMAIL_DEV_BASE_STATS.totalApiCalls,
+            totalAddressesCreated:
+              data.totalAddressesCreated +
+              VMAIL_DEV_BASE_STATS.totalAddressesCreated,
+            totalEmailsReceived:
+              data.totalEmailsReceived +
+              VMAIL_DEV_BASE_STATS.totalEmailsReceived,
+            totalApiKeysCreated:
+              data.totalApiKeysCreated +
+              VMAIL_DEV_BASE_STATS.totalApiKeysCreated,
+            totalApiCalls:
+              data.totalApiCalls + VMAIL_DEV_BASE_STATS.totalApiCalls,
           });
         } else {
           setStats(data);
@@ -98,9 +103,9 @@ export function SiteStats() {
 
   return (
     <div className="w-full flex flex-col items-center py-4 px-2">
-      <h3 className="text-zinc-400 text-sm mb-4 font-medium">
+      {/* <h3 className="text-zinc-400 text-sm mb-4 font-medium">
         {t("Site Statistics")}
-      </h3>
+      </h3> */}
       <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
         <StatCard
           icon={<UserCircleIcon className="w-5 h-5 text-cyan-400" />}
