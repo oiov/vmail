@@ -6,6 +6,19 @@ import UserCircleIcon from "./icons/UserCircleIcon";
 import ApiIcon from "./icons/ApiIcon";
 import ServerIcon from "./icons/ServerIcon";
 
+// vmail.dev 域名的历史数据基础值
+const VMAIL_DEV_BASE_STATS = {
+  totalAddressesCreated: 56023,
+  totalEmailsReceived: 342678,
+  totalApiKeysCreated: 1840,
+  totalApiCalls: 15734,
+};
+
+// 检查是否是 vmail.dev 域名
+function isVmailDev(): boolean {
+  return typeof window !== "undefined" && window.location.hostname === "vmail.dev";
+}
+
 // 格式化数字，添加千分位分隔符
 function formatNumber(num: number): string {
   return num.toLocaleString();
@@ -43,7 +56,17 @@ export function SiteStats() {
     const fetchStats = async () => {
       try {
         const data = await getSiteStats();
-        setStats(data);
+        // 如果是 vmail.dev 域名，加上历史基础值
+        if (isVmailDev()) {
+          setStats({
+            totalAddressesCreated: data.totalAddressesCreated + VMAIL_DEV_BASE_STATS.totalAddressesCreated,
+            totalEmailsReceived: data.totalEmailsReceived + VMAIL_DEV_BASE_STATS.totalEmailsReceived,
+            totalApiKeysCreated: data.totalApiKeysCreated + VMAIL_DEV_BASE_STATS.totalApiKeysCreated,
+            totalApiCalls: data.totalApiCalls + VMAIL_DEV_BASE_STATS.totalApiCalls,
+          });
+        } else {
+          setStats(data);
+        }
       } catch (error) {
         console.error("Failed to fetch site stats:", error);
       } finally {
