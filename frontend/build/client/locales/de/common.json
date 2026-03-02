@@ -116,5 +116,10 @@
   "Create API Key": "API-Schlüssel erstellen",
   "Please complete the verification first": "Bitte schließen Sie zuerst die Verifizierung ab",
   "API Key created successfully": "API-Schlüssel erfolgreich erstellt",
-  "Failed to create API Key": "Fehler beim Erstellen des API-Schlüssels"
+  "Failed to create API Key": "Fehler beim Erstellen des API-Schlüssels",
+  "Site Statistics": "Seitenstatistiken",
+  "Addresses Created": "Erstellte Adressen",
+  "Emails Received": "Empfangene E-Mails",
+  "API Keys Created": "Erstellte API-Schlüssel",
+  "API Calls": "API-Aufrufe"
 }

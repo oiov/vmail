@@ -115,5 +115,10 @@
   "Create API Key": "APIキーを作成",
   "Please complete the verification first": "まず検証を完了してください",
   "API Key created successfully": "APIキーが正常に作成されました",
-  "Failed to create API Key": "APIキーの作成に失敗しました"
+  "Failed to create API Key": "APIキーの作成に失敗しました",
+  "Site Statistics": "サイト統計",
+  "Addresses Created": "作成されたアドレス",
+  "Emails Received": "受信したメール",
+  "API Keys Created": "作成されたAPIキー",
+  "API Calls": "API呼び出し"
 }

@@ -394,11 +394,12 @@ export function Home() {
             </div>
             <div className="text-sm relative mb-4">
               <div className="mb-3 font-semibold">{t("Validater")}</div>
-              <div className="[&_iframe]:!w-full h-[65px] max-w-[300px] bg-gray-700">
+              <div className="[&_iframe]:!w-full h-[65px] max-w-full bg-gray-700">
                 <Turnstile
+                  className="w-full"
                   siteKey={config.turnstileKey}
                   onSuccess={setTurnstileToken}
-                  options={{ theme: "dark" }}
+                  options={{ theme: "dark", size: "flexible" }}
                 />
               </div>
             </div>

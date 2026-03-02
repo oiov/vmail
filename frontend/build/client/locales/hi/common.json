@@ -115,5 +115,10 @@
   "Create API Key": "API कुंजी बनाएं",
   "Please complete the verification first": "कृपया पहले सत्यापन पूरा करें",
   "API Key created successfully": "API कुंजी सफलतापूर्वक बनाई गई",
-  "Failed to create API Key": "API कुंजी बनाने में विफल"
+  "Failed to create API Key": "API कुंजी बनाने में विफल",
+  "Site Statistics": "साइट आंकड़े",
+  "Addresses Created": "बनाए गए पते",
+  "Emails Received": "प्राप्त ईमेल",
+  "API Keys Created": "बनाई गई API कुंजियाँ",
+  "API Calls": "API कॉल"
 }
