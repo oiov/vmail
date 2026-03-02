@@ -115,5 +115,10 @@
   "Create API Key": "建立 API 金鑰",
   "Please complete the verification first": "請先完成驗證",
   "API Key created successfully": "API 金鑰建立成功",
-  "Failed to create API Key": "建立 API 金鑰失敗"
+  "Failed to create API Key": "建立 API 金鑰失敗",
+  "Site Statistics": "站點統計",
+  "Addresses Created": "累計建立信箱",
+  "Emails Received": "累計接收郵件",
+  "API Keys Created": "累計建立 API 金鑰",
+  "API Calls": "累計 API 呼叫"
 }

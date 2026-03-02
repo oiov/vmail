@@ -115,5 +115,10 @@
   "Create API Key": "API Anahtari Olustur",
   "Please complete the verification first": "Lutfen once dogrulamayi tamamlayin",
   "API Key created successfully": "API Anahtari basariyla olusturuldu",
-  "Failed to create API Key": "API Anahtari olusturulamadi"
+  "Failed to create API Key": "API Anahtari olusturulamadi",
+  "Site Statistics": "Site Istatistikleri",
+  "Addresses Created": "Olusturulan Adresler",
+  "Emails Received": "Alinan E-postalar",
+  "API Keys Created": "Olusturulan API Anahtarlari",
+  "API Calls": "API Cagrilari"
 }

@@ -115,5 +115,10 @@
   "Create API Key": "Создать ключ API",
   "Please complete the verification first": "Пожалуйста, сначала пройдите верификацию",
   "API Key created successfully": "Ключ API успешно создан",
-  "Failed to create API Key": "Не удалось создать ключ API"
+  "Failed to create API Key": "Не удалось создать ключ API",
+  "Site Statistics": "Статистика сайта",
+  "Addresses Created": "Созданных адресов",
+  "Emails Received": "Полученных писем",
+  "API Keys Created": "Созданных ключей API",
+  "API Calls": "Вызовов API"
 }
