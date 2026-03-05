@@ -9,7 +9,7 @@ import ServerIcon from "./icons/ServerIcon";
 // vmail.dev 域名的历史数据基础值
 const VMAIL_DEV_BASE_STATS = {
   totalAddressesCreated: 56023,
-  totalEmailsReceived: 342678,
+  totalEmailsReceived: 1342678,
   totalApiKeysCreated: 1840,
   totalApiCalls: 15734,
 };
