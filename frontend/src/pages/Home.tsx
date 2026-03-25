@@ -64,6 +64,7 @@ export function Home() {
     config.emailDomain[0],
   ); // feat: 新增状态，用于存储当前选中的域名
   const [showEmailModal, setShowEmailModal] = useState(false); // feat: 新增状态，用于控制邮件详情模态框的显示
+  const [showPromoModal, setShowPromoModal] = useState(false);
 
   // feat: 初始化密码模态框
   const { PasswordModal, setShowPasswordModal } = usePasswordModal();
@@ -321,12 +322,37 @@ export function Home() {
           />
         </InfoModal>
       )}
+      {showPromoModal && (
+        <InfoModal
+          showModal={showPromoModal}
+          setShowModal={setShowPromoModal}
+          title="Vmail & Fishxcode 联动福利">
+          <div className="space-y-4 text-sm text-gray-200">
+            <p>
+              Vmail & Fishxcode 联动注册送 Claude Code、Codex 免费额度。
+            </p>
+            <a
+              href="https://www.fishxcode.com/register?aff=QlYp"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center rounded-md bg-cyan-600 px-4 py-2 font-medium text-white hover:opacity-90 transition-opacity">
+              前往 Fishxcode 注册
+            </a>
+          </div>
+        </InfoModal>
+      )}
       <div className="flex flex-col text-white items-start w-full md:w-[350px] mx-auto gap-2">
         {/* 左侧信息面板 */}
         <div className="w-full mb-4 md:max-w-[350px] shrink-0 group group-hover:before:duration-500 group-hover:after:duration-500 after:duration-500 hover:border-cyan-600 hover:before:[box-shadow:_20px_20px_20px_30px_#a21caf] duration-500 before:duration-500 hover:duration-500 hover:after:-right-8 hover:before:right-12 hover:before:-bottom-8 hover:before:blur origin-left hover:decoration-2 relative bg-neutral-800 h-full border text-left p-4 rounded-lg overflow-hidden border-cyan-50/20 before:absolute before:w-12 before:h-12 before:content[''] before:right-1 before:top-1 before:z-10 before:bg-violet-500 before:rounded-full before:blur-lg  after:absolute after:z-10 after:w-20 after:h-20 after:content['']  after:bg-rose-300 after:right-8 after:top-3 after:rounded-full after:blur-lg">
-          <h1 className="text-gray-50 text-xl font-bold mb-7 group-hover:text-cyan-500 duration-500">
+          <h1 className="text-gray-50 text-xl font-bold mb-3 group-hover:text-cyan-500 duration-500">
             {t("Virtual Temporary Email")}
           </h1>
+          <button
+            type="button"
+            onClick={() => setShowPromoModal(true)}
+            className="mb-6 text-left text-sm text-cyan-400 hover:text-cyan-300 transition-colors underline underline-offset-4 decoration-cyan-500/60">
+            Vmail & Fishxcode 联动注册送 Claude Code、Codex 免费额度
+          </button>
           <div className="flex flex-col gap-4 text-sm text-gray-200">
             <a
               href="https://github.com/oiov/vmail"
@@ -378,7 +404,7 @@ export function Home() {
           </div>
         ) : (
           <div className="w-full md:max-w-[350px]">
-            {/* feat: 添加域名选择下拉框 */}
+            {/* 邮箱域名后缀选择 */}
             <div className="mb-4">
               <div className="mb-3 font-semibold">{t("Domain")}</div>
               <select
