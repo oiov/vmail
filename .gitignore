@@ -7,3 +7,5 @@ fly.toml
 .env
 .env*.local
 .worktrees
+.claude
+docs/superpowers
