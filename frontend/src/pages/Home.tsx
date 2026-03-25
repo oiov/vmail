@@ -326,17 +326,15 @@ export function Home() {
         <InfoModal
           showModal={showPromoModal}
           setShowModal={setShowPromoModal}
-          title="Vmail & Fishxcode 联动福利">
+          title="Vmail & FishXCode 联动福利">
           <div className="space-y-4 text-sm text-gray-200">
-            <p>
-              Vmail & Fishxcode 联动注册送 Claude Code、Codex 免费额度。
-            </p>
+            <p>Vmail & FishXCode 联动注册送 Claude Code、Codex 免费额度。</p>
             <a
-              href="https://www.fishxcode.com/register?aff=QlYp"
+              href="https://www.FishXCode.com/register?aff=QlYp"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center rounded-md bg-cyan-600 px-4 py-2 font-medium text-white hover:opacity-90 transition-opacity">
-              前往 Fishxcode 注册
+              前往 FishXCode 注册
             </a>
           </div>
         </InfoModal>
@@ -351,7 +349,7 @@ export function Home() {
             type="button"
             onClick={() => setShowPromoModal(true)}
             className="mb-6 text-left text-sm text-cyan-400 hover:text-cyan-300 transition-colors underline underline-offset-4 decoration-cyan-500/60">
-            Vmail & Fishxcode 联动注册送 Claude Code、Codex 免费额度
+            Vmail & FishXCode 联动注册送 Claude Code、Codex 免费额度
           </button>
           <div className="flex flex-col gap-4 text-sm text-gray-200">
             <a
