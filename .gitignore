@@ -6,3 +6,4 @@ fly.toml
 
 .env
 .env*.local
+.worktrees
