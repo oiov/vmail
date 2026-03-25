@@ -2,7 +2,7 @@ import { count, desc, asc, eq, and, inArray, lt, sql } from "drizzle-orm";
 // fix: 将数据库类型从 LibSQLDatabase 更改为 DrizzleD1Database，以匹配 Cloudflare D1
 import { DrizzleD1Database } from "drizzle-orm/d1";
 // refactor: 更新 schema 的导入路径
-import { emails, InsertEmail, apiKeys, InsertApiKey, mailboxes, InsertMailbox, siteStats, SiteStats } from "./schema";
+import { emails, InsertEmail, apiKeys, InsertApiKey, mailboxes, InsertMailbox, siteStats, SiteStats, dailyStats, DailyStats, apiRateLimits } from "./schema";
 
 export async function insertEmail(db: DrizzleD1Database, email: InsertEmail) {
   try {
@@ -415,9 +415,6 @@ export async function incrementApiKeysCreated(db: DrizzleD1Database, amount: num
   }
 }
 
-/**
- * 增加 API 调用计数
- */
 export async function incrementApiCalls(db: DrizzleD1Database, amount: number = 1) {
   try {
     await initSiteStats(db);
@@ -431,5 +428,132 @@ export async function incrementApiCalls(db: DrizzleD1Database, amount: number = 
       .execute();
   } catch (e) {
     console.error('incrementApiCalls error:', e);
+  }
+}
+
+function getDateKey(date: Date = new Date()): string {
+  return date.toISOString().slice(0, 10);
+}
+
+export async function getDailyStatsByDate(
+  db: DrizzleD1Database,
+  dateKey: string,
+): Promise<DailyStats | null> {
+  try {
+    const result = await db
+      .select()
+      .from(dailyStats)
+      .where(eq(dailyStats.date, dateKey))
+      .execute();
+    return result.length === 1 ? result[0] : null;
+  } catch (e) {
+    console.error("getDailyStatsByDate error:", e);
+    return null;
+  }
+}
+
+async function upsertDailyStatsField(
+  db: DrizzleD1Database,
+  field: "addressesCreated" | "emailsReceived" | "apiCalls" | "apiKeysCreated",
+  amount: number,
+  dateKey: string = getDateKey(),
+) {
+  const now = new Date();
+  const updates: Record<typeof field | "updatedAt", any> = {
+    updatedAt: now,
+    [field]: sql`${dailyStats[field]} + ${amount}`,
+  };
+
+  await db
+    .insert(dailyStats)
+    .values({
+      date: dateKey,
+      addressesCreated: field === "addressesCreated" ? amount : 0,
+      emailsReceived: field === "emailsReceived" ? amount : 0,
+      apiCalls: field === "apiCalls" ? amount : 0,
+      apiKeysCreated: field === "apiKeysCreated" ? amount : 0,
+      updatedAt: now,
+    })
+    .onConflictDoUpdate({
+      target: dailyStats.date,
+      set: updates,
+    })
+    .execute();
+}
+
+export async function incrementDailyAddressesCreated(
+  db: DrizzleD1Database,
+  amount: number = 1,
+  dateKey?: string,
+) {
+  try {
+    await upsertDailyStatsField(db, "addressesCreated", amount, dateKey);
+  } catch (e) {
+    console.error("incrementDailyAddressesCreated error:", e);
+  }
+}
+
+export async function incrementDailyEmailsReceived(
+  db: DrizzleD1Database,
+  amount: number = 1,
+  dateKey?: string,
+) {
+  try {
+    await upsertDailyStatsField(db, "emailsReceived", amount, dateKey);
+  } catch (e) {
+    console.error("incrementDailyEmailsReceived error:", e);
+  }
+}
+
+export async function incrementDailyApiCalls(
+  db: DrizzleD1Database,
+  amount: number = 1,
+  dateKey?: string,
+) {
+  try {
+    await upsertDailyStatsField(db, "apiCalls", amount, dateKey);
+  } catch (e) {
+    console.error("incrementDailyApiCalls error:", e);
+  }
+}
+
+export async function incrementDailyApiKeysCreated(
+  db: DrizzleD1Database,
+  amount: number = 1,
+  dateKey?: string,
+) {
+  try {
+    await upsertDailyStatsField(db, "apiKeysCreated", amount, dateKey);
+  } catch (e) {
+    console.error("incrementDailyApiKeysCreated error:", e);
+  }
+}
+
+export async function incrementAndGetApiRateWindowCount(
+  db: DrizzleD1Database,
+  apiKeyId: string,
+  windowStartEpochSec: number,
+): Promise<number> {
+  try {
+    const result = await db
+      .insert(apiRateLimits)
+      .values({
+        apiKeyId,
+        windowStartEpochSec,
+        requestCount: 1,
+      })
+      .onConflictDoUpdate({
+        target: [apiRateLimits.apiKeyId, apiRateLimits.windowStartEpochSec],
+        set: {
+          requestCount: sql`${apiRateLimits.requestCount} + 1`,
+        },
+      })
+      .returning({ requestCount: apiRateLimits.requestCount })
+      .execute();
+
+    return result[0]?.requestCount ?? 1;
+  } catch (e) {
+    console.error("incrementAndGetApiRateWindowCount error:", e);
+    return 1;
   }
 }

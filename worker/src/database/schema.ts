@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text, index } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text, index, primaryKey } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import * as z from "zod";
 
@@ -103,3 +103,35 @@ export const siteStats = sqliteTable("site_stats", {
 });
 
 export type SiteStats = typeof siteStats.$inferSelect;
+
+// ==================== Daily Stats 表 ====================
+export const dailyStats = sqliteTable("daily_stats", {
+  date: text("date").primaryKey(),
+  addressesCreated: integer("addresses_created").default(0).notNull(),
+  emailsReceived: integer("emails_received").default(0).notNull(),
+  apiCalls: integer("api_calls").default(0).notNull(),
+  apiKeysCreated: integer("api_keys_created").default(0).notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+});
+
+export type DailyStats = typeof dailyStats.$inferSelect;
+
+// ==================== API Rate Limits 表 ====================
+export const apiRateLimits = sqliteTable(
+  "api_rate_limits",
+  {
+    apiKeyId: text("api_key_id").notNull(),
+    windowStartEpochSec: integer("window_start_epoch_sec").notNull(),
+    requestCount: integer("request_count").default(0).notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({
+      columns: [table.apiKeyId, table.windowStartEpochSec],
+    }),
+    windowIdx: index("idx_api_rate_limits_window").on(
+      table.windowStartEpochSec,
+    ),
+  }),
+);
+
+export type ApiRateLimitWindow = typeof apiRateLimits.$inferSelect;
