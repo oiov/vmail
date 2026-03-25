@@ -21,11 +21,11 @@ export async function getEmails(address: string): Promise<Email[]> {
 }
 
 // feat: 新增函数，用于在创建邮箱前验证人机校验token
-export async function verifyTurnstile(token: string): Promise<{ success: boolean }> {
+export async function verifyTurnstile(token?: string): Promise<{ success: boolean; bypassed?: boolean }> {
   const response = await fetch(`${API_BASE_URL}/verify`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token }),
+    body: JSON.stringify(token ? { token } : {}),
   });
   if (!response.ok) {
     const errorData = await response.json();
@@ -74,11 +74,17 @@ export async function loginByPassword(password: string): Promise<{ address: stri
 }
 
 // 站点统计数据类型
-export interface SiteStats {
+export interface StatsSnapshot {
   totalAddressesCreated: number;
   totalEmailsReceived: number;
   totalApiCalls: number;
   totalApiKeysCreated: number;
+}
+
+export interface SiteStats {
+  totals: StatsSnapshot;
+  today: StatsSnapshot;
+  yesterday: StatsSnapshot;
 }
 
 // 获取站点统计数据
@@ -89,3 +95,32 @@ export async function getSiteStats(): Promise<SiteStats> {
   }
   return response.json();
 }
+
+export interface UnlockStatusResponse {
+  unlocked: boolean;
+  sitePasswordEnabled: boolean;
+}
+
+export async function getUnlockStatus(): Promise<UnlockStatusResponse> {
+  const response = await fetch('/auth/status');
+  if (!response.ok) {
+    throw new Error('Failed to fetch unlock status');
+  }
+  return response.json();
+}
+
+export async function unlockSite(password: string): Promise<{ success: boolean }> {
+  const response = await fetch('/auth/unlock', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'Invalid password');
+  }
+
+  return response.json();
+}
+

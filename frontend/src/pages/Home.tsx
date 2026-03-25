@@ -58,7 +58,6 @@ export function Home() {
   );
   const [turnstileToken, setTurnstileToken] = useState<string>("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [isTurnstileVerified, setIsTurnstileVerified] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null); // 新增状态，用于存储当前选中的邮件
   const [selectedDomain, setSelectedDomain] = useState<string>(
     config.emailDomain[0],
@@ -180,13 +179,15 @@ export function Home() {
 
   // 创建新邮箱地址的处理函数
   const handleCreateAddress = async () => {
-    if (!turnstileToken) {
+    const requireTurnstile = config.turnstileEnabled;
+
+    if (requireTurnstile && !turnstileToken) {
       toast.error(t("No captcha response"));
       return;
     }
+
     try {
-      await verifyTurnstile(turnstileToken);
-      setIsTurnstileVerified(true); // 验证通过
+      await verifyTurnstile(requireTurnstile ? turnstileToken : undefined);
       // feat: 使用选定的域名创建邮箱
       const mailbox = `${randomName("", getRandomCharacter())}@${selectedDomain}`;
       // feat: 计算并存储过期时间戳 (当前时间 + 24小时)
@@ -416,20 +417,22 @@ export function Home() {
                 ))}
               </select>
             </div>
-            <div className="text-sm relative mb-4">
-              <div className="mb-3 font-semibold">{t("Validater")}</div>
-              <div className="[&_iframe]:!w-full h-[65px] max-w-full bg-gray-700">
-                <Turnstile
-                  className="w-full"
-                  siteKey={config.turnstileKey}
-                  onSuccess={setTurnstileToken}
-                  options={{ theme: "dark", size: "flexible" }}
-                />
+            {config.turnstileEnabled && (
+              <div className="text-sm relative mb-4">
+                <div className="mb-3 font-semibold">{t("Validater")}</div>
+                <div className="[&_iframe]:!w-full h-[65px] max-w-full bg-gray-700">
+                  <Turnstile
+                    className="w-full"
+                    siteKey={config.turnstileKey}
+                    onSuccess={setTurnstileToken}
+                    options={{ theme: "dark", size: "flexible" }}
+                  />
+                </div>
               </div>
-            </div>
+            )}
             <button
               onClick={handleCreateAddress}
-              disabled={!turnstileToken}
+              disabled={config.turnstileEnabled && !turnstileToken}
               className="py-2.5 rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500">
               {t("Create temporary email")}
             </button>
