@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { serveStatic } from 'hono/cloudflare-workers';
 import { cors } from 'hono/cors';
 // 导入数据库相关的模块
-import { deleteEmails, findEmailById, getEmailsByMessageTo, insertEmail, deleteExpiredEmails, insertApiKey, getSiteStats, incrementEmailsReceived, incrementApiKeysCreated, incrementAddressesCreated } from './database/dao';
+import { deleteEmails, findEmailById, getEmailsByMessageTo, insertEmail, deleteExpiredEmails, insertApiKey, getSiteStats, incrementEmailsReceived, incrementApiKeysCreated, incrementAddressesCreated, getDailyStatsByDate, incrementDailyAddressesCreated, incrementDailyEmailsReceived, incrementDailyApiKeysCreated } from './database/dao';
 import { getD1DB } from './database/db';
 import { InsertEmail, insertEmailSchema } from './database/schema';
 import { nanoid } from 'nanoid/non-secure';
@@ -23,6 +23,8 @@ export interface Env {
   COOKIES_SECRET: string;
   TURNSTILE_KEY: string;
   TURNSTILE_SECRET: string;
+  PASSWORD?: string;
+  API_RATE_LIMIT_PER_MINUTE?: string;
 }
 
 // 初始化 Hono 应用
@@ -31,10 +33,71 @@ const app = new Hono<{ Bindings: Env }>();
 // 配置 CORS
 app.use('/api/*', cors());
 
+const SITE_AUTH_COOKIE = 'vmail_site_auth';
+
+function isTurnstileEnabled(env: Env): boolean {
+  return Boolean(env.TURNSTILE_KEY && env.TURNSTILE_SECRET);
+}
+
+function getCurrentDateKey(date: Date = new Date()): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function getYesterdayDateKey(date: Date = new Date()): string {
+  const yesterday = new Date(date);
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  return getCurrentDateKey(yesterday);
+}
+
+function parseRateLimitPerMinute(env: Env): number {
+  const parsed = Number.parseInt(env.API_RATE_LIMIT_PER_MINUTE ?? '', 10);
+  if (!Number.isFinite(parsed) || parsed < 1) {
+    return 100;
+  }
+  return parsed;
+}
+
+function isSiteUnlocked(request: Request, env: Env): boolean {
+  if (!env.PASSWORD) {
+    return true;
+  }
+
+  const cookie = request.headers.get('cookie') ?? '';
+  return cookie.split(';').some((part) => {
+    const [key, value] = part.trim().split('=');
+    return key === SITE_AUTH_COOKIE && value === '1';
+  });
+}
+
+function shouldBypassSiteGate(pathname: string): boolean {
+  if (pathname === '/' || pathname === '/index.html') {
+    return true;
+  }
+  if (pathname.startsWith('/api/') || pathname === '/config') {
+    return true;
+  }
+  if (pathname === '/auth/unlock' || pathname === '/auth/logout' || pathname === '/auth/status') {
+    return true;
+  }
+  if (pathname.startsWith('/assets/')) {
+    return true;
+  }
+  if (pathname === '/favicon.ico' || pathname.endsWith('.map')) {
+    return true;
+  }
+  return false;
+}
+
 // fix: 增强请求体验证逻辑。
 // 此前的实现方式在请求体解析失败时会静默处理，导致后续处理流程因缺少数据而返回一个模糊的400错误。
 // 新的实现方式会严格校验请求体，如果解析为JSON失败（例如请求体为空或格式错误），将立即返回一个明确的400错误，从而阻止无效请求继续执行。
 const turnstile = async (c, next) => {
+  if (!isTurnstileEnabled(c.env)) {
+    c.set('parsedBody', {});
+    await next();
+    return;
+  }
+
   let body: any;
   try {
     // 尝试将请求体解析为JSON。如果失败，将抛出异常。
@@ -88,11 +151,19 @@ const api = app.basePath('/api');
 // feat: 新增一个专门用于人机验证的接口。
 // 前端应在生成邮箱地址前先调用此接口。
 api.post('/verify', turnstile, async (c) => {
+  if (!isTurnstileEnabled(c.env)) {
+    const db = getD1DB(c.env.DB);
+    await incrementAddressesCreated(db);
+    await incrementDailyAddressesCreated(db);
+    return c.json({ success: true, bypassed: true });
+  }
+
   // turnstile 中间件已经完成了验证工作。
   // 如果代码能执行到这里，说明验证成功。
   // 增加邮箱创建计数（前端验证成功后会创建邮箱地址）
   const db = getD1DB(c.env.DB);
   await incrementAddressesCreated(db);
+  await incrementDailyAddressesCreated(db);
   return c.json({ success: true });
 });
 
@@ -132,6 +203,7 @@ api.post('/api-keys', turnstile, async (c) => {
     await insertApiKey(db, newApiKey);
     // 增加 API Key 创建计数
     await incrementApiKeysCreated(db);
+    await incrementDailyApiKeysCreated(db);
     // 只返回一次完整的 API Key，之后无法再获取
     return c.json({
       data: {
@@ -242,10 +314,15 @@ api.post('/login', async (c) => {
 app.get('/config', (c) => {
   // feat: 将 emailDomain 拆分为数组以支持多域名
   const emailDomain = c.env.EMAIL_DOMAIN ? c.env.EMAIL_DOMAIN.split(',').map(d => d.trim()) : [];
+  const turnstileEnabled = isTurnstileEnabled(c.env);
+
   return c.json({
     emailDomain: emailDomain, // 返回域名数组
     turnstileKey: c.env.TURNSTILE_KEY,
+    turnstileEnabled,
     cookiesSecret: c.env.COOKIES_SECRET,
+    sitePasswordEnabled: Boolean(c.env.PASSWORD),
+    apiRateLimitPerMinute: parseRateLimitPerMinute(c.env),
   });
 });
 
@@ -253,27 +330,94 @@ app.get('/config', (c) => {
 api.get('/stats', async (c) => {
   const db = getD1DB(c.env.DB);
   const stats = await getSiteStats(db);
-  if (!stats) {
-    return c.json({
-      totalAddressesCreated: 0,
-      totalEmailsReceived: 0,
-      totalApiCalls: 0,
-      totalApiKeysCreated: 0,
-    });
-  }
+
+  const totals = {
+    totalAddressesCreated: stats?.totalAddressesCreated ?? 0,
+    totalEmailsReceived: stats?.totalEmailsReceived ?? 0,
+    totalApiCalls: stats?.totalApiCalls ?? 0,
+    totalApiKeysCreated: stats?.totalApiKeysCreated ?? 0,
+  };
+
+  const today =
+    (await getDailyStatsByDate(db, getCurrentDateKey())) ?? {
+      date: getCurrentDateKey(),
+      addressesCreated: 0,
+      emailsReceived: 0,
+      apiCalls: 0,
+      apiKeysCreated: 0,
+      updatedAt: new Date(),
+    };
+
+  const yesterday =
+    (await getDailyStatsByDate(db, getYesterdayDateKey())) ?? {
+      date: getYesterdayDateKey(),
+      addressesCreated: 0,
+      emailsReceived: 0,
+      apiCalls: 0,
+      apiKeysCreated: 0,
+      updatedAt: new Date(),
+    };
+
   return c.json({
-    totalAddressesCreated: stats.totalAddressesCreated,
-    totalEmailsReceived: stats.totalEmailsReceived,
-    totalApiCalls: stats.totalApiCalls,
-    totalApiKeysCreated: stats.totalApiKeysCreated,
+    totals,
+    today: {
+      totalAddressesCreated: today.addressesCreated,
+      totalEmailsReceived: today.emailsReceived,
+      totalApiCalls: today.apiCalls,
+      totalApiKeysCreated: today.apiKeysCreated,
+    },
+    yesterday: {
+      totalAddressesCreated: yesterday.addressesCreated,
+      totalEmailsReceived: yesterday.emailsReceived,
+      totalApiCalls: yesterday.apiCalls,
+      totalApiKeysCreated: yesterday.apiKeysCreated,
+    },
   });
+});
+
+app.post('/auth/unlock', async (c) => {
+  if (!c.env.PASSWORD) {
+    return c.json({ success: true, bypassed: true });
+  }
+
+  let body: { password?: string };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ message: 'Invalid request body' }, 400);
+  }
+
+  if (body.password !== c.env.PASSWORD) {
+    return c.json({ message: 'Invalid password' }, 401);
+  }
+
+  c.header(
+    'Set-Cookie',
+    `${SITE_AUTH_COOKIE}=1; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400; Secure`,
+  );
+
+  return c.json({ success: true });
+});
+
+app.get('/auth/status', (c) => {
+  const unlocked = isSiteUnlocked(c.req.raw, c.env);
+  return c.json({
+    unlocked,
+    sitePasswordEnabled: Boolean(c.env.PASSWORD),
+  });
+});
+
+app.post('/auth/logout', (c) => {
+  c.header(
+    'Set-Cookie',
+    `${SITE_AUTH_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Secure`,
+  );
+  return c.json({ success: true });
 });
 
 // 挂载 v1 API 路由
 app.route('/api/v1', v1Api);
 
-
-// 静态资源服务 (放在最后，作为默认路由)
 // 修正: 确保 serveStatic 正确指向静态文件目录
 // Hono v4 中 serveStatic 默认处理根路径，我们需要确保它指向正确的子目录
 app.get('/*', serveStatic({ root: './' }))
@@ -324,6 +468,7 @@ export default {
       await insertEmail(db, email);
       // 增加邮件接收计数
       await incrementEmailsReceived(db);
+      await incrementDailyEmailsReceived(db);
     } catch (e: any) {
       // **关键修复**：向 Cloudflare 发出拒绝信号
       // 当发生任何错误时，调用 message.setReject() 告知 Cloudflare 处理失败。
@@ -336,8 +481,18 @@ export default {
   // HTTP 请求处理逻辑
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+
+    if (!shouldBypassSiteGate(url.pathname) && !isSiteUnlocked(request, env)) {
+      return new Response(JSON.stringify({ message: 'Site is locked' }), {
+        status: 401,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    }
+
     // API 路由
-    if (url.pathname.startsWith('/api/') || url.pathname === '/config') {
+    if (url.pathname.startsWith('/api/') || url.pathname === '/config' || url.pathname.startsWith('/auth/')) {
       return app.fetch(request, env, ctx);
     }
 
