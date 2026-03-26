@@ -1,6 +1,6 @@
 # 1. 目标与部署产物
 
-本文档用于让 AI 助手直接读取并执行部署。目标是将 vmail 部署到 Cloudflare Workers + D1，并启用以下能力：
+本文档用于让 AI 助手直接读取并执行部署Github项目：https://github.com/oiov/vmail 。目标是将 vmail 部署到 Cloudflare Workers + D1，并启用以下能力：
 
 - 站点统计增长率（today vs yesterday）
 - Turnstile 可选（未配置密钥时自动 bypass）

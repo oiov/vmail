@@ -1,8 +1,8 @@
 <div align="center">
   <a href="https://trendshift.io/repositories/8681" target="_blank"><img src="https://trendshift.io/api/badge/repositories/8681" alt="yesmore%2Fvmail | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
   <h1>𝐕𝐌𝐀𝐈𝐋.𝐃𝐄𝐕</h1>
-  <p><a href="/docs/github-action-tutorial.md">部署教程</a>  ·  
-  <a href="https://vmail.dev/api-docs" target="_blank">API 文档</a> · <a href="https://discord.gg/d68kWCBDEs">Discord</a> · <a href="https://github.com/oiov/vmail/blob/main/README_en.md">English</a> | 简体中文</p>
+  <p><a href="/docs/github-action-tutorial.md">部署教程</a>  ·  <a href="/docs/ai-deploy.md">AI帮你部署</a>  ·
+  <a href="https://vmail.dev/api-docs" target="_blank">API 文档</a> · <a href="https://github.com/oiov/vmail/blob/main/README_en.md">English</a> | 简体中文</p>
   <p>使用 Cloudflare Email Worker 实现的临时电子邮件服务</p>
 </div>
 
@@ -21,45 +21,6 @@
 - 前端 (Vite + React) 显示电子邮件
 - 邮件存储 (Cloudflare D1)
 - 发信使用 MailChannels API
-
-## 📖 API 文档
-
-Vmail 提供完整的 RESTful API，支持通过程序化方式创建临时邮箱、查询收件箱。
-
-### 获取 API Key
-
-访问 [API 文档页面](https://vmail.dev/api-docs) 创建免费的 API Key。
-
-### API 端点
-
-| 方法     | 端点                                        | 说明                   |
-| -------- | ------------------------------------------- | ---------------------- |
-| `POST`   | `/api/v1/mailboxes`                         | 创建临时邮箱           |
-| `GET`    | `/api/v1/mailboxes/:id`                     | 获取邮箱信息           |
-| `GET`    | `/api/v1/mailboxes/:id/messages`            | 获取收件箱（支持分页） |
-| `GET`    | `/api/v1/mailboxes/:id/messages/:messageId` | 获取邮件详情           |
-| `DELETE` | `/api/v1/mailboxes/:id/messages/:messageId` | 删除邮件               |
-
-### 快速开始
-
-```bash
-# 1. 创建临时邮箱
-curl -X POST https://vmail.dev/api/v1/mailboxes \
-  -H "X-API-Key: your-api-key" \
-  -H "Content-Type: application/json"
-
-# 响应: { "data": { "id": "abc123", "address": "random@domain.com", ... } }
-
-# 2. 查询收件箱
-curl https://vmail.dev/api/v1/mailboxes/abc123/messages \
-  -H "X-API-Key: your-api-key"
-
-# 3. 获取邮件详情
-curl https://vmail.dev/api/v1/mailboxes/abc123/messages/msg_001 \
-  -H "X-API-Key: your-api-key"
-```
-
-完整文档请访问：[https://vmail.dev/api-docs](https://vmail.dev/api-docs)
 
 ## 👋 自部署教程
 
@@ -110,9 +71,12 @@ curl https://vmail.dev/api/v1/mailboxes/abc123/messages/msg_001 \
 
 -   `DATABASE_NAME`: 您的 D1 数据库名称。
 -   `DATABASE_ID`: 您的 D1 数据库 ID。
--   `TURNSTILE_KEY`: 您的 Turnstile 站点密钥。
--   `TURNSTILE_SECRET`: 您的 Turnstile 密钥。
 -   `COOKIES_SECRET`: 用于签名 Cookie 的密钥。
+-   `EMAIL_DOMAIN`: 您的邮箱域名，例如 `example.com,example.net`。
+-   `TURNSTILE_KEY`: 您的 Turnstile 站点密钥，可选。
+-   `TURNSTILE_SECRET`: 您的 Turnstile 密钥，可选。
+-   `PASSWORD`: 站点访问密码（可选）。
+-   `API_RATE_LIMIT_PER_MINUTE`: API 每分钟请求限制（可选，默认 100）。
 
 ## 🔨 本地运行调试
 
@@ -130,6 +94,45 @@ curl https://vmail.dev/api/v1/mailboxes/abc123/messages/msg_001 \
     pnpm run dev
     ```
     该命令会同时启动前端 Vite 开发服务器和本地的 Wrangler Worker 环境。
+
+## 📖 API 文档
+
+Vmail 提供完整的 RESTful API，支持通过程序化方式创建临时邮箱、查询收件箱。
+
+### 获取 API Key
+
+访问 [API 文档页面](https://vmail.dev/api-docs) 创建免费的 API Key。
+
+### API 端点
+
+| 方法     | 端点                                        | 说明                   |
+| -------- | ------------------------------------------- | ---------------------- |
+| `POST`   | `/api/v1/mailboxes`                         | 创建临时邮箱           |
+| `GET`    | `/api/v1/mailboxes/:id`                     | 获取邮箱信息           |
+| `GET`    | `/api/v1/mailboxes/:id/messages`            | 获取收件箱（支持分页） |
+| `GET`    | `/api/v1/mailboxes/:id/messages/:messageId` | 获取邮件详情           |
+| `DELETE` | `/api/v1/mailboxes/:id/messages/:messageId` | 删除邮件               |
+
+### 快速开始
+
+```bash
+# 1. 创建临时邮箱
+curl -X POST https://vmail.dev/api/v1/mailboxes \
+  -H "X-API-Key: your-api-key" \
+  -H "Content-Type: application/json"
+
+# 响应: { "data": { "id": "abc123", "address": "random@domain.com", ... } }
+
+# 2. 查询收件箱
+curl https://vmail.dev/api/v1/mailboxes/abc123/messages \
+  -H "X-API-Key: your-api-key"
+
+# 3. 获取邮件详情
+curl https://vmail.dev/api/v1/mailboxes/abc123/messages/msg_001 \
+  -H "X-API-Key: your-api-key"
+```
+
+完整文档请访问：[https://vmail.dev/api-docs](https://vmail.dev/api-docs)
 
 ## 📝 License
 

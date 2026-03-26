@@ -20,8 +20,10 @@
 | `D1_DATABASE_NAME` | 您的 D1 数据库名称。                                                                               | `vmail`                                |
 | `EMAIL_DOMAIN`     | 您的邮箱域名，如果多个域名请用逗号隔开。                                                           | `vmail.dev,example.com`                |
 | `COOKIES_SECRET`   | 用于加密 Cookie 的密钥，请设置为一个随机且足够复杂的字符串。                                       | `a-very-strong-and-random-secret`      |
-| `TURNSTILE_KEY`    | Cloudflare Turnstile 网站密钥 (Site Key)。                                                         | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`       |
-| `TURNSTILE_SECRET` | Cloudflare Turnstile 密钥 (Secret Key)。                                                           | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`       |
+| `TURNSTILE_KEY`    | 可选，Cloudflare Turnstile 网站密钥 (Site Key)。                                                         | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`       |
+| `TURNSTILE_SECRET` | 可选，Cloudflare Turnstile 密钥 (Secret Key)。                                                           | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`       |
+| `PASSWORD`         | 可选，用于访问 Vmail 网站的密码。                                                                    | `password`                             |
+| `API_RATE_LIMIT_PER_MINUTE` | 可选，API 每分钟请求限制，默认为 `100`。                                                        | `100`                                  |
 
 ## 触发自动部署
 
