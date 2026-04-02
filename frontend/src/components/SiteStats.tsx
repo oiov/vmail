@@ -123,6 +123,14 @@ export function SiteStats() {
     return null;
   }
 
+  // 计算昨天的总量（今天总量 - 今天增量）
+  const yesterdayTotals = {
+    totalAddressesCreated: stats.totals.totalAddressesCreated - stats.today.totalAddressesCreated,
+    totalEmailsReceived: stats.totals.totalEmailsReceived - stats.today.totalEmailsReceived,
+    totalApiKeysCreated: stats.totals.totalApiKeysCreated - stats.today.totalApiKeysCreated,
+    totalApiCalls: stats.totals.totalApiCalls - stats.today.totalApiCalls,
+  };
+
   return (
     <div className="w-full flex flex-col items-center py-4 px-2">
       <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
@@ -131,8 +139,8 @@ export function SiteStats() {
           label={t("Addresses Created")}
           value={stats.totals.totalAddressesCreated}
           growthRate={formatGrowthRate(
-            stats.today.totalAddressesCreated,
-            stats.yesterday.totalAddressesCreated,
+            stats.totals.totalAddressesCreated,
+            yesterdayTotals.totalAddressesCreated,
           )}
           color="bg-cyan-500/10"
         />
@@ -141,8 +149,8 @@ export function SiteStats() {
           label={t("Emails Received")}
           value={stats.totals.totalEmailsReceived}
           growthRate={formatGrowthRate(
-            stats.today.totalEmailsReceived,
-            stats.yesterday.totalEmailsReceived,
+            stats.totals.totalEmailsReceived,
+            yesterdayTotals.totalEmailsReceived,
           )}
           color="bg-green-500/10"
         />
@@ -151,8 +159,8 @@ export function SiteStats() {
           label={t("API Keys Created")}
           value={stats.totals.totalApiKeysCreated}
           growthRate={formatGrowthRate(
-            stats.today.totalApiKeysCreated,
-            stats.yesterday.totalApiKeysCreated,
+            stats.totals.totalApiKeysCreated,
+            yesterdayTotals.totalApiKeysCreated,
           )}
           color="bg-purple-500/10"
         />
@@ -161,8 +169,8 @@ export function SiteStats() {
           label={t("API Calls")}
           value={stats.totals.totalApiCalls}
           growthRate={formatGrowthRate(
-            stats.today.totalApiCalls,
-            stats.yesterday.totalApiCalls,
+            stats.totals.totalApiCalls,
+            yesterdayTotals.totalApiCalls,
           )}
           color="bg-orange-500/10"
         />

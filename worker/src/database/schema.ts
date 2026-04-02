@@ -70,7 +70,12 @@ export const emails = sqliteTable("emails", {
   text: text("text"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
-});
+}, (table) => ({
+  messageToCreatedAtIdx: index("idx_emails_message_to_created_at").on(
+    table.messageTo,
+    table.createdAt,
+  ),
+}));
 
 // 使用 Zod 定义 Address 对象的验证 schema
 const AddressSchema = z.object({

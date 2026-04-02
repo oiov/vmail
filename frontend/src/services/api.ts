@@ -7,15 +7,32 @@ const API_BASE_URL = '/api';
 
 // 获取邮件列表
 // fix: 移除 getEmails 函数中的 token 参数，因为后端已不再需要它
-export async function getEmails(address: string): Promise<Email[]> {
+export async function getEmails(address: string, limit: number = 50): Promise<Email[]> {
   const response = await fetch(`${API_BASE_URL}/emails`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     // fix: 请求体中只发送 address
-    body: JSON.stringify({ address }),
+    body: JSON.stringify({ address, limit }),
   });
   if (!response.ok) {
     throw new Error('Network response was not ok');
+  }
+  return response.json();
+}
+
+export interface MailboxMeta {
+  count: number;
+  latestEmailCreatedAt: string | null;
+}
+
+export async function getMailboxMeta(address: string): Promise<MailboxMeta> {
+  const response = await fetch(`${API_BASE_URL}/emails/meta`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ address }),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch mailbox meta');
   }
   return response.json();
 }

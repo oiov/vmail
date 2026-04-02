@@ -44,17 +44,55 @@ export async function findEmailById(db: DrizzleD1Database, id: string) {
 
 export async function getEmailsByMessageTo(
   db: DrizzleD1Database,
-  messageTo: string
+  messageTo: string,
+  limit?: number,
 ) {
   try {
-    return await db
+    let query = db
       .select()
       .from(emails)
       .where(eq(emails.messageTo, messageTo))
-      .orderBy(desc(emails.createdAt))
-      .execute();
+      .orderBy(desc(emails.createdAt));
+
+    if (limit && limit > 0) {
+      query = query.limit(limit) as typeof query;
+    }
+
+    return await query.execute();
   } catch (e) {
     return [];
+  }
+}
+
+export async function getMailboxMetaByAddress(
+  db: DrizzleD1Database,
+  address: string,
+): Promise<{ count: number; latestEmailCreatedAt: string | null }> {
+  try {
+    const [countResult, latestResult] = await Promise.all([
+      db
+        .select({ count: count() })
+        .from(emails)
+        .where(eq(emails.messageTo, address))
+        .execute(),
+      db
+        .select({ createdAt: emails.createdAt })
+        .from(emails)
+        .where(eq(emails.messageTo, address))
+        .orderBy(desc(emails.createdAt))
+        .limit(1)
+        .execute(),
+    ]);
+
+    return {
+      count: countResult[0]?.count ?? 0,
+      latestEmailCreatedAt: latestResult[0]?.createdAt
+        ? latestResult[0].createdAt.toISOString()
+        : null,
+    };
+  } catch (e) {
+    console.error('getMailboxMetaByAddress error:', e);
+    return { count: 0, latestEmailCreatedAt: null };
   }
 }
 

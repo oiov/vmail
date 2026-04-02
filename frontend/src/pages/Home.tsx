@@ -13,6 +13,7 @@ import { CopyButton } from "../components/CopyButton.tsx";
 // feat: 导入 loginByPassword
 import {
   getEmails,
+  getMailboxMeta,
   deleteEmails,
   loginByPassword,
   verifyTurnstile,
@@ -80,15 +81,39 @@ export function Home() {
     refetch,
   } = useQuery<Email[]>({
     queryKey: ["emails", address],
-    queryFn: () => getEmails(address!),
+    queryFn: () => getEmails(address!, 50),
     enabled: !!address, // 只有在 address 存在时才执行查询
-    refetchInterval: 20000, // 恢复20秒自动刷新
+    refetchInterval: false,
     onError: (err: Error) => {
       toast.error(`${t("Failed to get emails")}: ${err.message}`, {
         duration: 5000,
       });
     },
     retry: false, // 失败后不自动重试
+  });
+
+  const mailboxMetaSignatureRef = useRef<string | null>(null);
+
+  useQuery({
+    queryKey: ["emails-meta", address],
+    queryFn: () => getMailboxMeta(address!),
+    enabled: !!address,
+    refetchInterval: () => (document.visibilityState === "visible" ? 60000 : false),
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    retry: false,
+    onSuccess: (meta) => {
+      const signature = `${meta.count}:${meta.latestEmailCreatedAt ?? ""}`;
+      if (mailboxMetaSignatureRef.current === null) {
+        mailboxMetaSignatureRef.current = signature;
+        return;
+      }
+
+      if (mailboxMetaSignatureRef.current !== signature) {
+        mailboxMetaSignatureRef.current = signature;
+        queryClient.invalidateQueries({ queryKey: ["emails", address] });
+      }
+    },
   });
 
   // feat: 将密码提示封装成一个函数，并用 useCallback 包裹以优化性能。
@@ -211,6 +236,7 @@ export function Home() {
     // feat: 移除过期时间 cookie
     Cookies.remove("emailExpiry");
     setAddress(undefined);
+    mailboxMetaSignatureRef.current = null;
     setHasReceivedEmail(false); // 重置状态
     setSelectedEmail(null); // 清除选中的邮件
     setExpiryTimestamp(undefined); // 清除过期时间状态

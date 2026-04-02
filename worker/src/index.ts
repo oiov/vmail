@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { serveStatic } from 'hono/cloudflare-workers';
 import { cors } from 'hono/cors';
 // 导入数据库相关的模块
-import { deleteEmails, findEmailById, getEmailsByMessageTo, insertEmail, deleteExpiredEmails, insertApiKey, getSiteStats, incrementEmailsReceived, incrementApiKeysCreated, incrementAddressesCreated, getDailyStatsByDate, incrementDailyAddressesCreated, incrementDailyEmailsReceived, incrementDailyApiKeysCreated } from './database/dao';
+import { deleteEmails, findEmailById, getEmailsByMessageTo, insertEmail, deleteExpiredEmails, insertApiKey, getSiteStats, incrementEmailsReceived, incrementApiKeysCreated, incrementAddressesCreated, getDailyStatsByDate, incrementDailyAddressesCreated, incrementDailyEmailsReceived, incrementDailyApiKeysCreated, getMailboxMetaByAddress } from './database/dao';
 import { getD1DB } from './database/db';
 import { InsertEmail, insertEmailSchema } from './database/schema';
 import { nanoid } from 'nanoid/non-secure';
@@ -237,12 +237,32 @@ api.post('/emails', async (c) => {
     return c.json({ message: '错误的请求：请求体无效或为空。' }, 400);
   }
   const address = body?.address;
+  const limit = Number.parseInt(body?.limit ?? '', 10);
 
   if (!address) {
     return c.json({ message: 'address is required' }, 400);
   }
-  const emails = await getEmailsByMessageTo(db, address as string);
+  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(limit, 100) : 50;
+  const emails = await getEmailsByMessageTo(db, address as string, safeLimit);
   return c.json(emails);
+});
+
+api.post('/emails/meta', async (c) => {
+  const db = getD1DB(c.env.DB);
+  let body: any;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ message: '错误的请求：请求体无效或为空。' }, 400);
+  }
+
+  const address = body?.address;
+  if (!address) {
+    return c.json({ message: 'address is required' }, 400);
+  }
+
+  const meta = await getMailboxMetaByAddress(db, address as string);
+  return c.json(meta);
 });
 
 
@@ -328,6 +348,13 @@ app.get('/config', (c) => {
 
 // 站点统计数据接口（公开）
 api.get('/stats', async (c) => {
+  const cache = caches.default;
+  const cacheKey = new Request(c.req.url, c.req.raw);
+  const cached = await cache.match(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const db = getD1DB(c.env.DB);
   const stats = await getSiteStats(db);
 
@@ -358,7 +385,7 @@ api.get('/stats', async (c) => {
       updatedAt: new Date(),
     };
 
-  return c.json({
+  const response = c.json({
     totals,
     today: {
       totalAddressesCreated: today.addressesCreated,
@@ -373,6 +400,10 @@ api.get('/stats', async (c) => {
       totalApiKeysCreated: yesterday.apiKeysCreated,
     },
   });
+
+  response.headers.set('Cache-Control', 'public, max-age=300');
+  c.executionCtx.waitUntil(cache.put(cacheKey, response.clone()));
+  return response;
 });
 
 app.post('/auth/unlock', async (c) => {
