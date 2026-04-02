@@ -1,6 +1,6 @@
 import { Context, Next } from 'hono';
 import { getD1DB } from '../../../database/db';
-import { findApiKeyByKey, updateApiKeyLastUsed, incrementApiCalls, incrementDailyApiCalls, incrementAndGetApiRateWindowCount } from '../../../database/dao';
+import { findApiKeyByKey, incrementApiCalls, incrementDailyApiCalls, incrementAndGetApiRateWindowCount } from '../../../database/dao';
 import type { Env } from '../../../index';
 
 /**
@@ -33,16 +33,36 @@ export const apiKeyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
     }, 401);
   }
 
-  // 2. 验证 API Key
-  const keyRecord = await findApiKeyByKey(db, apiKey);
+  // 2. 尝试从缓存获取 API Key 信息
+  const cache = caches.default;
+  const cacheKey = new Request(`https://apikey-cache.internal/${apiKey}`);
+  const cached = await cache.match(cacheKey);
 
-  if (!keyRecord) {
-    return c.json({
-      error: {
-        code: 'UNAUTHORIZED',
-        message: 'Invalid API Key',
-      }
-    }, 401);
+  let keyRecord;
+  if (cached) {
+    // 从缓存读取
+    keyRecord = await cached.json();
+  } else {
+    // 缓存未命中，从数据库查询
+    keyRecord = await findApiKeyByKey(db, apiKey);
+
+    if (!keyRecord) {
+      return c.json({
+        error: {
+          code: 'UNAUTHORIZED',
+          message: 'Invalid API Key',
+        }
+      }, 401);
+    }
+
+    // 将结果缓存5分钟
+    const response = new Response(JSON.stringify(keyRecord), {
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'public, max-age=300',
+      },
+    });
+    c.executionCtx.waitUntil(cache.put(cacheKey, response));
   }
 
   // 3. 检查是否启用
@@ -56,7 +76,7 @@ export const apiKeyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
   }
 
   // 4. 检查是否过期
-  if (keyRecord.expiresAt && keyRecord.expiresAt < new Date()) {
+  if (keyRecord.expiresAt && new Date(keyRecord.expiresAt) < new Date()) {
     return c.json({
       error: {
         code: 'FORBIDDEN',
@@ -88,17 +108,15 @@ export const apiKeyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
     );
   }
 
-  // 6. 更新最后使用时间 (异步，不阻塞请求)
-  c.executionCtx.waitUntil(updateApiKeyLastUsed(db, keyRecord.id));
-
-  // 7. 增加 API 调用计数 (异步，不阻塞请求)
+  // 6. 增加 API 调用计数 (异步，不阻塞请求)
+  // 注意：移除了 updateApiKeyLastUsed 调用以减少 D1 写入次数
   c.executionCtx.waitUntil(Promise.all([incrementApiCalls(db), incrementDailyApiCalls(db)]));
 
   const remaining = Math.max(rateLimit - currentCount, 0);
   c.header('X-RateLimit-Limit', `${rateLimit}`);
   c.header('X-RateLimit-Remaining', `${remaining}`);
 
-  // 8. 将 API Key 信息存入上下文
+  // 7. 将 API Key 信息存入上下文
   c.set('apiKey', {
     id: keyRecord.id,
     rateLimit,

@@ -69,6 +69,16 @@ jobs:
           sed -i "s#\${COOKIES_SECRET}#${COOKIES_SECRET}#g" wrangler.toml
           sed -i "s#\${TURNSTILE_KEY}#${TURNSTILE_KEY}#g" wrangler.toml
           sed -i "s#\${TURNSTILE_SECRET}#${TURNSTILE_SECRET}#g" wrangler.toml
+          if [ -n "${PASSWORD}" ]; then
+            sed -i "s#\${PASSWORD}#${PASSWORD}#g" wrangler.toml
+          else
+            sed -i '/^PASSWORD = /d' wrangler.toml
+          fi
+          if [ -n "${API_RATE_LIMIT_PER_MINUTE}" ]; then
+            sed -i "s#\${API_RATE_LIMIT_PER_MINUTE}#${API_RATE_LIMIT_PER_MINUTE}#g" wrangler.toml
+          else
+            sed -i '/^API_RATE_LIMIT_PER_MINUTE = /d' wrangler.toml
+          fi
         env:
           D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
           D1_DATABASE_NAME: ${{ secrets.D1_DATABASE_NAME }}
@@ -76,6 +86,8 @@ jobs:
           COOKIES_SECRET: ${{ secrets.COOKIES_SECRET }}
           TURNSTILE_KEY: ${{ secrets.TURNSTILE_KEY }}
           TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
+          PASSWORD: ${{ secrets.PASSWORD }}
+          API_RATE_LIMIT_PER_MINUTE: ${{ secrets.API_RATE_LIMIT_PER_MINUTE }}
       
       # 新增：在部署前应用 D1 数据库迁移
       # 这一步会明确地告诉 Wrangler 远程执行 D1 数据库的迁移脚本。

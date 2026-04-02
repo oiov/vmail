@@ -18,3 +18,6 @@ CREATE TABLE IF NOT EXISTS `api_rate_limits` (
 
 CREATE INDEX IF NOT EXISTS `idx_api_rate_limits_window`
 ON `api_rate_limits` (`window_start_epoch_sec`);
+
+CREATE INDEX IF NOT EXISTS `idx_emails_message_to_created_at`
+ON `emails` (`message_to`, `created_at`);
