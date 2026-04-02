@@ -64,7 +64,11 @@ export function Home() {
     config.emailDomain[0],
   ); // feat: 新增状态，用于存储当前选中的域名
   const [showEmailModal, setShowEmailModal] = useState(false); // feat: 新增状态，用于控制邮件详情模态框的显示
-  const [showPromoModal, setShowPromoModal] = useState(false);
+  const [showPromoModal, setShowPromoModal] = useState(() => {
+    // 检查是否已经显示过弹框（使用 localStorage）
+    const hasShown = localStorage.getItem("aicentos_promo_shown");
+    return !hasShown; // 如果没显示过，则自动弹出
+  });
 
   // feat: 初始化密码模态框
   const { PasswordModal, setShowPasswordModal } = usePasswordModal();
@@ -98,7 +102,8 @@ export function Home() {
     queryKey: ["emails-meta", address],
     queryFn: () => getMailboxMeta(address!),
     enabled: !!address,
-    refetchInterval: () => (document.visibilityState === "visible" ? 60000 : false),
+    refetchInterval: () =>
+      document.visibilityState === "visible" ? 60000 : false,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
     retry: false,
@@ -174,7 +179,14 @@ export function Home() {
     [t],
   );
 
-  // feat(fix): 使用useEffect来检测新邮件、显示密码通知，并控制“查看密码”按钮的可见性
+  // feat: 当弹框关闭时，记录到 localStorage
+  useEffect(() => {
+    if (!showPromoModal) {
+      localStorage.setItem("aicentos_promo_shown", "true");
+    }
+  }, [showPromoModal]);
+
+  // feat(fix): 使用useEffect来检测新邮件、显示密码通知，并控制”查看密码”按钮的可见性
   const prevEmailsLength = useRef(emails.length);
   useEffect(() => {
     // 修复：只要邮件列表不为空，就确保 hasReceivedEmail 状态为 true。
@@ -353,16 +365,90 @@ export function Home() {
         <InfoModal
           showModal={showPromoModal}
           setShowModal={setShowPromoModal}
-          title="Vmail & AICentOS 联动福利">
-          <div className="space-y-4 text-sm text-gray-200">
-            <p>Vmail & AICentOS 联动注册送 Claude Code、Codex 免费额度。</p>
-            <a
-              href="https://www.aicentos.com/register?aff=Dptp"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center rounded-md bg-cyan-600 px-4 py-2 font-medium text-white hover:opacity-90 transition-opacity">
-              前往 AICentOS 注册
-            </a>
+          title="🎉 Vmail & AICentOS 联动福利">
+          <div className="space-y-4 text-gray-200">
+            {/* 主标题 */}
+            <div className="text-center">
+              <p className="text-base font-semibold text-cyan-400 mb-1">
+                注册即送 Claude Code、Codex 免费额度
+              </p>
+              <p className="text-xs text-gray-400">
+                一站式 AI 编程助手中转平台
+              </p>
+            </div>
+
+            {/* 核心功能 - 简化版 */}
+            <div className="bg-slate-700/50 rounded-lg p-3 space-y-2">
+              <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
+                <span className="text-cyan-400">✨</span> 核心优势
+              </h3>
+              <ul className="space-y-1.5 text-xs">
+                <li className="flex items-start gap-1.5">
+                  <span className="text-green-400 mt-0.5">✓</span>
+                  <span>注册即用，快速接入 AI Coding 工作流</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-green-400 mt-0.5">✓</span>
+                  <span>支持 Claude、Codex 等多模型灵活切换</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-green-400 mt-0.5">✓</span>
+                  <span>兼容 Claude Code、Cursor、RooCode 等 8+ 工具</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Terminal 样式代码展示 - 紧凑版 */}
+            <div className="bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-lg">
+              {/* Terminal 标题栏 */}
+              <div className="bg-gray-800 px-3 py-1.5 flex items-center gap-2 border-b border-gray-700">
+                <div className="flex gap-1">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                </div>
+                <span className="text-[10px] text-gray-400 ml-1">
+                  TERMINAL — zsh
+                </span>
+              </div>
+              {/* Terminal 内容 */}
+              <div className="p-3 font-mono text-xs space-y-1">
+                <div className="text-gray-500"># 配置 Claude</div>
+                <div>
+                  <span className="text-purple-400">export</span>{" "}
+                  <span className="text-cyan-400">ANTHROPIC_BASE_URL</span>
+                  <span className="text-white">=</span>
+                  <span className="text-green-400">
+                    "https://www.aicentos.com"
+                  </span>
+                </div>
+                <div>
+                  <span className="text-purple-400">export</span>{" "}
+                  <span className="text-cyan-400">ANTHROPIC_API_KEY</span>
+                  <span className="text-white">=</span>
+                  <span className="text-green-400">"sk-..."</span>
+                </div>
+                <div className="text-gray-500 pt-1"># 开始编码</div>
+                <div>
+                  <span className="text-green-400">$</span>{" "}
+                  <span className="text-white">claude</span>
+                </div>
+              </div>
+            </div>
+
+            {/* CTA 按钮 - 更紧凑 */}
+            <div className="pt-1">
+              <a
+                href="https://www.aicentos.com/register?aff=Dptp"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full text-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-bold text-white shadow-lg shadow-cyan-500/50 hover:shadow-cyan-500/70 hover:scale-[1.02] transition-all duration-200">
+                🚀 立即注册领取免费额度
+              </a>
+              <p className="text-[10px] text-center text-gray-500 mt-2">
+                通过 Vmail 专属邀请链接注册，享受额外优惠
+              </p>
+            </div>
           </div>
         </InfoModal>
       )}
