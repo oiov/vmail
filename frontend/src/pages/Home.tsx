@@ -65,6 +65,8 @@ export function Home() {
   ); // feat: 新增状态，用于存储当前选中的域名
   const [showEmailModal, setShowEmailModal] = useState(false); // feat: 新增状态，用于控制邮件详情模态框的显示
   const [showPromoModal, setShowPromoModal] = useState(() => {
+    // 如果未启用推广，不弹出
+    if (!config.showAff) return false;
     // 检查是否已经显示过弹框（使用 localStorage）
     const hasShown = localStorage.getItem("aicentos_promo_shown");
     return !hasShown; // 如果没显示过，则自动弹出
@@ -361,7 +363,7 @@ export function Home() {
           />
         </InfoModal>
       )}
-      {showPromoModal && (
+      {config.showAff && showPromoModal && (
         <InfoModal
           showModal={showPromoModal}
           setShowModal={setShowPromoModal}
@@ -458,12 +460,14 @@ export function Home() {
           <h1 className="text-gray-50 text-xl font-bold mb-3 group-hover:text-cyan-500 duration-500">
             {t("Virtual Temporary Email")}
           </h1>
-          <button
-            type="button"
-            onClick={() => setShowPromoModal(true)}
-            className="mb-6 text-left text-sm text-cyan-400 hover:text-cyan-300 transition-colors underline underline-offset-4 decoration-cyan-500/60">
-            Vmail & AICentOS 联动注册送 Claude Code、Codex 免费额度
-          </button>
+          {config.showAff && (
+            <button
+              type="button"
+              onClick={() => setShowPromoModal(true)}
+              className="mb-6 text-left text-sm text-cyan-400 hover:text-cyan-300 transition-colors underline underline-offset-4 decoration-cyan-500/60">
+              Vmail & AICentOS 联动注册送 Claude Code、Codex 免费额度
+            </button>
+          )}
           <div className="flex flex-col gap-4 text-sm text-gray-200">
             <a
               href="https://github.com/oiov/vmail"
