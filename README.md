@@ -79,6 +79,7 @@
 -   `TURNSTILE_SECRET`: 您的 Turnstile 密钥，可选。
 -   `PASSWORD`: 站点访问密码（可选）。
 -   `API_RATE_LIMIT_PER_MINUTE`: API 每分钟请求限制（可选，默认 100）。
+-   `SHOW_AFF`: 是否展示推广弹框和常驻推广链接（可选，`true` 开启，默认不展示）。
 
 ## 🔨 本地运行调试
 

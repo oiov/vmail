@@ -25,6 +25,7 @@ export interface Env {
   TURNSTILE_SECRET: string;
   PASSWORD?: string;
   API_RATE_LIMIT_PER_MINUTE?: string;
+  SHOW_AFF?: string;
 }
 
 // 初始化 Hono 应用
@@ -343,6 +344,7 @@ app.get('/config', (c) => {
     cookiesSecret: c.env.COOKIES_SECRET,
     sitePasswordEnabled: Boolean(c.env.PASSWORD),
     apiRateLimitPerMinute: parseRateLimitPerMinute(c.env),
+    showAff: c.env.SHOW_AFF === 'true',
   });
 });
 

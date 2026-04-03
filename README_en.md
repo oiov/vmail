@@ -126,9 +126,13 @@ When deploying to Cloudflare Pages, you need to configure the following environm
 
 -   `DATABASE_NAME`: Your D1 database name.
 -   `DATABASE_ID`: Your D1 database ID.
--   `TURNSTILE_KEY`: Your Turnstile site key.
--   `TURNSTILE_SECRET`: Your Turnstile secret key.
 -   `COOKIES_SECRET`: A secret used to sign cookies.
+-   `EMAIL_DOMAIN`: Your email domain, e.g. `example.com,example.net`.
+-   `TURNSTILE_KEY`: Your Turnstile site key (optional).
+-   `TURNSTILE_SECRET`: Your Turnstile secret key (optional).
+-   `PASSWORD`: Site access password (optional).
+-   `API_RATE_LIMIT_PER_MINUTE`: API rate limit per minute (optional, default 100).
+-   `SHOW_AFF`: Show promotional popup and link (optional, `true` to enable, hidden by default).
 
 ## Community Group
 

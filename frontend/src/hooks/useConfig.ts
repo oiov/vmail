@@ -9,6 +9,8 @@ export interface AppConfig {
   apiRateLimitPerMinute: number;
   // feat: 添加 cookiesSecret 到配置中，以便前端加密时使用
   cookiesSecret: string;
+  // feat: 控制是否展示推广弹框和常驻链接
+  showAff: boolean;
 }
 
 // 创建 React Context

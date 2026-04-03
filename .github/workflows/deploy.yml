@@ -79,6 +79,11 @@ jobs:
           else
             sed -i '/^API_RATE_LIMIT_PER_MINUTE = /d' wrangler.toml
           fi
+          if [ -n "${SHOW_AFF}" ]; then
+            sed -i "s#\${SHOW_AFF}#${SHOW_AFF}#g" wrangler.toml
+          else
+            sed -i '/^SHOW_AFF = /d' wrangler.toml
+          fi
         env:
           D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
           D1_DATABASE_NAME: ${{ secrets.D1_DATABASE_NAME }}
@@ -88,6 +93,7 @@ jobs:
           TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
           PASSWORD: ${{ secrets.PASSWORD }}
           API_RATE_LIMIT_PER_MINUTE: ${{ secrets.API_RATE_LIMIT_PER_MINUTE }}
+          SHOW_AFF: ${{ secrets.SHOW_AFF }}
       
       # 新增：在部署前应用 D1 数据库迁移
       # 这一步会明确地告诉 Wrangler 远程执行 D1 数据库的迁移脚本。
