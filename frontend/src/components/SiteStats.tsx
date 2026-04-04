@@ -87,7 +87,7 @@ export function SiteStats() {
     fetchStats();
   }, []);
 
-  if (!loading) {
+  if (loading) {
     return (
       <div className="w-full flex flex-col items-center py-4 px-2">
         <div className="animate-pulse grid grid-cols-2 gap-3 w-full max-w-sm">
