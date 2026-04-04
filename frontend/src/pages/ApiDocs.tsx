@@ -4,6 +4,7 @@ import { Turnstile } from "@marsidev/react-turnstile";
 import { toast } from "react-hot-toast";
 import { useConfig } from "../hooks/useConfig";
 import { CopyButton } from "../components/CopyButton";
+import { InfoModal } from "../components/InfoModal";
 
 interface ApiKeyResponse {
   data: {
@@ -26,6 +27,18 @@ export function ApiDocs() {
   const [isCreating, setIsCreating] = useState(false);
   const [createdApiKey, setCreatedApiKey] = useState<string | null>(null);
   const [keyName, setKeyName] = useState("");
+  const [showPromoModal, setShowPromoModal] = useState(() => {
+    if (!config.showAff) return false;
+    const hasShown = localStorage.getItem("aicentos_promo_shown");
+    return !hasShown;
+  });
+
+  // 当弹框关闭时，记录到 localStorage
+  useEffect(() => {
+    if (!showPromoModal) {
+      localStorage.setItem("aicentos_promo_shown", "true");
+    }
+  }, [showPromoModal]);
 
   // 添加代码高亮样式
   useEffect(() => {
@@ -81,6 +94,88 @@ export function ApiDocs() {
 
   return (
     <div className="min-h-screen bg-[#1f2023] text-white py-8 px-4 md:px-8 mt-16">
+      {config.showAff && showPromoModal && (
+        <InfoModal
+          showModal={showPromoModal}
+          setShowModal={setShowPromoModal}
+          title="🎉 Vmail & AICentOS 联动福利">
+          <div className="space-y-4 text-gray-200">
+            <div className="text-center">
+              <p className="text-base font-semibold text-cyan-400 mb-1">
+                注册即送 Claude Code、Codex 免费额度
+              </p>
+              <p className="text-xs text-gray-400">
+                一站式 AI 编程助手中转平台
+              </p>
+            </div>
+            <div className="bg-slate-700/50 rounded-lg p-3 space-y-2">
+              <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
+                <span className="text-cyan-400">✨</span> 核心优势
+              </h3>
+              <ul className="space-y-1.5 text-xs">
+                <li className="flex items-start gap-1.5">
+                  <span className="text-green-400 mt-0.5">✓</span>
+                  <span>注册即用，快速接入 AI Coding 工作流</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-green-400 mt-0.5">✓</span>
+                  <span>支持 Claude、Codex 等多模型灵活切换</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-green-400 mt-0.5">✓</span>
+                  <span>兼容 Claude Code、Cursor、RooCode 等 8+ 工具</span>
+                </li>
+              </ul>
+            </div>
+            <div className="bg-gray-900 rounded-lg overflow-hidden border border-gray-700 shadow-lg">
+              <div className="bg-gray-800 px-3 py-1.5 flex items-center gap-2 border-b border-gray-700">
+                <div className="flex gap-1">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                </div>
+                <span className="text-[10px] text-gray-400 ml-1">
+                  TERMINAL — zsh
+                </span>
+              </div>
+              <div className="p-3 font-mono text-xs space-y-1">
+                <div className="text-gray-500"># 配置 Claude</div>
+                <div>
+                  <span className="text-purple-400">export</span>{" "}
+                  <span className="text-cyan-400">ANTHROPIC_BASE_URL</span>
+                  <span className="text-white">=</span>
+                  <span className="text-green-400">
+                    "https://www.aicentos.com"
+                  </span>
+                </div>
+                <div>
+                  <span className="text-purple-400">export</span>{" "}
+                  <span className="text-cyan-400">ANTHROPIC_API_KEY</span>
+                  <span className="text-white">=</span>
+                  <span className="text-green-400">"sk-..."</span>
+                </div>
+                <div className="text-gray-500 pt-1"># 开始编码</div>
+                <div>
+                  <span className="text-green-400">$</span>{" "}
+                  <span className="text-white">claude</span>
+                </div>
+              </div>
+            </div>
+            <div className="pt-1">
+              <a
+                href="https://www.aicentos.com/register?aff=Dptp"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full text-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-bold text-white shadow-lg shadow-cyan-500/50 hover:shadow-cyan-500/70 hover:scale-[1.02] transition-all duration-200">
+                🚀 立即注册领取免费额度
+              </a>
+              <p className="text-[10px] text-center text-gray-500 mt-2">
+                通过 Vmail 专属邀请链接注册，享受额外优惠
+              </p>
+            </div>
+          </div>
+        </InfoModal>
+      )}
       <div className="max-w-4xl mx-auto" ref={contentRef}>
         {/* Header */}
         <div className="mb-8 pb-6 border-b border-gray-700">
@@ -92,6 +187,14 @@ export function ApiDocs() {
               "RESTful API for programmatic access to temporary email services",
             )}
           </p>
+          {config.showAff && (
+            <button
+              type="button"
+              onClick={() => setShowPromoModal(true)}
+              className="mt-4 text-left text-sm text-cyan-400 hover:text-cyan-300 transition-colors underline underline-offset-4 decoration-cyan-500/60">
+              Vmail & AICentOS 联动注册送 Claude Code、Codex 免费额度
+            </button>
+          )}
         </div>
 
         {/* Get API Key Section */}
