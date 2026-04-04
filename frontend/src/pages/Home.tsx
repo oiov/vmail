@@ -538,7 +538,7 @@ export function Home() {
                 <div className="mb-3 font-semibold">{t("Validater")}</div>
                 <div className="[&_iframe]:!w-full h-[65px] max-w-full bg-gray-700">
                   <Turnstile
-                    className="w-full"
+                    className="w-full border border-cyan-50/20"
                     siteKey={config.turnstileKey}
                     onSuccess={setTurnstileToken}
                     options={{ theme: "dark", size: "flexible" }}

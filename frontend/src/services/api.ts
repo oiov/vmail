@@ -100,8 +100,6 @@ export interface StatsSnapshot {
 
 export interface SiteStats {
   totals: StatsSnapshot;
-  today: StatsSnapshot;
-  yesterday: StatsSnapshot;
 }
 
 // 获取站点统计数据

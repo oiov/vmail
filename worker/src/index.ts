@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { serveStatic } from 'hono/cloudflare-workers';
 import { cors } from 'hono/cors';
 // 导入数据库相关的模块
-import { deleteEmails, findEmailById, getEmailsByMessageTo, insertEmail, deleteExpiredEmails, insertApiKey, getSiteStats, incrementEmailsReceived, incrementApiKeysCreated, incrementAddressesCreated, getDailyStatsByDate, incrementDailyAddressesCreated, incrementDailyEmailsReceived, incrementDailyApiKeysCreated, getMailboxMetaByAddress } from './database/dao';
+import { deleteEmails, findEmailById, getEmailsByMessageTo, insertEmail, deleteExpiredEmails, insertApiKey, getSiteStats, incrementEmailsReceived, incrementApiKeysCreated, incrementAddressesCreated, incrementDailyAddressesCreated, incrementDailyEmailsReceived, incrementDailyApiKeysCreated, getMailboxMetaByAddress } from './database/dao';
 import { getD1DB } from './database/db';
 import { InsertEmail, insertEmailSchema } from './database/schema';
 import { nanoid } from 'nanoid/non-secure';
@@ -38,16 +38,6 @@ const SITE_AUTH_COOKIE = 'vmail_site_auth';
 
 function isTurnstileEnabled(env: Env): boolean {
   return Boolean(env.TURNSTILE_KEY && env.TURNSTILE_SECRET);
-}
-
-function getCurrentDateKey(date: Date = new Date()): string {
-  return date.toISOString().slice(0, 10);
-}
-
-function getYesterdayDateKey(date: Date = new Date()): string {
-  const yesterday = new Date(date);
-  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-  return getCurrentDateKey(yesterday);
 }
 
 function parseRateLimitPerMinute(env: Env): number {
@@ -367,40 +357,8 @@ api.get('/stats', async (c) => {
     totalApiKeysCreated: stats?.totalApiKeysCreated ?? 0,
   };
 
-  const today =
-    (await getDailyStatsByDate(db, getCurrentDateKey())) ?? {
-      date: getCurrentDateKey(),
-      addressesCreated: 0,
-      emailsReceived: 0,
-      apiCalls: 0,
-      apiKeysCreated: 0,
-      updatedAt: new Date(),
-    };
-
-  const yesterday =
-    (await getDailyStatsByDate(db, getYesterdayDateKey())) ?? {
-      date: getYesterdayDateKey(),
-      addressesCreated: 0,
-      emailsReceived: 0,
-      apiCalls: 0,
-      apiKeysCreated: 0,
-      updatedAt: new Date(),
-    };
-
   const response = c.json({
     totals,
-    today: {
-      totalAddressesCreated: today.addressesCreated,
-      totalEmailsReceived: today.emailsReceived,
-      totalApiCalls: today.apiCalls,
-      totalApiKeysCreated: today.apiKeysCreated,
-    },
-    yesterday: {
-      totalAddressesCreated: yesterday.addressesCreated,
-      totalEmailsReceived: yesterday.emailsReceived,
-      totalApiCalls: yesterday.apiCalls,
-      totalApiKeysCreated: yesterday.apiKeysCreated,
-    },
   });
 
   response.headers.set('Cache-Control', 'public, max-age=300');
