@@ -53,6 +53,7 @@
   "Failed to delete emails": "Échec de la suppression des e-mails",
   "Mailbox refreshed": "Boîte de réception actualisée",
   "Copied to clipboard": "Copié dans le presse-papiers",
+  "Copy Markdown": "Copier en Markdown",
   "Failed to get emails": "Échec de la récupération des e-mails",
   "Please select emails to delete": "Veuillez sélectionner les e-mails à supprimer",
   "Password is required": "Mot de passe requis",

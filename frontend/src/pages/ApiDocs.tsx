@@ -40,6 +40,207 @@ export function ApiDocs() {
     }
   }, [showPromoModal]);
 
+  const handleCopyMarkdown = () => {
+    const md = `# Vmail API Documentation
+
+RESTful API for programmatic access to https://vmail.dev temporary email services.
+
+## Authentication
+
+All API requests require an API Key. Include it in the request header:
+
+\`\`\`
+X-API-Key: your-api-key
+\`\`\`
+
+Or use Authorization header:
+
+\`\`\`
+Authorization: Bearer your-api-key
+\`\`\`
+
+## Base URL
+
+\`\`\`
+https://vmail.dev/api/v1
+\`\`\`
+
+## Endpoints
+
+### POST /mailboxes
+
+Create a new temporary mailbox.
+
+**Request Body** (optional):
+
+\`\`\`json
+{
+  "localPart": "mytest",     // Optional: custom local part
+  "domain": "example.com",   // Optional: email domain
+  "expiresIn": 86400         // Optional: expiry in seconds (default: 24h)
+}
+\`\`\`
+
+**Response** 201 Created:
+
+\`\`\`json
+{
+  "data": {
+    "id": "abc123xyz",
+    "address": "mytest@example.com",
+    "domain": "example.com",
+    "expiresAt": "2024-02-12T12:00:00.000Z",
+    "createdAt": "2024-02-11T12:00:00.000Z"
+  }
+}
+\`\`\`
+
+### GET /mailboxes/:id
+
+Get mailbox information.
+
+**Response** 200 OK:
+
+\`\`\`json
+{
+  "data": {
+    "id": "abc123xyz",
+    "address": "mytest@example.com",
+    "domain": "example.com",
+    "expiresAt": "2024-02-12T12:00:00.000Z",
+    "createdAt": "2024-02-11T12:00:00.000Z",
+    "messageCount": 5
+  }
+}
+\`\`\`
+
+### GET /mailboxes/:id/messages
+
+Get inbox messages with pagination.
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| page | number | 1 | Page number |
+| limit | number | 20 | Items per page (max 100) |
+| sort | string | desc | Sort order (asc/desc) |
+
+**Response** 200 OK:
+
+\`\`\`json
+{
+  "data": [
+    {
+      "id": "msg_001",
+      "from": { "address": "sender@example.com", "name": "Sender" },
+      "subject": "Hello World",
+      "preview": "This is a preview...",
+      "receivedAt": "2024-02-11T10:30:00.000Z"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 42,
+    "totalPages": 3,
+    "hasMore": true
+  }
+}
+\`\`\`
+
+### GET /mailboxes/:id/messages/:messageId
+
+Get full message details.
+
+**Response** 200 OK:
+
+\`\`\`json
+{
+  "data": {
+    "id": "msg_001",
+    "messageId": "<unique-id@sender.com>",
+    "from": { "address": "sender@example.com", "name": "Sender" },
+    "to": [{ "address": "mytest@example.com", "name": "" }],
+    "cc": [],
+    "bcc": [],
+    "replyTo": [],
+    "subject": "Hello World",
+    "text": "Plain text content...",
+    "html": "<html>...</html>",
+    "headers": [{ "name": "X-Custom", "value": "value" }],
+    "receivedAt": "2024-02-11T10:30:00.000Z"
+  }
+}
+\`\`\`
+
+### DELETE /mailboxes/:id/messages/:messageId
+
+Delete a specific message.
+
+**Response** 200 OK:
+
+\`\`\`json
+{
+  "data": {
+    "deleted": true,
+    "id": "msg_001"
+  }
+}
+\`\`\`
+
+## Error Responses
+
+All errors follow a consistent format:
+
+\`\`\`json
+{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable message"
+  }
+}
+\`\`\`
+
+**Error Codes:**
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| UNAUTHORIZED | 401 | Missing or invalid API Key |
+| FORBIDDEN | 403 | API Key disabled/expired or no access |
+| NOT_FOUND | 404 | Resource not found |
+| VALIDATION_ERROR | 400 | Invalid request parameters |
+| CONFLICT | 409 | Resource already exists |
+
+## Example Usage
+
+\`\`\`bash
+# Create a new mailbox
+curl -X POST https://vmail.dev/api/v1/mailboxes \\
+  -H "X-API-Key: your-api-key" \\
+  -H "Content-Type: application/json" \\
+  -d '{"domain": "example.com"}'
+
+# Response: { "data": { "id": "abc123", "address": "...", ... } }
+
+# Check inbox
+curl https://vmail.dev/api/v1/mailboxes/abc123/messages \\
+  -H "X-API-Key: your-api-key"
+
+# Get specific message
+curl https://vmail.dev/api/v1/mailboxes/abc123/messages/msg_001 \\
+  -H "X-API-Key: your-api-key"
+\`\`\`
+
+## Rate Limits
+
+API requests are rate limited based on your API Key configuration. Default limit is 100 requests per minute.
+`;
+    navigator.clipboard.writeText(md).then(() => {
+      toast.success(t("Copied to clipboard"));
+    });
+  };
+
   // 添加代码高亮样式
   useEffect(() => {
     if (contentRef.current) {
@@ -182,11 +383,31 @@ export function ApiDocs() {
           <h1 className="text-3xl font-bold text-cyan-400 mb-2">
             {t("API Documentation")}
           </h1>
-          <p className="text-gray-400">
-            {t(
-              "RESTful API for programmatic access to temporary email services",
-            )}
-          </p>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <p className="text-gray-400">
+              {t(
+                "RESTful API for programmatic access to temporary email services",
+              )}
+            </p>
+            <button
+              type="button"
+              onClick={handleCopyMarkdown}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex-shrink-0 w-fit">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                />
+              </svg>
+              {t("Copy Markdown")}
+            </button>
+          </div>
           {config.showAff && (
             <button
               type="button"
@@ -213,15 +434,24 @@ export function ApiDocs() {
                 </div>
                 <div className="bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-4 mb-4">
                   <div className="flex items-start gap-2">
-                    <svg className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    <svg
+                      className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0"
+                      fill="currentColor"
+                      viewBox="0 0 20 20">
+                      <path
+                        fillRule="evenodd"
+                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                     <div>
                       <p className="text-yellow-200 font-semibold text-sm">
                         {t("Important: Save your API Key now!")}
                       </p>
                       <p className="text-yellow-300/80 text-xs mt-1">
-                        {t("This is the only time you will see the full API Key. It cannot be retrieved later.")}
+                        {t(
+                          "This is the only time you will see the full API Key. It cannot be retrieved later.",
+                        )}
                       </p>
                     </div>
                   </div>
@@ -231,13 +461,15 @@ export function ApiDocs() {
                     <code className="text-green-400 text-sm break-all flex-1">
                       {createdApiKey}
                     </code>
-                    <CopyButton text={createdApiKey} className="flex-shrink-0" />
+                    <CopyButton
+                      text={createdApiKey}
+                      className="flex-shrink-0"
+                    />
                   </div>
                 </div>
                 <button
                   onClick={handleCreateAnother}
-                  className="text-cyan-400 hover:text-cyan-300 text-sm underline"
-                >
+                  className="text-cyan-400 hover:text-cyan-300 text-sm underline">
                   {t("Create another API Key")}
                 </button>
               </div>
@@ -245,7 +477,9 @@ export function ApiDocs() {
               // 创建 API Key 表单
               <div>
                 <p className="text-gray-300 mb-4">
-                  {t("Create a free API Key to access the API. Each key has a rate limit of 100 requests per minute.")}
+                  {t(
+                    "Create a free API Key to access the API. Each key has a rate limit of 100 requests per minute.",
+                  )}
                 </p>
                 <div className="space-y-4">
                   <div>
@@ -275,8 +509,7 @@ export function ApiDocs() {
                   <button
                     onClick={handleCreateApiKey}
                     disabled={!turnstileToken || isCreating}
-                    className="px-6 py-2.5 bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-medium transition-colors"
-                  >
+                    className="px-6 py-2.5 bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-medium transition-colors">
                     {isCreating ? t("Creating...") : t("Create API Key")}
                   </button>
                 </div>
@@ -330,11 +563,11 @@ export function ApiDocs() {
 
           {/* POST /mailboxes */}
           <div className="bg-gray-800 rounded-lg p-4 mb-6">
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-3 min-w-0">
               <span className="bg-green-600 text-white px-2 py-1 rounded text-sm font-mono">
                 POST
               </span>
-              <code className="text-white font-mono">/mailboxes</code>
+              <code className="text-white font-mono break-all">/mailboxes</code>
             </div>
             <p className="text-gray-300 mb-4">
               {t("Create a new temporary mailbox")}
@@ -370,11 +603,11 @@ export function ApiDocs() {
 
           {/* GET /mailboxes/:id */}
           <div className="bg-gray-800 rounded-lg p-4 mb-6">
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-3 min-w-0">
               <span className="bg-blue-600 text-white px-2 py-1 rounded text-sm font-mono">
                 GET
               </span>
-              <code className="text-white font-mono">/mailboxes/:id</code>
+              <code className="text-white font-mono break-all">/mailboxes/:id</code>
             </div>
             <p className="text-gray-300 mb-4">{t("Get mailbox information")}</p>
 
@@ -397,11 +630,11 @@ export function ApiDocs() {
 
           {/* GET /mailboxes/:id/messages */}
           <div className="bg-gray-800 rounded-lg p-4 mb-6">
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-3 min-w-0">
               <span className="bg-blue-600 text-white px-2 py-1 rounded text-sm font-mono">
                 GET
               </span>
-              <code className="text-white font-mono">
+              <code className="text-white font-mono break-all">
                 /mailboxes/:id/messages
               </code>
             </div>
@@ -478,11 +711,11 @@ export function ApiDocs() {
 
           {/* GET /mailboxes/:id/messages/:messageId */}
           <div className="bg-gray-800 rounded-lg p-4 mb-6">
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-3 min-w-0">
               <span className="bg-blue-600 text-white px-2 py-1 rounded text-sm font-mono">
                 GET
               </span>
-              <code className="text-white font-mono">
+              <code className="text-white font-mono break-all">
                 /mailboxes/:id/messages/:messageId
               </code>
             </div>
@@ -515,11 +748,11 @@ export function ApiDocs() {
 
           {/* DELETE /mailboxes/:id/messages/:messageId */}
           <div className="bg-gray-800 rounded-lg p-4 mb-6">
-            <div className="flex items-center gap-3 mb-3">
+            <div className="flex items-center gap-3 mb-3 min-w-0">
               <span className="bg-red-600 text-white px-2 py-1 rounded text-sm font-mono">
                 DELETE
               </span>
-              <code className="text-white font-mono">
+              <code className="text-white font-mono break-all">
                 /mailboxes/:id/messages/:messageId
               </code>
             </div>

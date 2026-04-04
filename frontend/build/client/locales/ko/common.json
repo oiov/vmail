@@ -53,6 +53,7 @@
   "Failed to delete emails": "이메일을 삭제하지 못했습니다",
   "Mailbox refreshed": "사서함이 새로고침되었습니다",
   "Copied to clipboard": "클립보드에 복사되었습니다",
+  "Copy Markdown": "Markdown 복사",
   "Failed to get emails": "이메일을 가져오지 못했습니다",
   "Please select emails to delete": "삭제할 이메일을 선택하세요",
   "Password is required": "비밀번호가 필요합니다",

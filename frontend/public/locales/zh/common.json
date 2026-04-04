@@ -56,6 +56,7 @@
   "Failed to delete emails": "邮件删除失败",
   "Mailbox refreshed": "邮箱已刷新",
   "Copied to clipboard": "已复制到剪贴板",
+  "Copy Markdown": "复制 Markdown",
   "Failed to get emails": "获取邮件失败",
   "Please select emails to delete": "请选择要删除的邮件",
   "Password is required": "请输入密码",

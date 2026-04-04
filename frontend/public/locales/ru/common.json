@@ -53,6 +53,7 @@
   "Failed to delete emails": "Не удалось удалить письма",
   "Mailbox refreshed": "Почтовый ящик обновлен",
   "Copied to clipboard": "Скопировано в буфер обмена",
+  "Copy Markdown": "Копировать Markdown",
   "Failed to get emails": "Не удалось получить письма",
   "Please select emails to delete": "Пожалуйста, выберите письма для удаления",
   "Password is required": "Требуется пароль",

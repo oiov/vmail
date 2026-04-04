@@ -53,6 +53,7 @@
   "Failed to delete emails": "E-postalar silinemedi",
   "Mailbox refreshed": "Posta kutusu yenilendi",
   "Copied to clipboard": "Panoya kopyalandi",
+  "Copy Markdown": "Markdown Kopyala",
   "Failed to get emails": "E-postalar alinamadi",
   "Please select emails to delete": "Lutfen silinecek e-postalari secin",
   "Password is required": "Parola gerekli",

@@ -53,6 +53,7 @@
   "Failed to delete emails": "メールの削除に失敗しました",
   "Mailbox refreshed": "メールボックスを更新しました",
   "Copied to clipboard": "クリップボードにコピーしました",
+  "Copy Markdown": "Markdownをコピー",
   "Failed to get emails": "メールの取得に失敗しました",
   "Please select emails to delete": "削除するメールを選択してください",
   "Password is required": "パスワードが必要です",
