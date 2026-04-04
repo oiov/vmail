@@ -54,6 +54,7 @@
   "Failed to delete emails": "Fehler beim Löschen der E-Mails",
   "Mailbox refreshed": "Postfach aktualisiert",
   "Copied to clipboard": "In die Zwischenablage kopiert",
+  "Copy Markdown": "Markdown kopieren",
   "Failed to get emails": "Fehler beim Abrufen der E-Mails",
   "Please select emails to delete": "Bitte wählen Sie E-Mails zum Löschen aus",
   "Password is required": "Passwort ist erforderlich",

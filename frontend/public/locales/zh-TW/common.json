@@ -53,6 +53,7 @@
   "Failed to delete emails": "郵件刪除失敗",
   "Mailbox refreshed": "信箱已刷新",
   "Copied to clipboard": "已複製到剪貼簿",
+  "Copy Markdown": "複製 Markdown",
   "Failed to get emails": "獲取郵件失敗",
   "Please select emails to delete": "請選擇要刪除的郵件",
   "Password is required": "請輸入密碼",

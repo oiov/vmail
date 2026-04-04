@@ -53,6 +53,7 @@
   "Failed to delete emails": "ईमेल हटाने में विफल",
   "Mailbox refreshed": "मेलबॉक्स रीफ्रेश किया गया",
   "Copied to clipboard": "क्लिपबोर्ड पर कॉपी किया गया",
+  "Copy Markdown": "Markdown कॉपी करें",
   "Failed to get emails": "ईमेल प्राप्त करने में विफल",
   "Please select emails to delete": "कृपया हटाने के लिए ईमेल चुनें",
   "Password is required": "पासवर्ड आवश्यक है",
