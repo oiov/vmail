@@ -12,14 +12,87 @@ import {
   incrementAddressesCreated,
 } from '../../../database/dao';
 
-// 随机邮箱名称生成
+// 随机邮箱名称生成（模拟真实用户命名习惯）
 function generateRandomLocalPart(): string {
-  const adjectives = ['quick', 'lazy', 'happy', 'sad', 'bright', 'dark', 'warm', 'cold', 'soft', 'hard'];
-  const nouns = ['fox', 'dog', 'cat', 'bird', 'fish', 'lion', 'bear', 'wolf', 'deer', 'hawk'];
-  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const noun = nouns[Math.floor(Math.random() * nouns.length)];
-  const num = Math.floor(Math.random() * 1000);
-  return `${adj}-${noun}-${num}`;
+  const firstNames = [
+    // male
+    'james', 'john', 'robert', 'michael', 'william', 'david', 'richard', 'joseph', 'thomas', 'charles',
+    'christopher', 'daniel', 'matthew', 'anthony', 'mark', 'donald', 'steven', 'paul', 'andrew', 'joshua',
+    'kenneth', 'kevin', 'brian', 'george', 'timothy', 'ronald', 'edward', 'jason', 'jeffrey', 'ryan',
+    'jacob', 'gary', 'nicholas', 'eric', 'jonathan', 'stephen', 'larry', 'justin', 'scott', 'brandon',
+    'benjamin', 'samuel', 'raymond', 'gregory', 'frank', 'alexander', 'patrick', 'jack', 'dennis', 'jerry',
+    'aaron', 'alan', 'adam', 'andy', 'barry', 'bill', 'bob', 'brad', 'brett', 'brent',
+    'bruce', 'bryan', 'chad', 'charlie', 'chris', 'clark', 'clay', 'cliff', 'clint', 'craig',
+    'dale', 'dan', 'darrell', 'dave', 'derek', 'devin', 'doug', 'duane', 'dustin', 'dwight',
+    'earl', 'edgar', 'eli', 'elliot', 'ethan', 'evan', 'finn', 'gabriel', 'henry', 'ian',
+    'jake', 'joel', 'julian', 'karl', 'lane', 'leo', 'liam', 'logan', 'lucas', 'mason',
+    'max', 'miles', 'neil', 'noah', 'oliver', 'pete', 'ray', 'reid', 'ross', 'sean',
+    'seth', 'todd', 'troy', 'wade', 'will', 'calvin', 'claude', 'felix', 'floyd', 'glen',
+    'grant', 'hank', 'herb', 'homer', 'horace', 'ivan', 'jerome', 'lance', 'lloyd', 'marshall',
+    // female
+    'mary', 'patricia', 'jennifer', 'linda', 'barbara', 'elizabeth', 'susan', 'jessica', 'sarah', 'karen',
+    'lisa', 'nancy', 'betty', 'margaret', 'sandra', 'ashley', 'emily', 'kimberly', 'donna', 'carol',
+    'michelle', 'dorothy', 'amanda', 'melissa', 'deborah', 'stephanie', 'rebecca', 'sharon', 'laura', 'cynthia',
+    'kathleen', 'amy', 'angela', 'shirley', 'anna', 'brenda', 'pamela', 'emma', 'nicole', 'helen',
+    'samantha', 'katherine', 'christine', 'debra', 'rachel', 'carolyn', 'janet', 'catherine', 'maria', 'heather',
+    'sophia', 'olivia', 'ava', 'isabella', 'mia', 'abigail', 'madison', 'chloe', 'ella', 'avery',
+    'scarlett', 'grace', 'lily', 'aria', 'riley', 'zoey', 'nora', 'hazel', 'aurora', 'savannah',
+    'brooklyn', 'leah', 'zoe', 'stella', 'natalie', 'eva', 'claire', 'ellie', 'maya', 'piper',
+    'victoria', 'lucy', 'paisley', 'skylar', 'camila', 'penelope', 'layla', 'hailey', 'luna', 'amber',
+    'april', 'beth', 'brooke', 'dana', 'dawn', 'diana', 'fiona', 'gail', 'holly', 'jade',
+    'jan', 'joan', 'joyce', 'june', 'kate', 'kay', 'kim', 'leigh', 'lynn', 'molly',
+    'paige', 'ruth', 'tara', 'vera', 'wendy', 'abby', 'alice', 'anne', 'bea', 'rose',
+  ];
+
+  const lastNames = [
+    'smith', 'johnson', 'williams', 'brown', 'jones', 'garcia', 'miller', 'davis', 'wilson', 'taylor',
+    'anderson', 'thomas', 'jackson', 'white', 'harris', 'martin', 'thompson', 'young', 'allen', 'king',
+    'wright', 'scott', 'torres', 'nguyen', 'hill', 'flores', 'green', 'adams', 'nelson', 'baker',
+    'hall', 'rivera', 'campbell', 'mitchell', 'carter', 'roberts', 'gomez', 'phillips', 'evans', 'turner',
+    'diaz', 'parker', 'cruz', 'edwards', 'collins', 'reyes', 'stewart', 'morris', 'morales', 'murphy',
+    'cook', 'rogers', 'gutierrez', 'ortiz', 'morgan', 'cooper', 'peterson', 'bailey', 'reed', 'kelly',
+    'howard', 'ramos', 'kim', 'cox', 'ward', 'richardson', 'watson', 'brooks', 'chavez', 'wood',
+    'james', 'bennett', 'gray', 'mendoza', 'ruiz', 'hughes', 'price', 'alvarez', 'castillo', 'sanders',
+    'patel', 'myers', 'long', 'ross', 'foster', 'jimenez', 'powell', 'jenkins', 'perry', 'russell',
+    'sullivan', 'bell', 'coleman', 'butler', 'henderson', 'barnes', 'gonzalez', 'fisher', 'vasquez', 'simmons',
+    'romero', 'jordan', 'patterson', 'alexander', 'hamilton', 'graham', 'reynolds', 'griffin', 'wallace', 'moreno',
+    'west', 'cole', 'hayes', 'bryant', 'herrera', 'gibson', 'ellis', 'tran', 'medina', 'aguilar',
+    'stevens', 'murray', 'ford', 'castro', 'marshall', 'owens', 'harrison', 'fernandez', 'mcdonald', 'woods',
+    'kennedy', 'wells', 'vargas', 'henry', 'chen', 'freeman', 'webb', 'tucker', 'guzman', 'burns',
+    'crawford', 'olson', 'simpson', 'porter', 'hunter', 'gordon', 'mendez', 'silva', 'shaw', 'snyder',
+    'mason', 'munoz', 'hunt', 'hicks', 'holmes', 'palmer', 'wagner', 'black', 'robertson', 'boyd',
+    'stone', 'salazar', 'fox', 'warren', 'mills', 'meyer', 'rice', 'schmidt', 'garza', 'daniels',
+    'ferguson', 'nichols', 'stephens', 'soto', 'weaver', 'ryan', 'gardner', 'payne', 'grant', 'dunn',
+    'kelley', 'spencer', 'hawkins', 'arnold', 'pierce', 'stevenson', 'lawson', 'bishop', 'byrd', 'christensen',
+    'mann', 'carr', 'lee', 'harvey', 'walsh', 'cross', 'lane', 'klein', 'parks', 'sharp',
+    'berry', 'morrow', 'powers', 'holt', 'terry', 'bond', 'cannon', 'hart', 'dean', 'day',
+    'lowe', 'rios', 'leon', 'malone', 'french', 'hammond', 'moss', 'horton', 'waters', 'rhodes',
+    'bass', 'quinn', 'hardy', 'marsh', 'howell', 'barker', 'larson', 'norris', 'dawson', 'fletcher',
+    'watts', 'strickland', 'horne', 'burnett', 'pope', 'barber', 'caldwell', 'gilbert', 'patton', 'hutchinson',
+    'bowers', 'barton', 'rush', 'love', 'hanson', 'graves', 'alvarado', 'zimmerman', 'mcbride', 'luna',
+  ];
+
+  const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+  // 模拟出生年（1960–2005）的两位数后缀，如 84、92、03
+  const yearSuffix = (): string => String((Math.floor(Math.random() * 46) + 60) % 100).padStart(2, '0');
+  const num2 = (): string => String(Math.floor(Math.random() * 100)).padStart(2, '0');
+
+  const first = pick(firstNames);
+  const last = pick(lastNames);
+  const f = first[0];
+
+  // 7 种命名模式，随机选取一种
+  const patterns: (() => string)[] = [
+    () => `${first}.${last}`,              // john.smith
+    () => `${first}_${last}`,              // john_smith
+    () => `${first}${last}`,               // johnsmith
+    () => `${f}.${last}`,                  // j.smith
+    () => `${f}${last}`,                   // jsmith
+    () => `${first}${num2()}`,             // john84
+    () => `${first}.${last}${yearSuffix()}`, // john.smith92
+  ];
+
+  return pick(patterns)();
 }
 
 const mailboxesRouter = new Hono<{ Bindings: Env }>();
