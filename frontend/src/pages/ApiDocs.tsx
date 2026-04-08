@@ -29,14 +29,14 @@ export function ApiDocs() {
   const [keyName, setKeyName] = useState("");
   const [showPromoModal, setShowPromoModal] = useState(() => {
     if (!config.showAff) return false;
-    const hasShown = localStorage.getItem("aicentos_promo_shown");
+    const hasShown = localStorage.getItem("nbility_promo_shown");
     return !hasShown;
   });
 
   // 当弹框关闭时，记录到 localStorage
   useEffect(() => {
     if (!showPromoModal) {
-      localStorage.setItem("aicentos_promo_shown", "true");
+      localStorage.setItem("nbility_promo_shown", "true");
     }
   }, [showPromoModal]);
 
@@ -299,7 +299,7 @@ API requests are rate limited based on your API Key configuration. Default limit
         <InfoModal
           showModal={showPromoModal}
           setShowModal={setShowPromoModal}
-          title="🎉 Vmail & AICentOS 联动福利">
+          title="🎉 Vmail & NBility 联动福利">
           <div className="space-y-4 text-gray-200">
             <div className="text-center">
               <p className="text-base font-semibold text-cyan-400 mb-1">
@@ -345,9 +345,7 @@ API requests are rate limited based on your API Key configuration. Default limit
                   <span className="text-purple-400">export</span>{" "}
                   <span className="text-cyan-400">ANTHROPIC_BASE_URL</span>
                   <span className="text-white">=</span>
-                  <span className="text-green-400">
-                    "https://www.aicentos.com"
-                  </span>
+                  <span className="text-green-400">"https://nbility.dev"</span>
                 </div>
                 <div>
                   <span className="text-purple-400">export</span>{" "}
@@ -364,7 +362,7 @@ API requests are rate limited based on your API Key configuration. Default limit
             </div>
             <div className="pt-1">
               <a
-                href="https://www.aicentos.com/register?aff=Dptp"
+                href="https://nbility.dev/register?aff=Dptp"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block w-full text-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-bold text-white shadow-lg shadow-cyan-500/50 hover:shadow-cyan-500/70 hover:scale-[1.02] transition-all duration-200">
@@ -413,7 +411,7 @@ API requests are rate limited based on your API Key configuration. Default limit
               type="button"
               onClick={() => setShowPromoModal(true)}
               className="mt-4 text-left text-sm text-cyan-400 hover:text-cyan-300 transition-colors underline underline-offset-4 decoration-cyan-500/60">
-              Vmail & AICentOS 联动注册送 Claude Code、Codex 免费额度
+              Vmail & NBility 联动注册送 Claude Code、Codex 免费额度
             </button>
           )}
         </div>
@@ -607,7 +605,9 @@ API requests are rate limited based on your API Key configuration. Default limit
               <span className="bg-blue-600 text-white px-2 py-1 rounded text-sm font-mono">
                 GET
               </span>
-              <code className="text-white font-mono break-all">/mailboxes/:id</code>
+              <code className="text-white font-mono break-all">
+                /mailboxes/:id
+              </code>
             </div>
             <p className="text-gray-300 mb-4">{t("Get mailbox information")}</p>
 
