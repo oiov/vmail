@@ -68,7 +68,7 @@ export function Home() {
     // 如果未启用推广，不弹出
     if (!config.showAff) return false;
     // 检查是否已经显示过弹框（使用 localStorage）
-    const hasShown = localStorage.getItem("aicentos_promo_shown");
+    const hasShown = localStorage.getItem("nbility_promo_shown");
     return !hasShown; // 如果没显示过，则自动弹出
   });
 
@@ -184,7 +184,7 @@ export function Home() {
   // feat: 当弹框关闭时，记录到 localStorage
   useEffect(() => {
     if (!showPromoModal) {
-      localStorage.setItem("aicentos_promo_shown", "true");
+      localStorage.setItem("nbility_promo_shown", "true");
     }
   }, [showPromoModal]);
 
@@ -367,7 +367,7 @@ export function Home() {
         <InfoModal
           showModal={showPromoModal}
           setShowModal={setShowPromoModal}
-          title="🎉 Vmail & AICentOS 联动福利">
+          title="🎉 Vmail & NBility 联动福利">
           <div className="space-y-4 text-gray-200">
             {/* 主标题 */}
             <div className="text-center">
@@ -420,9 +420,7 @@ export function Home() {
                   <span className="text-purple-400">export</span>{" "}
                   <span className="text-cyan-400">ANTHROPIC_BASE_URL</span>
                   <span className="text-white">=</span>
-                  <span className="text-green-400">
-                    "https://www.aicentos.com"
-                  </span>
+                  <span className="text-green-400">"https://nbility.dev"</span>
                 </div>
                 <div>
                   <span className="text-purple-400">export</span>{" "}
@@ -441,7 +439,7 @@ export function Home() {
             {/* CTA 按钮 - 更紧凑 */}
             <div className="pt-1">
               <a
-                href="https://www.aicentos.com/register?aff=Dptp"
+                href="https://nbility.dev/register?aff=Dptp"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block w-full text-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-bold text-white shadow-lg shadow-cyan-500/50 hover:shadow-cyan-500/70 hover:scale-[1.02] transition-all duration-200">
@@ -465,7 +463,7 @@ export function Home() {
               type="button"
               onClick={() => setShowPromoModal(true)}
               className="mb-6 text-left text-sm text-cyan-400 hover:text-cyan-300 transition-colors underline underline-offset-4 decoration-cyan-500/60">
-              Vmail & AICentOS 联动注册送 Claude Code、Codex 免费额度
+              Vmail & NBility 联动注册送 Claude Code、Codex 免费额度
             </button>
           )}
           <div className="flex flex-col gap-4 text-sm text-gray-200">
