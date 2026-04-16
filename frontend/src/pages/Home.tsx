@@ -391,6 +391,10 @@ export function Home() {
                 </li>
                 <li className="flex items-start gap-1.5">
                   <span className="text-green-400 mt-0.5">✓</span>
+                  <span>两种付费模式，按次、按量计费灵活选择</span>
+                </li>
+                <li className="flex items-start gap-1.5">
+                  <span className="text-green-400 mt-0.5">✓</span>
                   <span>支持 Claude、Codex 等多模型灵活切换</span>
                 </li>
                 <li className="flex items-start gap-1.5">
@@ -434,6 +438,62 @@ export function Home() {
                   <span className="text-white">claude</span>
                 </div>
               </div>
+            </div>
+
+            {/* 按次套餐展示 */}
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
+                <span className="text-cyan-400">💰</span> 热门按次套餐
+              </h3>
+              <div className="grid grid-cols-3 gap-2">
+                {/* Claude Nano Day */}
+                <div className="bg-slate-700/50 rounded-lg p-2.5 text-center border border-slate-600/50 hover:border-cyan-500/50 transition-colors">
+                  <div className="text-[10px] text-gray-400 mb-1">体验</div>
+                  <div className="text-sm font-bold text-white">¥6</div>
+                  <div className="text-[10px] text-cyan-400 mt-0.5">
+                    100次/天
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-0.5">日卡</div>
+                </div>
+                {/* Claude Mini Plus */}
+                <div className="bg-slate-700/50 rounded-lg p-2.5 text-center border border-cyan-500/50 relative">
+                  <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 bg-cyan-500 text-[8px] text-white px-1.5 py-0.5 rounded-full font-semibold">
+                    推荐
+                  </div>
+                  <div className="text-[10px] text-gray-400 mb-1">入门</div>
+                  <div className="text-sm font-bold text-white">
+                    <span className="line-through text-gray-500 text-[10px]">
+                      ¥796
+                    </span>{" "}
+                    ¥398
+                  </div>
+                  <div className="text-[10px] text-cyan-400 mt-0.5">
+                    1000次/天
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-0.5">
+                    月付·5折
+                  </div>
+                </div>
+                {/* Claude Premium */}
+                <div className="bg-slate-700/50 rounded-lg p-2.5 text-center border border-slate-600/50 hover:border-cyan-500/50 transition-colors">
+                  <div className="text-[10px] text-gray-400 mb-1">旗舰</div>
+                  <div className="text-sm font-bold text-white">
+                    <span className="line-through text-gray-500 text-[10px]">
+                      ¥1598
+                    </span>{" "}
+                    ¥799
+                  </div>
+                  <div className="text-[10px] text-cyan-400 mt-0.5">
+                    3000次/天
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-0.5">
+                    月付·5折
+                  </div>
+                </div>
+              </div>
+              <p className="text-[10px] text-gray-500 text-center">
+                支持 Claude Opus 4.6 / Sonnet 4.6 等全系模型
+              </p>
             </div>
 
             {/* CTA 按钮 - 更紧凑 */}
