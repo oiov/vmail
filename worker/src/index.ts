@@ -11,6 +11,7 @@ import PostalMime from 'postal-mime';
 import { decrypt } from './utils';
 // 导入 v1 API
 import v1Api from './api/v1';
+import { isOpenApiEnabled, requireOpenApi } from './openapi';
 
 
 // 定义 Cloudflare 绑定和环境变量的类型
@@ -26,6 +27,7 @@ export interface Env {
   PASSWORD?: string;
   API_RATE_LIMIT_PER_MINUTE?: string;
   SHOW_AFF?: string;
+  ENABLE_OPENAPI?: string;
 }
 
 // 初始化 Hono 应用
@@ -169,7 +171,7 @@ function generateApiKey(): string {
 }
 
 // 创建 API Key 接口（需要 Turnstile 验证）
-api.post('/api-keys', turnstile, async (c) => {
+api.post('/api-keys', requireOpenApi, turnstile, async (c) => {
   const db = getD1DB(c.env.DB);
   const body = c.get('parsedBody') as { name?: string };
 
@@ -326,6 +328,7 @@ app.get('/config', (c) => {
   // feat: 将 emailDomain 拆分为数组以支持多域名
   const emailDomain = c.env.EMAIL_DOMAIN ? c.env.EMAIL_DOMAIN.split(',').map(d => d.trim()) : [];
   const turnstileEnabled = isTurnstileEnabled(c.env);
+  const openApiEnabled = isOpenApiEnabled(c.env);
 
   return c.json({
     emailDomain: emailDomain, // 返回域名数组
@@ -334,6 +337,7 @@ app.get('/config', (c) => {
     cookiesSecret: c.env.COOKIES_SECRET,
     sitePasswordEnabled: Boolean(c.env.PASSWORD),
     apiRateLimitPerMinute: parseRateLimitPerMinute(c.env),
+    openApiEnabled,
     showAff: c.env.SHOW_AFF === 'true',
   });
 });

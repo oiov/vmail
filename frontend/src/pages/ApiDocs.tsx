@@ -253,6 +253,11 @@ API requests are rate limited based on your API Key configuration. Default limit
 
   // 创建 API Key
   const handleCreateApiKey = async () => {
+    if (!config.openApiEnabled) {
+      toast.error("API access is currently disabled");
+      return;
+    }
+
     if (!turnstileToken) {
       toast.error(t("Please complete the verification first"));
       return;
@@ -474,6 +479,11 @@ API requests are rate limited based on your API Key configuration. Default limit
               Vmail & NBility 联动注册送 Claude Code、Codex 免费额度
             </button>
           )}
+          {!config.openApiEnabled && (
+            <div className="mt-4 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+              当前管理员已禁用 API 访问，若有需要请自行部署。
+            </div>
+          )}
         </div>
 
         {/* Get API Key Section */}
@@ -539,6 +549,11 @@ API requests are rate limited based on your API Key configuration. Default limit
                     "Create a free API Key to access the API. Each key has a rate limit of 100 requests per minute.",
                   )}
                 </p>
+                {!config.openApiEnabled && (
+                  <p className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+                    当前实例已关闭 API 调用与 API Key 创建功能。
+                  </p>
+                )}
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm text-gray-400 mb-2">
@@ -566,7 +581,7 @@ API requests are rate limited based on your API Key configuration. Default limit
                   </div>
                   <button
                     onClick={handleCreateApiKey}
-                    disabled={!turnstileToken || isCreating}
+                    disabled={!config.openApiEnabled || !turnstileToken || isCreating}
                     className="px-6 py-2.5 bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-medium transition-colors">
                     {isCreating ? t("Creating...") : t("Create API Key")}
                   </button>

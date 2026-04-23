@@ -80,6 +80,7 @@
 -   `PASSWORD`: 站点访问密码（可选）。
 -   `API_RATE_LIMIT_PER_MINUTE`: API 每分钟请求限制（可选，默认 100）。
 -   `SHOW_AFF`: 是否展示推广弹框和常驻推广链接（可选，`true` 开启，默认不展示）。
+-   `ENABLE_OPENAPI`: 是否开启 OpenAPI 调用功能（可选，默认开启；设置为 `false` 时禁用 API Key 创建与 `/api/v1/*` 调用）。
 
 ## 🔨 本地运行调试
 

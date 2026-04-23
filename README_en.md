@@ -133,6 +133,7 @@ When deploying to Cloudflare Pages, you need to configure the following environm
 -   `PASSWORD`: Site access password (optional).
 -   `API_RATE_LIMIT_PER_MINUTE`: API rate limit per minute (optional, default 100).
 -   `SHOW_AFF`: Show promotional popup and link (optional, `true` to enable, hidden by default).
+-   `ENABLE_OPENAPI`: Whether to enable OpenAPI access (optional, enabled by default; set to `false` to disable API key creation and `/api/v1/*` access).
 
 ## Community Group
 
