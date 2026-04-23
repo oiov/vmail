@@ -24,6 +24,7 @@
 | `TURNSTILE_SECRET` | 可选，Cloudflare Turnstile 密钥 (Secret Key)。                                                           | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`       |
 | `PASSWORD`         | 可选，用于访问 Vmail 网站的密码。                                                                    | `password`                             |
 | `API_RATE_LIMIT_PER_MINUTE` | 可选，API 每分钟请求限制，默认为 `100`。                                                        | `100`                                  |
+| `ENABLE_OPENAPI`   | 可选，是否开启 OpenAPI 调用功能；默认为开启，设置为 `false` 时禁用 API Key 创建和 `/api/v1/*`。     | `false`                                |
 
 ## 触发自动部署
 
