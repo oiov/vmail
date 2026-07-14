@@ -6,7 +6,7 @@
   <p>使用 Cloudflare Email Worker 实现的临时电子邮件服务</p>
 </div>
 
-> 🌟 推荐 **Claude Code** 稳定 API 渠道：[nbility.ai](https://nbility.ai/register?aff=Dptp) ，支持 claude-opus-4-6 等主流 AI Coding 大模型🥳
+> 🌟 推荐 **Claude Code** 稳定 API 渠道：[Nbility AI Gateway](https://nbility.ai/auth/register?aff=Dptp) ，支持 Claude Fable 5、GPT 5.6 等主流 AI Coding 大模型
 
 ## 🌈 特点
 
