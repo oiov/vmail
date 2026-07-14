@@ -40,6 +40,8 @@ import { InfoModal } from "../components/InfoModal.tsx";
 import { MailDetail } from "./MailDetail.tsx";
 // feat: 导入倒计时组件
 import { CountdownTimer } from "../components/CountdownTimer.tsx";
+// feat: 导入发件弹窗
+import { useSenderModal } from "../components/sender.tsx";
 
 export function Home() {
   const config = useConfig();
@@ -75,6 +77,9 @@ export function Home() {
   // feat: 初始化密码模态框
   const { PasswordModal, setShowPasswordModal } = usePasswordModal();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // feat: 初始化发件弹窗
+  const { SenderModal, setShowSenderModal } = useSenderModal(address || "");
 
   // feat: 新增状态，用于跟踪当前邮箱地址是否曾经收到过邮件
   const [hasReceivedEmail, setHasReceivedEmail] = useState(false);
@@ -352,6 +357,7 @@ export function Home() {
   return (
     <div className="h-full flex flex-col gap-4 md:flex-row justify-center items-start mt-24 mx-6 md:mx-10">
       <PasswordModal onLogin={handleLogin} isLoggingIn={isLoggingIn} />
+      <SenderModal />
       {selectedEmail && (
         <InfoModal
           showModal={showEmailModal}
@@ -646,6 +652,7 @@ export function Home() {
           selectedEmail={selectedEmail}
           onCloseDetail={handleCloseDetail}
           onExpand={handleExpandEmail} // feat: 传递展开邮件的回调
+          onOpenSender={() => setShowSenderModal(true)} // 打开发件弹窗
         />
       </div>
     </div>

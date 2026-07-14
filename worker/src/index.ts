@@ -25,6 +25,9 @@ export interface Env {
   TURNSTILE_KEY: string;
   TURNSTILE_SECRET: string;
   PASSWORD?: string;
+  RESEND_API_KEY?: string;
+  MAILCHANNELS_API_KEY?: string;
+  SENDER_EMAIL?: string;
   API_RATE_LIMIT_PER_MINUTE?: string;
   SHOW_AFF?: string;
   ENABLE_OPENAPI?: string;
@@ -158,6 +161,169 @@ api.post('/verify', turnstile, async (c) => {
   await incrementAddressesCreated(db);
   await incrementDailyAddressesCreated(db);
   return c.json({ success: true });
+});
+
+// Resend 邮件发送接口
+api.post('/send', async (c) => {
+  if (!c.env.RESEND_API_KEY) {
+    return c.json({ message: '邮件发送服务未配置' }, 503);
+  }
+
+  let body: any;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ message: '错误的请求：请求体无效或为空。' }, 400);
+  }
+
+  const { senderEmail, senderName, receiverEmail, subject, content, type } = body;
+
+  if (!senderEmail || !receiverEmail || !subject || !content) {
+    return c.json({ message: '缺少必要参数：senderEmail, receiverEmail, subject, content' }, 400);
+  }
+
+  const proxyEmail = c.env.SENDER_EMAIL;
+  let from: string;
+
+  if (proxyEmail) {
+    const displayName = senderName
+      ? `${senderName} (由 ${proxyEmail} 代发)`
+      : `${senderEmail} (由 ${proxyEmail} 代发)`;
+    from = `${displayName} <${proxyEmail}>`;
+  } else {
+    from = senderName
+      ? `${senderName} <${senderEmail}>`
+      : senderEmail;
+  }
+
+  const emailPayload: Record<string, unknown> = {
+    from,
+    to: [receiverEmail],
+    subject,
+  };
+
+  if (proxyEmail) {
+    emailPayload.reply_to = senderEmail;
+  }
+
+  if (type === 'text/html') {
+    if (proxyEmail) {
+      emailPayload.html = `${content}<hr style="border:0;border-top:1px solid #e0e0e0;margin-top:24px"/><p style="font-size:12px;color:#999;">真实发件人：${senderName ? `${senderName} &lt;${senderEmail}&gt;` : senderEmail}</p>`;
+    } else {
+      emailPayload.html = content;
+    }
+  } else {
+    if (proxyEmail) {
+      emailPayload.text = `${content}\n\n--\n真实发件人：${senderName ? `${senderName} <${senderEmail}>` : senderEmail}`;
+    } else {
+      emailPayload.text = content;
+    }
+  }
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${c.env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(emailPayload),
+    });
+
+    const data = await res.json() as any;
+
+    if (!res.ok) {
+      console.error('Resend 发送失败:', data);
+      return c.json({ message: data?.message || '邮件发送失败' }, res.status);
+    }
+
+    return c.json({ success: true, data });
+  } catch (e: any) {
+    console.error('Resend 请求异常:', e);
+    return c.json({ message: '邮件发送服务异常' }, 500);
+  }
+});
+
+// MailChannels 邮件发送接口
+api.post('/send-mailchannels', async (c) => {
+  if (!c.env.MAILCHANNELS_API_KEY) {
+    return c.json({ message: 'MailChannels 邮件发送服务未配置' }, 503);
+  }
+
+  let body: any;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ message: '错误的请求：请求体无效或为空。' }, 400);
+  }
+
+  const { senderEmail, senderName, receiverEmail, subject, content, type } = body;
+
+  if (!senderEmail || !receiverEmail || !subject || !content) {
+    return c.json({ message: '缺少必要参数：senderEmail, receiverEmail, subject, content' }, 400);
+  }
+
+  const proxyEmail = c.env.SENDER_EMAIL;
+  const fromEmail = proxyEmail || senderEmail;
+  const fromName = senderName
+    ? (proxyEmail ? `${senderName} (由 ${proxyEmail} 代发)` : senderName)
+    : fromEmail;
+
+  const contentType = type === 'text/html' ? 'text/html' : 'text/plain';
+  const footerLine = senderName
+    ? `真实发件人：${senderName} <${senderEmail}>`
+    : `真实发件人：${senderEmail}`;
+
+  let bodyContent = content;
+  if (proxyEmail) {
+    if (contentType === 'text/html') {
+      bodyContent = `${content}<hr style="border:0;border-top:1px solid #e0e0e0;margin-top:24px"/><p style="font-size:12px;color:#999;">${footerLine.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
+    } else {
+      bodyContent = `${content}\n\n--\n${footerLine}`;
+    }
+  }
+
+  const emailPayload: Record<string, unknown> = {
+    personalizations: [
+      {
+        to: [{ email: receiverEmail }],
+      },
+    ],
+    from: {
+      email: fromEmail,
+      name: fromName,
+    },
+    ...(proxyEmail ? { reply_to: { email: senderEmail } } : {}),
+    subject,
+    content: [
+      {
+        type: contentType,
+        value: bodyContent,
+      },
+    ],
+  };
+
+  try {
+    const res = await fetch('https://api.mailchannels.net/tx/v1/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': c.env.MAILCHANNELS_API_KEY,
+      },
+      body: JSON.stringify(emailPayload),
+    });
+
+    if (res.status === 202 || res.ok) {
+      return c.json({ success: true });
+    }
+
+    const data = await res.text();
+    console.error('MailChannels 发送失败:', data);
+    return c.json({ message: data || '邮件发送失败' }, res.status);
+  } catch (e: any) {
+    console.error('MailChannels 请求异常:', e);
+    return c.json({ message: '邮件发送服务异常' }, 500);
+  }
 });
 
 // 生成 API Key 的函数
@@ -330,6 +496,15 @@ app.get('/config', (c) => {
   const turnstileEnabled = isTurnstileEnabled(c.env);
   const openApiEnabled = isOpenApiEnabled(c.env);
 
+  // 收集可用的邮件发送渠道
+  const enabledSenders: string[] = [];
+  if (c.env.RESEND_API_KEY) {
+    enabledSenders.push('resend');
+  }
+  if (c.env.MAILCHANNELS_API_KEY) {
+    enabledSenders.push('mailchannels');
+  }
+
   return c.json({
     emailDomain: emailDomain, // 返回域名数组
     turnstileKey: c.env.TURNSTILE_KEY,
@@ -339,6 +514,8 @@ app.get('/config', (c) => {
     apiRateLimitPerMinute: parseRateLimitPerMinute(c.env),
     openApiEnabled,
     showAff: c.env.SHOW_AFF === 'true',
+    enabledSenders,
+    senderEmail: c.env.SENDER_EMAIL || '',
   });
 });
 

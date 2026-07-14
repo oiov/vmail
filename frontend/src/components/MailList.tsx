@@ -49,6 +49,7 @@ interface MailListProps {
   selectedEmail: Email | null;
   onCloseDetail: () => void;
   onExpand: () => void; // feat: 新增 onExpand 回调
+  onOpenSender: () => void; // 打开发件弹窗
 }
 
 export function MailList({
@@ -67,6 +68,7 @@ export function MailList({
   selectedEmail,
   onCloseDetail,
   onExpand,
+  onOpenSender,
 }: MailListProps) {
   const { t, i18n } = useTranslation();
 
@@ -213,6 +215,16 @@ export function MailList({
                   title={t("View password")}
                   onClick={onShowPassword}>
                   <PasswordIcon className="w-5 h-5" />
+                </button>
+              )}
+              {isAddressCreated && (
+                <button
+                  className="p-1 rounded text-cyan-400 hover:text-cyan-300"
+                  title={t("Send email")}
+                  onClick={onOpenSender}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
                 </button>
               )}
               {isAddressCreated && emails.length > 0 && (

@@ -24,7 +24,7 @@
 - Email worker 接收电子邮件
 - 前端 (Vite + React) 显示电子邮件
 - 邮件存储 (Cloudflare D1)
-- 发信使用 MailChannels API
+- 发信使用 Resend API / MailChannels API
 
 ## 👋 自部署教程
 
@@ -81,7 +81,9 @@
 -   `TURNSTILE_SECRET`: 您的 Turnstile 密钥，可选。
 -   `PASSWORD`: 站点访问密码（可选）。
 -   `API_RATE_LIMIT_PER_MINUTE`: API 每分钟请求限制（可选，默认 100）。
--   `SHOW_AFF`: 是否展示推广弹框和常驻推广链接（可选，`true` 开启，默认不展示）。
+-   `RESEND_API_KEY`: Resend API 密钥，用于发送邮件（可选，不配置则发信功能不可用）。
+-   `MAILCHANNELS_API_KEY`: MailChannels API 密钥，用于发送邮件（可选，与 Resend 可同时配置，前端会自动展示渠道选择）。
+-   `SENDER_EMAIL`: 发件邮箱地址（可选，需为 Resend 已验证域名上的邮箱）。配置后将以该邮箱代发，收件人看到 "发送者 (由 xxx 代发)"，且回复会回到原始发件邮箱；不配置则直接使用用户邮箱直发。详见 [Resend 域名验证](https://resend.com/domains)。
 -   `ENABLE_OPENAPI`: 是否开启 OpenAPI 调用功能（可选，默认开启；设置为 `false` 时禁用 API Key 创建与 `/api/v1/*` 调用）。
 
 ## 🔨 本地运行调试

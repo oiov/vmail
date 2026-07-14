@@ -12,6 +12,10 @@ export interface AppConfig {
   cookiesSecret: string;
   // feat: 控制是否展示推广弹框和常驻链接
   showAff: boolean;
+  // 可用的邮件发送渠道列表，如 ['resend', 'mailchannels']
+  enabledSenders: string[];
+  // 后端配置的发件邮箱（Resend 验证过的域名邮箱）
+  senderEmail: string;
 }
 
 // 创建 React Context
