@@ -580,6 +580,11 @@ export function Home() {
               className="py-2.5 rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500">
               {t("Stop")}
             </button>
+            <button
+              onClick={() => setShowSenderModal(true)}
+              className="py-2.5 mt-2 rounded-md w-full bg-emerald-600 hover:opacity-90">
+              {t("Send email")}
+            </button>
           </div>
         ) : (
           <div className="w-full md:max-w-[350px]">
