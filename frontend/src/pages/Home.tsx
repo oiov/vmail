@@ -424,7 +424,9 @@ export function Home() {
                   <span className="text-purple-400">export</span>{" "}
                   <span className="text-cyan-400">ANTHROPIC_BASE_URL</span>
                   <span className="text-white">=</span>
-                  <span className="text-green-400">"https://nbility.dev"</span>
+                  <span className="text-green-400">
+                    "https://api.nbility.ai"
+                  </span>
                 </div>
                 <div>
                   <span className="text-purple-400">export</span>{" "}
@@ -499,7 +501,7 @@ export function Home() {
             {/* CTA 按钮 - 更紧凑 */}
             <div className="pt-1">
               <a
-                href="https://nbility.dev/register?aff=Dptp"
+                href="https://nbility.ai/register?aff=Dptp"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block w-full text-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-bold text-white shadow-lg shadow-cyan-500/50 hover:shadow-cyan-500/70 hover:scale-[1.02] transition-all duration-200">

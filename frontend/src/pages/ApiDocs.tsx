@@ -354,7 +354,7 @@ API requests are rate limited based on your API Key configuration. Default limit
                   <span className="text-purple-400">export</span>{" "}
                   <span className="text-cyan-400">ANTHROPIC_BASE_URL</span>
                   <span className="text-white">=</span>
-                  <span className="text-green-400">"https://nbility.dev"</span>
+                  <span className="text-green-400">"https://nbility.ai"</span>
                 </div>
                 <div>
                   <span className="text-purple-400">export</span>{" "}
@@ -427,7 +427,7 @@ API requests are rate limited based on your API Key configuration. Default limit
 
             <div className="pt-1">
               <a
-                href="https://nbility.dev/register?aff=Dptp"
+                href="https://nbility.ai/register?aff=Dptp"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block w-full text-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-bold text-white shadow-lg shadow-cyan-500/50 hover:shadow-cyan-500/70 hover:scale-[1.02] transition-all duration-200">
@@ -581,7 +581,9 @@ API requests are rate limited based on your API Key configuration. Default limit
                   </div>
                   <button
                     onClick={handleCreateApiKey}
-                    disabled={!config.openApiEnabled || !turnstileToken || isCreating}
+                    disabled={
+                      !config.openApiEnabled || !turnstileToken || isCreating
+                    }
                     className="px-6 py-2.5 bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-medium transition-colors">
                     {isCreating ? t("Creating...") : t("Create API Key")}
                   </button>
