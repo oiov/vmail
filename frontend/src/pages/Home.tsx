@@ -501,7 +501,7 @@ export function Home() {
             {/* CTA 按钮 - 更紧凑 */}
             <div className="pt-1">
               <a
-                href="https://nbility.ai/register?aff=Dptp"
+                href="https://nbility.ai/auth/register?aff=Dptp"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block w-full text-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-bold text-white shadow-lg shadow-cyan-500/50 hover:shadow-cyan-500/70 hover:scale-[1.02] transition-all duration-200">
