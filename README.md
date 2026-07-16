@@ -6,9 +6,9 @@
   <p>使用 Cloudflare Email Worker 实现的临时电子邮件服务</p>
 </div>
 
-<a href="https://nbility.dev/register?aff=Dptp"><img align="center" width="50%" alt="og-banner" src="https://github.com/user-attachments/assets/b338bfca-71ed-447a-bde5-18e5677cb8dc" /></a>
+<a href="https://nbility.ai/auth/register?aff=Dptp"><img align="center" width="50%" alt="og-banner" src="https://github.com/user-attachments/assets/b338bfca-71ed-447a-bde5-18e5677cb8dc" /></a>
 
-> 🌟 推荐 **Claude Code** 稳定 API 渠道：[nbility.dev](https://nbility.dev/register?aff=Dptp) ，支持 claude-opus-4-6 等主流 AI Coding 大模型🥳
+> 🌟 推荐 **Claude Code** 稳定 API 渠道：[nbility.ai](https://nbility.ai/auth/register?aff=Dptp) ，支持 claude-opus-4-6 等主流 AI Coding 大模型🥳
 
 ## 🌈 特点
 
@@ -24,16 +24,16 @@
 - Email worker 接收电子邮件
 - 前端 (Vite + React) 显示电子邮件
 - 邮件存储 (Cloudflare D1)
--   发信使用 Resend API / MailChannels API / Cloudflare 原生发件
+- 发信使用 Resend API、MailChannels API 或 Cloudflare 原生发件
 
 ## 👋 自部署教程
 
-本项目已完全基于 Cloudflare Pages 和 Cloudflare D1 构建，大大简化了部署流程。您只需要一个托管在 Cloudflare 上的域名即可。
+本项目基于 Cloudflare Workers 和 Cloudflare D1 构建。您只需要一个托管在 Cloudflare 上的域名即可。
 
 ### 准备工作
 
 - [Cloudflare](https://dash.cloudflare.com/) 账户与托管在 Cloudflare 上的域名
-- 本地安装 [Node.js](https://nodejs.org) 环境 (版本 >= 18.x) 和 [pnpm](https://pnpm.io/installation)
+- 本地安装 [Node.js](https://nodejs.org) 环境（版本 >= 22.x）和 [pnpm](https://pnpm.io/installation)
 
 ### 自动部署 (推荐)
 
@@ -60,7 +60,7 @@
     ```bash
     # 构建前端应用
     pnpm run build
-    
+
     # 部署到 Cloudflare
     pnpm run deploy
     ```
@@ -71,21 +71,35 @@
 
 ### 环境变量
 
-在部署到 Cloudflare Pages 时，您需要配置以下环境变量：
+通过 GitHub Actions 部署到 Cloudflare Workers 时，您需要配置以下环境变量：
 
--   `DATABASE_NAME`: 您的 D1 数据库名称。
--   `DATABASE_ID`: 您的 D1 数据库 ID。
+-   `D1_DATABASE_NAME`: 您的 D1 数据库名称。
+-   `D1_DATABASE_ID`: 您的 D1 数据库 ID。
 -   `COOKIES_SECRET`: 用于签名 Cookie 的密钥。
 -   `EMAIL_DOMAIN`: 您的邮箱域名，例如 `example.com,example.net`。
 -   `TURNSTILE_KEY`: 您的 Turnstile 站点密钥，可选。
 -   `TURNSTILE_SECRET`: 您的 Turnstile 密钥，可选。
 -   `PASSWORD`: 站点访问密码（可选）。
 -   `API_RATE_LIMIT_PER_MINUTE`: API 每分钟请求限制（可选，默认 100）。
--   `RESEND_API_KEY`: Resend API 密钥，用于发送邮件（需配合 `SEND_CHANNEL=resend` 使用，发件渠道统一由 `SEND_CHANNEL` 控制）。
--   `MAILCHANNELS_API_KEY`: MailChannels API 密钥，用于发送邮件（需配合 `SEND_CHANNEL=mailchannels` 使用）。
--   `SEND_CHANNEL`: 指定发件渠道，可选值：`resend`（Resend API）、`mailchannels`（MailChannels API）、`send_email`（Cloudflare 原生邮件发送，需搭配 `[[send_email]]` 绑定）。不配置则前端不显示发件按钮。
--   `SENDER_EMAIL`: 发件邮箱地址（可选，需为 Resend 已验证域名上的邮箱）。配置后将以该邮箱代发，收件人看到 "发送者 (由 xxx 代发)"，且回复会回到原始发件邮箱；不配置则直接使用用户邮箱直发。详见 [Resend 域名验证](https://resend.com/domains)。
--   `ENABLE_OPENAPI`: 是否开启 OpenAPI 调用功能（可选，默认开启；设置为 `false` 时禁用 API Key 创建与 `/api/v1/*` 调用）。
+-   `SEND_CHANNEL`: 发件渠道，可选 `resend`、`mailchannels`、`cloudflare`；不配置时隐藏发信功能。旧值 `send_email` 仍兼容，但已弃用。
+-   `SENDER_EMAIL`: 固定的发件地址，必须是服务商允许或已验证的地址；临时邮箱仅作为 `Reply-To`。
+-   `MAILBOX_TOKEN_SECRET`: 邮箱发信授权令牌的签名密钥，启用发信时必填，并应通过 Wrangler secret 配置。
+-   `RESEND_API_KEY`: Resend API 密钥，仅 `SEND_CHANNEL=resend` 时需要，通过 Wrangler secret 配置。
+-   `MAILCHANNELS_API_KEY`: MailChannels API 密钥，仅 `SEND_CHANNEL=mailchannels` 时需要，通过 Wrangler secret 配置。
+-   `SEND_RATE_LIMIT_PER_MINUTE`: 每个邮箱每分钟最大发信数（可选，默认 3）。
+-   `SEND_IP_RATE_LIMIT_PER_MINUTE`: 每个 IP 每分钟最大发信数（可选，默认 10）。
+-   `SHOW_AFF`: 是否显示推广弹窗和链接（可选，设置为 `true` 开启）。
+-   `ENABLE_OPENAPI`: 是否开启 OpenAPI 调用功能（可选，默认 `false`；只有显式设置为 `true` 时才允许创建 API Key 和访问 `/api/v1/*`）。
+
+发信密钥不要写入 `wrangler.toml`，请使用：
+
+```bash
+pnpm exec wrangler secret put MAILBOX_TOKEN_SECRET
+pnpm exec wrangler secret put RESEND_API_KEY       # Resend 时
+pnpm exec wrangler secret put MAILCHANNELS_API_KEY # MailChannels 时
+```
+
+使用 Cloudflare Worker 原生发信时，将 `SEND_CHANNEL` 设置为 `cloudflare`，并配置 `SENDER_EMAIL` 和 `MAILBOX_TOKEN_SECRET`；不需要 `RESEND_API_KEY` 或 `MAILCHANNELS_API_KEY`。此外，需要在该域名上启用 Cloudflare Email Routing。`wrangler.toml` 中名为 `SEND_EMAIL` 的 `[[send_email]]` 绑定是 Cloudflare 固定配置，无需改名。
 
 ## 🔨 本地运行调试
 

@@ -13,10 +13,12 @@ import { useConfig } from "../hooks/useConfig";
 
 export default function SenderModal({
   senderEmail,
+  mailboxToken,
   showSenderModal,
   setShowSenderModal,
 }: {
   senderEmail: string;
+  mailboxToken: string;
   showSenderModal: boolean;
   setShowSenderModal: Dispatch<SetStateAction<boolean>>;
 }) {
@@ -24,56 +26,65 @@ export default function SenderModal({
   const config = useConfig();
   const [isSending, setIsSending] = useState(false);
 
-  const sendChannel = config.sendChannel || "";
-  const hasSender = sendChannel.length > 0;
-
-  const apiEndpoint =
-    sendChannel === "mailchannels" ? "/api/send-mailchannels" :
-    sendChannel === "send_email" ? "/api/send-cf" : "/api/send";
+  const hasSender = Boolean(
+    config.sendChannel && config.senderEmail && mailboxToken,
+  );
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSending(true);
+    const form = e.currentTarget;
 
-    const formData = new FormData(e.currentTarget);
+    const formData = new FormData(form);
     const payload = {
-      senderEmail: senderEmail,
       senderName: formData.get("senderName") as string,
       receiverEmail: formData.get("receiverEmail") as string,
       subject: formData.get("subject") as string,
       content: formData.get("content") as string,
-      type: formData.get("type") as string || "text/plain",
+      type: (formData.get("type") as string) || "text/plain",
     };
 
     try {
-      const res = await fetch(apiEndpoint, {
+      const res = await fetch("/api/send", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          Authorization: `Bearer ${mailboxToken}`,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      const data = (await res.json().catch(() => ({}))) as {
+        code?: string;
+        message?: string;
+      };
 
       if (!res.ok) {
-        throw new Error(data.message || "发送失败");
+        throw new Error(
+          data.code ? t(data.code) : data.message || t("Failed to send email"),
+        );
       }
 
+      form.reset();
       setShowSenderModal(false);
-      toast(t("Message sent"), {
+      toast.success(t("Message sent"), {
         style: {
           borderRadius: "8px",
           background: "#383838",
           color: "#ffffff",
         },
       });
-    } catch (error: any) {
-      toast.error(error.message || t("Failed to send email"), {
-        style: {
-          borderRadius: "8px",
-          background: "#383838",
-          color: "#ffffff",
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : t("Failed to send email"),
+        {
+          style: {
+            borderRadius: "8px",
+            background: "#383838",
+            color: "#ffffff",
+          },
         },
-      });
+      );
     } finally {
       setIsSending(false);
     }
@@ -91,15 +102,19 @@ export default function SenderModal({
           <h3 className="font-display text-2xl font-bold">Vmail Sender</h3>
           <p className="text-gray-500">{t("Forward only, no storage")}</p>
         </div>
-        <form onSubmit={handleSubmit} className="flex flex-col mt-4 space-y-4 px-4">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col mt-4 space-y-4 px-4"
+        >
           <div className="w-full flex flex-col gap-4 md:flex-row">
             <input
-              value={config.senderEmail || senderEmail}
+              value={config.senderEmail}
               type="email"
-              name="senderEmail"
+              name="fromEmail"
               placeholder={t("Sending email *")}
               required
               readOnly
+              title={`${t("Reply-To:")} ${senderEmail}`}
               className="rounded-md border border-slate-200 px-3 py-2 shadow-inner w-full bg-gray-100 cursor-not-allowed"
             />
             <input
@@ -130,9 +145,10 @@ export default function SenderModal({
           <div className="w-full">
             <select
               name="type"
-              className="rounded-md border border-slate-200 px-3 py-2 shadow-inner w-full">
-              <option value="text/html">HTML</option>
+              className="rounded-md border border-slate-200 px-3 py-2 shadow-inner w-full"
+            >
               <option value="text/plain">Plain</option>
+              <option value="text/html">HTML</option>
             </select>
           </div>
           <div className="w-full">
@@ -140,14 +156,16 @@ export default function SenderModal({
               name="content"
               placeholder={t("Email content *")}
               required
-              className="min-h-24 p-2 border border-slate-200 shadow-inner rounded-md w-full"></textarea>
+              className="min-h-24 p-2 border border-slate-200 shadow-inner rounded-md w-full"
+            ></textarea>
           </div>
 
           {hasSender && (
             <button
               type="submit"
               disabled={isSending}
-              className="py-2.5 text-white rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500">
+              className="py-2.5 text-white rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500"
+            >
               {isSending ? t("Sending...") : t("Send")}
             </button>
           )}
@@ -159,7 +177,7 @@ export default function SenderModal({
           <p className="text-sm text-gray-500 mt-4">
             🚫
             {t(
-              "Please do not send illegal content such as politics, pornography, etc"
+              "Please do not send illegal content such as politics, pornography, etc",
             )}
             .
           </p>
@@ -169,21 +187,22 @@ export default function SenderModal({
   );
 }
 
-export function useSenderModal(senderEmail: string) {
+export function useSenderModal(senderEmail: string, mailboxToken: string) {
   const [showSenderModal, setShowSenderModal] = useState(false);
 
   const SenderModalCallback = useCallback(() => {
     return (
       <SenderModal
         senderEmail={senderEmail}
+        mailboxToken={mailboxToken}
         showSenderModal={showSenderModal}
         setShowSenderModal={setShowSenderModal}
       />
     );
-  }, [showSenderModal, setShowSenderModal]);
+  }, [mailboxToken, senderEmail, showSenderModal]);
 
   return useMemo(
     () => ({ setShowSenderModal, SenderModal: SenderModalCallback }),
-    [setShowSenderModal, SenderModalCallback]
+    [setShowSenderModal, SenderModalCallback],
   );
 }

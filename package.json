@@ -2,10 +2,13 @@
   "name": "vmail",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@9.1.0",
   "description": "使用 Cloudflare email worker 实现的临时电子邮件服务",
   "scripts": {
     "build": "pnpm --filter frontend run build",
+    "test": "node --test worker/src/*.test.ts",
+    "typecheck": "pnpm --filter frontend run typecheck",
     "deploy": "pnpm build && wrangler deploy",
     "dev": "wrangler dev",
     "worker:dev": "pnpm --filter worker run dev",
@@ -19,10 +22,13 @@
   ],
   "author": "oiov",
   "license": "GPL-3.0-only",
+  "engines": {
+    "node": ">=22"
+  },
   "devDependencies": {
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.5.14",
-    "wrangler": "^3.114.15"
+    "wrangler": "^4.111.0"
   },
   "dependencies": {
     "@libsql/client": "0.4.0-pre.7",

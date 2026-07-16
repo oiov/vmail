@@ -16,6 +16,7 @@ import { MailDetail } from "../pages/MailDetail.tsx";
 import ArrowUturnLeft from "./icons/ArrowUturnLeft.tsx";
 import Expand from "./icons/Expand.tsx"; // feat: 导入 Expand 图标
 import { SiteStats } from "./SiteStats.tsx"; // feat: 导入 SiteStats 组件
+import SendIcon from "./icons/SendIcon.tsx";
 
 // 语言到 date-fns locale 的映射
 const localeMap: Record<string, Locale> = {
@@ -49,6 +50,7 @@ interface MailListProps {
   selectedEmail: Email | null;
   onCloseDetail: () => void;
   onExpand: () => void; // feat: 新增 onExpand 回调
+  canSendEmails: boolean;
   onOpenSender: () => void; // 打开发件弹窗
 }
 
@@ -68,6 +70,7 @@ export function MailList({
   selectedEmail,
   onCloseDetail,
   onExpand,
+  canSendEmails,
   onOpenSender,
 }: MailListProps) {
   const { t, i18n } = useTranslation();
@@ -217,14 +220,12 @@ export function MailList({
                   <PasswordIcon className="w-5 h-5" />
                 </button>
               )}
-              {isAddressCreated && (
+              {canSendEmails && (
                 <button
                   className="p-1 rounded text-cyan-400 hover:text-cyan-300"
                   title={t("Send email")}
                   onClick={onOpenSender}>
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                  </svg>
+                  <SendIcon className="w-5 h-5" />
                 </button>
               )}
               {isAddressCreated && emails.length > 0 && (
