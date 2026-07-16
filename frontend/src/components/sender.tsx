@@ -11,11 +11,6 @@ import Close from "./icons/Close";
 import toast from "react-hot-toast";
 import { useConfig } from "../hooks/useConfig";
 
-const SENDER_LABELS: Record<string, string> = {
-  resend: "Resend",
-  mailchannels: "MailChannels",
-};
-
 export default function SenderModal({
   senderEmail,
   showSenderModal,
@@ -29,12 +24,12 @@ export default function SenderModal({
   const config = useConfig();
   const [isSending, setIsSending] = useState(false);
 
-  const enabledSenders = config.enabledSenders || [];
-  const defaultSender = enabledSenders.length > 0 ? enabledSenders[0] : "";
-  const [senderMethod, setSenderMethod] = useState(defaultSender);
+  const sendChannel = config.sendChannel || "";
+  const hasSender = sendChannel.length > 0;
 
   const apiEndpoint =
-    senderMethod === "mailchannels" ? "/api/send-mailchannels" : "/api/send";
+    sendChannel === "mailchannels" ? "/api/send-mailchannels" :
+    sendChannel === "send_email" ? "/api/send-cf" : "/api/send";
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -132,21 +127,6 @@ export default function SenderModal({
             />
           </div>
 
-          {enabledSenders.length > 1 && (
-            <div className="w-full">
-              <select
-                value={senderMethod}
-                onChange={(e) => setSenderMethod(e.target.value)}
-                className="rounded-md border border-slate-200 px-3 py-2 shadow-inner w-full">
-                {enabledSenders.map((s) => (
-                  <option key={s} value={s}>
-                    {SENDER_LABELS[s] || s}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
           <div className="w-full">
             <select
               name="type"
@@ -163,16 +143,19 @@ export default function SenderModal({
               className="min-h-24 p-2 border border-slate-200 shadow-inner rounded-md w-full"></textarea>
           </div>
 
-          <button
-            type="submit"
-            disabled={isSending || enabledSenders.length === 0}
-            className="py-2.5 text-white rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500">
-            {enabledSenders.length === 0
-              ? t("No sending service configured")
-              : isSending
-                ? t("Sending...")
-                : t("Send")}
-          </button>
+          {hasSender && (
+            <button
+              type="submit"
+              disabled={isSending}
+              className="py-2.5 text-white rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500">
+              {isSending ? t("Sending...") : t("Send")}
+            </button>
+          )}
+          {!hasSender && (
+            <p className="py-2.5 text-center text-sm text-gray-400 rounded-md w-full border border-dashed border-gray-300">
+              {t("No sending service configured")}
+            </p>
+          )}
           <p className="text-sm text-gray-500 mt-4">
             🚫
             {t(

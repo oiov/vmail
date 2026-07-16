@@ -7,6 +7,8 @@ import { getD1DB } from './database/db';
 import { InsertEmail, insertEmailSchema } from './database/schema';
 import { nanoid } from 'nanoid/non-secure';
 import PostalMime from 'postal-mime';
+import { createMimeMessage } from 'mimetext/browser';
+import { EmailMessage } from 'cloudflare:email';
 // 导入加解密工具函数
 import { decrypt } from './utils';
 // 导入 v1 API
@@ -31,6 +33,8 @@ export interface Env {
   API_RATE_LIMIT_PER_MINUTE?: string;
   SHOW_AFF?: string;
   ENABLE_OPENAPI?: string;
+  SEND_CHANNEL?: string;
+  SEND_EMAIL: SendEmail;
 }
 
 // 初始化 Hono 应用
@@ -326,6 +330,73 @@ api.post('/send-mailchannels', async (c) => {
   }
 });
 
+// Cloudflare 原生邮件发送接口（send_email 绑定）
+api.post('/send-cf', async (c) => {
+  if (!c.env.SEND_EMAIL) {
+    return c.json({ message: 'Cloudflare 原生邮件发送服务未配置' }, 503);
+  }
+
+  let body: any;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ message: '错误的请求：请求体无效或为空。' }, 400);
+  }
+
+  const { senderEmail, senderName, receiverEmail, subject, content, type } = body;
+
+  if (!senderEmail || !receiverEmail || !subject || !content) {
+    return c.json({ message: '缺少必要参数：senderEmail, receiverEmail, subject, content' }, 400);
+  }
+
+  const proxyEmail = c.env.SENDER_EMAIL;
+  const fromAddress = proxyEmail || senderEmail;
+  const fromName = senderName
+    ? (proxyEmail ? `${senderName} (由 ${proxyEmail} 代发)` : senderName)
+    : fromAddress;
+
+  const contentType = type === 'text/html' ? 'text/html' : 'text/plain';
+  const footerLine = senderName
+    ? `真实发件人：${senderName} <${senderEmail}>`
+    : `真实发件人：${senderEmail}`;
+
+  let bodyContent = content;
+  // 代发模式：在邮件正文末尾追加真实发件人信息
+  let replyToAddr: string | undefined;
+  if (proxyEmail) {
+    replyToAddr = senderEmail;
+    if (contentType === 'text/html') {
+      bodyContent = `${content}<hr style="border:0;border-top:1px solid #e0e0e0;margin-top:24px"/><p style="font-size:12px;color:#999;">${footerLine.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`;
+    } else {
+      bodyContent = `${content}\n\n--\n${footerLine}`;
+    }
+  }
+
+  // 使用 mimetext 构建 MIME 邮件
+  const msg = createMimeMessage();
+  msg.setSender({ name: fromName, addr: fromAddress });
+  msg.setRecipient(receiverEmail);
+  msg.setSubject(subject);
+  if (replyToAddr) {
+    msg.setHeader('Reply-To', replyToAddr);
+  }
+
+  if (contentType === 'text/html') {
+    msg.addMessage({ contentType: 'text/html', data: bodyContent });
+  } else {
+    msg.addMessage({ contentType: 'text/plain', data: bodyContent });
+  }
+
+  try {
+    const message = new EmailMessage(fromAddress, receiverEmail, msg.asRaw());
+    await c.env.SEND_EMAIL.send(message);
+    return c.json({ success: true });
+  } catch (e: any) {
+    console.error('Cloudflare 原生邮件发送失败:', e);
+    return c.json({ message: e.message || '邮件发送失败' }, 500);
+  }
+});
+
 // 生成 API Key 的函数
 function generateApiKey(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -496,13 +567,10 @@ app.get('/config', (c) => {
   const turnstileEnabled = isTurnstileEnabled(c.env);
   const openApiEnabled = isOpenApiEnabled(c.env);
 
-  // 收集可用的邮件发送渠道
+  // 收集可用的邮件发送渠道（仅由 SEND_CHANNEL 控制，单一渠道）
   const enabledSenders: string[] = [];
-  if (c.env.RESEND_API_KEY) {
-    enabledSenders.push('resend');
-  }
-  if (c.env.MAILCHANNELS_API_KEY) {
-    enabledSenders.push('mailchannels');
+  if (c.env.SEND_CHANNEL) {
+    enabledSenders.push(c.env.SEND_CHANNEL);
   }
 
   return c.json({
@@ -515,6 +583,7 @@ app.get('/config', (c) => {
     openApiEnabled,
     showAff: c.env.SHOW_AFF === 'true',
     enabledSenders,
+    sendChannel: c.env.SEND_CHANNEL || '',
     senderEmail: c.env.SENDER_EMAIL || '',
   });
 });

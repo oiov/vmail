@@ -14,6 +14,8 @@ export interface AppConfig {
   showAff: boolean;
   // 可用的邮件发送渠道列表，如 ['resend', 'mailchannels']
   enabledSenders: string[];
+  // 当前启用的发件渠道，由 SEND_CHANNEL 环境变量决定
+  sendChannel: string;
   // 后端配置的发件邮箱（Resend 验证过的域名邮箱）
   senderEmail: string;
 }
