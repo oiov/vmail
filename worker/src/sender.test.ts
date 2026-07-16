@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildCloudflareMimeMessage,
   buildMailChannelsPayload,
   buildResendPayload,
   createMailboxToken,
@@ -152,6 +153,14 @@ test("provider payloads use the configured sender and authenticated reply-to", (
   ) as any;
   assert.equal(mailChannelsPayload.from.email, "verified@example.com");
   assert.equal(mailChannelsPayload.reply_to.email, "alice@example.com");
+
+  const cloudflareMime = buildCloudflareMimeMessage(
+    outgoingEmail,
+    "verified@example.com",
+  );
+  assert.match(cloudflareMime, /^From: .*<verified@example\.com>\r?$/m);
+  assert.match(cloudflareMime, /^Reply-To: <alice@example\.com>\r?$/m);
+  assert.match(cloudflareMime, /^To: <recipient@example\.net>\r?$/m);
 });
 
 test("HTML attribution escapes user-controlled sender metadata", () => {

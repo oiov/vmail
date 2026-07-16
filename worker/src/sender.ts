@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { createMimeMessage, Mailbox } from "mimetext/browser";
 
 export type SendChannel = "resend" | "mailchannels" | "cloudflare";
 
@@ -262,4 +263,24 @@ export function buildMailChannelsPayload(
       },
     ],
   };
+}
+
+export function buildCloudflareMimeMessage(
+  message: OutgoingEmail,
+  senderEmail: string,
+): string {
+  const mimeMessage = createMimeMessage();
+  mimeMessage.setSender({
+    name: getProviderSenderName(message),
+    addr: senderEmail,
+  });
+  mimeMessage.setRecipient(message.receiverEmail);
+  mimeMessage.setSubject(message.subject);
+  mimeMessage.setHeader("Reply-To", new Mailbox(message.replyTo));
+  mimeMessage.addMessage({
+    contentType: message.type,
+    data: appendSenderAttribution(message),
+  });
+
+  return mimeMessage.asRaw();
 }

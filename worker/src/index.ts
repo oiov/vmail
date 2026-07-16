@@ -7,7 +7,6 @@ import { getD1DB } from './database/db';
 import { InsertEmail, insertEmailSchema } from './database/schema';
 import { nanoid } from 'nanoid/non-secure';
 import PostalMime from 'postal-mime';
-import { createMimeMessage } from 'mimetext/browser';
 import { EmailMessage } from 'cloudflare:email';
 // 导入加解密工具函数
 import { decrypt } from './utils';
@@ -15,13 +14,12 @@ import { decrypt } from './utils';
 import v1Api from './api/v1';
 import { isOpenApiEnabled, requireOpenApi } from './openapi';
 import {
-  appendSenderAttribution,
+  buildCloudflareMimeMessage,
   buildMailChannelsPayload,
   buildResendPayload,
   createMailboxToken,
   getBearerToken,
   getConfiguredSendChannel,
-  getProviderSenderName,
   isAllowedMailboxAddress,
   sendRequestSchema,
   verifyMailboxToken,
@@ -314,23 +312,10 @@ api.post('/send', async (c) => {
         return c.json({ code: 'SEND_PROVIDER_ERROR', message: 'Email provider rejected the message' }, 502);
       }
     } else {
-      const message = createMimeMessage();
-      message.setSender({
-        name: getProviderSenderName(outgoingEmail),
-        addr: c.env.SENDER_EMAIL,
-      });
-      message.setRecipient(outgoingEmail.receiverEmail);
-      message.setSubject(outgoingEmail.subject);
-      message.setHeader('Reply-To', mailbox);
-      message.addMessage({
-        contentType: outgoingEmail.type,
-        data: appendSenderAttribution(outgoingEmail),
-      });
-
       const emailMessage = new EmailMessage(
         c.env.SENDER_EMAIL,
         outgoingEmail.receiverEmail,
-        message.asRaw(),
+        buildCloudflareMimeMessage(outgoingEmail, c.env.SENDER_EMAIL),
       );
       await c.env.SEND_EMAIL!.send(emailMessage);
     }
