@@ -6,12 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
   "dependencies": {
     "@marsidev/react-turnstile": "^1.3.1",
-    "@scaleway/random-name": "^4.0.2",
     "@tanstack/react-query": "^5.17.10",
     "axios": "^1.6.7",
     "clsx": "^2.1.0",

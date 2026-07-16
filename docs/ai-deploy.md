@@ -37,14 +37,14 @@
 - `TURNSTILE_SECRET`（可选）
 - `PASSWORD`（可选；为空时站点默认公开）
 - `API_RATE_LIMIT_PER_MINUTE`（可选；非法值或缺省回退到 `100`）
-- `ENABLE_OPENAPI`（可选；默认开启，设置为 `false` 时禁用 API Key 创建与 `/api/v1/*`）
+- `ENABLE_OPENAPI`（可选；默认关闭，只有显式设置为 `true` 时才允许创建 API Key 和访问 `/api/v1/*`）
 
 行为说明：
 
 - 当 `TURNSTILE_KEY` 和 `TURNSTILE_SECRET` 任一缺失时，前后端都进入“无需人机验证”模式。
 - 当 `PASSWORD` 为空时，前端不会出现站点解锁门禁；有值时需要先解锁站点。
 - `API_RATE_LIMIT_PER_MINUTE` 作用于 v1 API Key 中间件，按“每个 API Key、每分钟固定窗口”限流。
-- 当 `ENABLE_OPENAPI=false` 时，`/api/api-keys` 与 `/api/v1/*` 会统一返回 `403 OPENAPI_DISABLED`，`/api-docs` 页面仅展示提示。
+- 当 `ENABLE_OPENAPI` 未配置或不是 `true` 时，`/api/api-keys` 与 `/api/v1/*` 会统一返回 `403 OPENAPI_DISABLED`，`/api-docs` 页面仅展示提示。
 
 # 4. 数据库迁移与基础初始化
 
@@ -107,7 +107,7 @@
    - 使用同一 API Key 连续请求 v1 API
    - 超过阈值返回 `429`
    - 响应头包含：`X-RateLimit-Limit`、`X-RateLimit-Remaining`、`Retry-After`
-   - 若 `ENABLE_OPENAPI=false`：`/api/api-keys` 与 `/api/v1/*` 返回 `403`
+   - 若 `ENABLE_OPENAPI` 未配置或不是 `true`：`/api/api-keys` 与 `/api/v1/*` 返回 `403`
 6. 前端展示：
    - 首页 SiteStats 卡片显示增长率（today vs yesterday）
    - `/api-docs` 在 `openApiEnabled=false` 时展示禁用提示

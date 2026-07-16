@@ -24,7 +24,22 @@
 | `TURNSTILE_SECRET` | 可选，Cloudflare Turnstile 密钥 (Secret Key)。                                                           | `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`       |
 | `PASSWORD`         | 可选，用于访问 Vmail 网站的密码。                                                                    | `password`                             |
 | `API_RATE_LIMIT_PER_MINUTE` | 可选，API 每分钟请求限制，默认为 `100`。                                                        | `100`                                  |
-| `ENABLE_OPENAPI`   | 可选，是否开启 OpenAPI 调用功能；默认为开启，设置为 `false` 时禁用 API Key 创建和 `/api/v1/*`。     | `false`                                |
+| `ENABLE_OPENAPI`   | 可选，是否开启 OpenAPI；默认关闭，只有显式设置为 `true` 时才允许创建 API Key 和访问 `/api/v1/*`。   | `true`                                 |
+| `SEND_CHANNEL`     | 可选，发件渠道：`resend`、`mailchannels` 或 `cloudflare`；留空时不启用发信。旧值 `send_email` 仅用于兼容。 | `cloudflare`                            |
+| `SENDER_EMAIL`     | 启用发信时必填，服务商允许或已验证的固定发件地址。                                                   | `noreply@example.com`                  |
+| `MAILBOX_TOKEN_SECRET` | 启用发信时必填，用于签发邮箱发信授权的随机密钥。                                                 | `another-strong-random-secret`         |
+| `RESEND_API_KEY`   | `SEND_CHANNEL=resend` 时必填，工作流会将其写入 Cloudflare Worker secret。                              | `re_xxxxxxxxx`                         |
+| `MAILCHANNELS_API_KEY` | `SEND_CHANNEL=mailchannels` 时必填，工作流会将其写入 Cloudflare Worker secret。                    | `xxxxxxxx`                             |
+| `SEND_RATE_LIMIT_PER_MINUTE` | 可选，每个邮箱每分钟最大发信数，默认 `3`。                                                | `3`                                    |
+| `SEND_IP_RATE_LIMIT_PER_MINUTE` | 可选，每个 IP 每分钟最大发信数，默认 `10`。                                           | `10`                                   |
+
+使用 Cloudflare Worker 原生发信时，新增并设置以下 Secrets：
+
+- `SEND_CHANNEL=cloudflare`
+- `SENDER_EMAIL=<已允许发信的域名邮箱>`
+- `MAILBOX_TOKEN_SECRET=<足够长的随机字符串>`
+
+该渠道不需要 `RESEND_API_KEY` 或 `MAILCHANNELS_API_KEY`。部署前还需要在 Cloudflare 中为邮箱域名启用 Email Routing；仓库中的 `[[send_email]]` / `SEND_EMAIL` 是 Cloudflare 原生绑定名称，不需要修改。
 
 ## 触发自动部署
 

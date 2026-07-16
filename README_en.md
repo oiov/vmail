@@ -18,7 +18,7 @@ Principles：
 - Receiving emails (Cloudflare Email Worker)
 - Display email (Vite + React on Cloudflare Pages)
 - Mail Storage (Cloudflare D1)
-- Send email using MailChannels API
+- Send email using Resend, MailChannels, or Cloudflare native email
 
 ## 📖 API Documentation
 
@@ -61,12 +61,12 @@ Full documentation: [https://vmail.dev/api-docs](https://vmail.dev/api-docs)
 
 ## Self-hosted Tutorial
 
-This project is now fully based on Cloudflare Pages and Cloudflare D1, which greatly simplifies the deployment process. All you need is a domain name hosted on Cloudflare.
+This project is based on Cloudflare Workers and Cloudflare D1. All you need is a domain name hosted on Cloudflare.
 
 ### Requirements
 
 - [Cloudflare](https://dash.cloudflare.com/) account and a domain name hosted on Cloudflare
-- Local installation of [Node.js](https://nodejs.org) (version >= 18.x) and [pnpm](https://pnpm.io/installation)
+- Local installation of [Node.js](https://nodejs.org) (version >= 22.x) and [pnpm](https://pnpm.io/installation)
 
 ### Automatic Deployment (Recommended)
 
@@ -122,10 +122,10 @@ For detailed steps, please refer to the [GitHub Action Auto-Deployment Tutorial]
 
 ### Environment Variables
 
-When deploying to Cloudflare Pages, you need to configure the following environment variables:
+When deploying to Cloudflare Workers through GitHub Actions, configure the following environment variables:
 
--   `DATABASE_NAME`: Your D1 database name.
--   `DATABASE_ID`: Your D1 database ID.
+-   `D1_DATABASE_NAME`: Your D1 database name.
+-   `D1_DATABASE_ID`: Your D1 database ID.
 -   `COOKIES_SECRET`: A secret used to sign cookies.
 -   `EMAIL_DOMAIN`: Your email domain, e.g. `example.com,example.net`.
 -   `TURNSTILE_KEY`: Your Turnstile site key (optional).
@@ -133,7 +133,24 @@ When deploying to Cloudflare Pages, you need to configure the following environm
 -   `PASSWORD`: Site access password (optional).
 -   `API_RATE_LIMIT_PER_MINUTE`: API rate limit per minute (optional, default 100).
 -   `SHOW_AFF`: Show promotional popup and link (optional, `true` to enable, hidden by default).
--   `ENABLE_OPENAPI`: Whether to enable OpenAPI access (optional, enabled by default; set to `false` to disable API key creation and `/api/v1/*` access).
+-   `SEND_CHANNEL`: Sender provider: `resend`, `mailchannels`, or `cloudflare`. Leave unset to hide sending. The old `send_email` value remains compatible but is deprecated.
+-   `SENDER_EMAIL`: Fixed provider-approved sender address. The temporary mailbox is used only as `Reply-To`.
+-   `MAILBOX_TOKEN_SECRET`: Secret used to sign mailbox sending tokens. Required when sending is enabled.
+-   `RESEND_API_KEY`: Resend API key, required only for `SEND_CHANNEL=resend`.
+-   `MAILCHANNELS_API_KEY`: MailChannels API key, required only for `SEND_CHANNEL=mailchannels`.
+-   `SEND_RATE_LIMIT_PER_MINUTE`: Maximum sends per mailbox per minute (optional, default 3).
+-   `SEND_IP_RATE_LIMIT_PER_MINUTE`: Maximum sends per IP per minute (optional, default 10).
+-   `ENABLE_OPENAPI`: Whether to enable OpenAPI access (optional, defaults to `false`; only an explicit `true` enables API key creation and `/api/v1/*` access).
+
+Store sender credentials as Wrangler secrets rather than plaintext variables:
+
+```bash
+pnpm exec wrangler secret put MAILBOX_TOKEN_SECRET
+pnpm exec wrangler secret put RESEND_API_KEY       # Resend only
+pnpm exec wrangler secret put MAILCHANNELS_API_KEY # MailChannels only
+```
+
+For native Cloudflare Worker email sending, set `SEND_CHANNEL=cloudflare` and configure `SENDER_EMAIL` and `MAILBOX_TOKEN_SECRET`; neither `RESEND_API_KEY` nor `MAILCHANNELS_API_KEY` is needed. Cloudflare Email Routing must also be enabled for the domain. The `[[send_email]]` binding named `SEND_EMAIL` in `wrangler.toml` is Cloudflare-defined configuration and should not be renamed.
 
 ## Community Group
 

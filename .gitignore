@@ -9,3 +9,4 @@ fly.toml
 .worktrees
 .claude
 docs/superpowers
+frontend/build
