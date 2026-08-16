@@ -161,4 +161,4 @@ GNU General Public License v3.0
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=oiov/vmail&type=Date)](https://star-history.com/#oiov/vmail&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=oiov/vmail&type=Date)](https://star-history.dera.page/#oiov/vmail&Date)
