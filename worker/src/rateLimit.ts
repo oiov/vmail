@@ -63,9 +63,9 @@ export function createMemoryRateLimitStore(): RateLimitStore & { clear(): void; 
 }
 
 // 生产 Adapter 工厂: 将 D1 的 incrementAndGetApiRateWindowCount 包装为 RateLimitStore
-export function createDrizzleRateLimitStore(
-  db: unknown,
-  incrementFn: (db: unknown, key: string, windowStart: number) => Promise<number>,
+export function createDrizzleRateLimitStore<Db>(
+  db: Db,
+  incrementFn: (db: Db, key: string, windowStart: number) => Promise<number>,
 ): RateLimitStore {
   return {
     incrementAndGet(key: string, windowStart: number): Promise<number> {

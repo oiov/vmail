@@ -45,9 +45,9 @@ export function Home() {
 
   // 会话状态由深 Hook 统一持有（Cookies + 24h TTL + token 刷新）
   const {
-    address, setAddress,
-    mailboxToken, setMailboxToken,
-    expiryTimestamp, setExpiryTimestamp,
+    address,
+    mailboxToken,
+    expiryTimestamp,
     isLoggingIn,
     create: createMailboxSession,
     stop: stopMailboxSession,
@@ -211,10 +211,9 @@ export function Home() {
     }
 
     // 当用户停止使用邮箱时（地址被清除），重置状态并关闭通知
+    // expiry 由 Hook 内部在 stop() 时已清理，此处不再直接操作 Hook 内部状态
     if (!address) {
       setHasReceivedEmail(false);
-      // feat: 清除过期时间戳状态
-      setExpiryTimestamp(undefined);
       toast.dismiss("password-notification");
     }
 

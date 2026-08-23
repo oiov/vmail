@@ -1,9 +1,9 @@
 import { Context, Next } from 'hono';
 import { getD1DB } from '../../../database/db';
-import { findApiKeyByKey, incrementApiCalls, incrementDailyApiCalls } from '../../../database/dao';
-import { checkRateLimit, createDrizzleRateLimitStore, rateLimitHeaders } from '../../rateLimit';
-import { incrementAndGetApiRateWindowCount } from '../../../database/dao';
-import type { Env } from '../../../index';
+import { findApiKeyByKey, incrementAndGetApiRateWindowCount } from '../../../database/dao';
+import { record } from '../../../database/stats';
+import { checkRateLimit, createDrizzleRateLimitStore, rateLimitHeaders } from '../../../rateLimit';
+import type { Env } from '../../../env';
 
 /**
  * API Key 认证中间件
@@ -87,7 +87,7 @@ export const apiKeyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
   }
 
   // 5. 限流检查 — 通过 RateLimit 深模块，window 计算与 header 推导集中在一处
-  const store = createDrizzleRateLimitStore(db, incrementAndGetApiRateWindowCount as any);
+  const store = createDrizzleRateLimitStore(db, incrementAndGetApiRateWindowCount);
   const rl = await checkRateLimit(keyRecord.id, rateLimit, now, store);
 
   if (!rl.allowed) {
@@ -106,8 +106,8 @@ export const apiKeyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
     );
   }
 
-  // 6. 增加 API 调用计数 (异步，不阻塞请求)
-  c.executionCtx.waitUntil(Promise.all([incrementApiCalls(db), incrementDailyApiCalls(db)]));
+  // 6. 增加 API 调用计数 (异步，不阻塞请求) — 通过 Stats 深模块统一 site+daily
+  c.executionCtx.waitUntil(record(db, "apiCall"));
 
   c.header('X-RateLimit-Limit', String(rl.limit));
   c.header('X-RateLimit-Remaining', String(rl.remaining));

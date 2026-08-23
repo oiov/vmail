@@ -20,6 +20,8 @@ export const COOKIE_KEYS = {
   expiry: "emailExpiry",
 } as const;
 
+export const MAILBOX_TTL_MS = 24 * 60 * 60 * 1000;
+
 export function readMailboxSessionFromCookies(): { address?: string; mailboxToken: string; expiryTimestamp?: number } {
   const address = Cookies.get(COOKIE_KEYS.mailbox);
   const mailboxToken = Cookies.get(COOKIE_KEYS.token) || "";
@@ -61,7 +63,7 @@ export function useMailboxSession(config: AppConfig) {
     try {
       const authorization = await verifyTurnstile(selectedDomain, config.turnstileEnabled ? turnstileToken : undefined);
       const now = Date.now();
-      const expires = now + 24 * 60 * 60 * 1000;
+      const expires = now + MAILBOX_TTL_MS;
       writeMailboxSessionCookies(authorization.mailbox, authorization.mailboxToken, expires);
       setAddress(authorization.mailbox);
       setMailboxToken(authorization.mailboxToken || "");
@@ -92,8 +94,8 @@ export function useMailboxSession(config: AppConfig) {
         return;
       }
     }
-    const newExpiry = Date.now() + 24 * 60 * 60 * 1000;
-    const cookieExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const newExpiry = Date.now() + MAILBOX_TTL_MS;
+    const cookieExpires = new Date(Date.now() + MAILBOX_TTL_MS);
     Cookies.set(COOKIE_KEYS.expiry, String(newExpiry), { expires: cookieExpires });
     setExpiryTimestamp(newExpiry);
     toast.success(t("Validity reset successfully"));
@@ -104,10 +106,10 @@ export function useMailboxSession(config: AppConfig) {
     try {
       const data = await loginByPassword(password);
       const now = Date.now();
-      const expires = now + 24 * 60 * 60 * 1000;
-      writeMailboxSessionCookies(data.address, (data as any).mailboxToken, expires);
+      const expires = now + MAILBOX_TTL_MS;
+      writeMailboxSessionCookies(data.address, data.mailboxToken, expires);
       setAddress(data.address);
-      setMailboxToken((data as any).mailboxToken || "");
+      setMailboxToken(data.mailboxToken || "");
       setExpiryTimestamp(expires);
       toast.success(t("Login successful"));
       return true;
@@ -124,5 +126,5 @@ export function useMailboxSession(config: AppConfig) {
     return null;
   }, [address, config.cookiesSecret]);
 
-  return { address, mailboxToken, expiryTimestamp, isLoggingIn, setAddress, setMailboxToken, setExpiryTimestamp, create, stop, resetExpiry, login, getPassword, clearCookies: clearMailboxSessionCookies };
+  return { address, mailboxToken, expiryTimestamp, isLoggingIn, create, stop, resetExpiry, login, getPassword };
 }

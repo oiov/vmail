@@ -6,15 +6,15 @@
 import { insertEmailSchema, type InsertEmail } from "../database/schema.ts";
 
 export interface ParsedMail {
-  headers?: any[];
-  from?: any;
-  sender?: any;
-  replyTo?: any;
+  headers?: unknown[];
+  from?: unknown;
+  sender?: unknown;
+  replyTo?: unknown;
   deliveredTo?: string;
   returnPath?: string;
-  to?: any[];
-  cc?: any[];
-  bcc?: any[];
+  to?: unknown[];
+  cc?: unknown[];
+  bcc?: unknown[];
   subject?: string;
   messageId?: string;
   inReplyTo?: string;
@@ -30,6 +30,7 @@ export interface ForwardableEmailLike {
   raw: ReadableStream | string;
   setReject?: (reason: string) => void;
 }
+
 
 export function mapPostalToInsertEmail(
   mail: ParsedMail,

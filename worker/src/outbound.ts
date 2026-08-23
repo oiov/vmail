@@ -7,7 +7,7 @@ import { createMimeMessage, Mailbox } from "mimetext/browser";
 
 export type SendChannel = "resend" | "mailchannels" | "cloudflare";
 export interface SenderEnv {
-  SEND_CHANNEL?: string; SENDER_EMAIL?: string; RESEND_API_KEY?: string; MAILCHANNELS_API_KEY?: string; MAILBOX_TOKEN_SECRET?: string; SEND_EMAIL?: { send(message: any): Promise<void> };
+  SEND_CHANNEL?: string; SENDER_EMAIL?: string; RESEND_API_KEY?: string; MAILCHANNELS_API_KEY?: string; MAILBOX_TOKEN_SECRET?: string; SEND_EMAIL?: { send(message: unknown): Promise<void> };
 }
 
 const emailAddress = z.string().trim().email().max(254);

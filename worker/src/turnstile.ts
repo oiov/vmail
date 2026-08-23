@@ -26,7 +26,7 @@ export async function verifyTurnstileToken(
     body: params.toString(),
   });
 
-  const data: any = await res.json();
+  const data = await res.json() as { success?: boolean; "error-codes"?: unknown };
   if (!data.success) {
     console.error("Turnstile 验证失败:", data["error-codes"]);
     return false;
@@ -35,7 +35,7 @@ export async function verifyTurnstileToken(
 }
 
 // 供处理器在无中间件时显式解析的 helper，保持 body 读取集中
-export async function parseJsonBody(c: { req: { text(): Promise<string> } }): Promise<{ body: any; errorResponse?: Response }> {
+export async function parseJsonBody(c: { req: { text(): Promise<string> } }): Promise<{ body: unknown; errorResponse?: Response }> {
   try {
     const rawBody = await c.req.text();
     return { body: rawBody ? JSON.parse(rawBody) : {} };

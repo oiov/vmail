@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { serveStatic } from 'hono/cloudflare-workers';
 import { cors } from 'hono/cors';
 // 导入数据库相关的模块
-import { deleteEmails, findEmailById, getEmailsByMessageTo, insertEmail, deleteExpiredEmails, insertApiKey, getSiteStats, incrementEmailsReceived, incrementApiKeysCreated, incrementAddressesCreated, incrementDailyAddressesCreated, incrementDailyEmailsReceived, incrementDailyApiKeysCreated, getMailboxMetaByAddress, incrementAndGetApiRateWindowCount } from './database/dao';
+import { deleteEmails, findEmailById, getEmailsByMessageTo, insertEmail, deleteExpiredEmails, insertApiKey, getSiteStats, getMailboxMetaByAddress, incrementAndGetApiRateWindowCount } from './database/dao';
 import { getD1DB } from './database/db';
 import type { InsertEmail } from './database/schema';
 import { nanoid } from 'nanoid/non-secure';
@@ -30,7 +30,8 @@ import { isTurnstileEnabled, verifyTurnstileToken } from './turnstile';
 import type { Env } from './env';
 export type { Env } from './env';
 import { SITE_AUTH_COOKIE, isSiteUnlocked, shouldBypassSiteGate } from './app/siteGate';
-import { mapPostalToInsertEmail } from './app/ingestion';
+import { mapPostalToInsertEmail, type ParsedMail } from './app/ingestion';
+import { record } from './database/stats';
 
 
 // Env 来自共享模块，保持单源
@@ -62,36 +63,7 @@ function getMailboxTokenTtlSeconds(): number {
   return 24 * 60 * 60;
 }
 
-function isSiteUnlocked(request: Request, env: Env): boolean {
-  if (!env.PASSWORD) {
-    return true;
-  }
-
-  const cookie = request.headers.get('cookie') ?? '';
-  return cookie.split(';').some((part) => {
-    const [key, value] = part.trim().split('=');
-    return key === SITE_AUTH_COOKIE && value === '1';
-  });
-}
-
-function shouldBypassSiteGate(pathname: string): boolean {
-  if (pathname === '/' || pathname === '/index.html') {
-    return true;
-  }
-  if (pathname.startsWith('/api/') || pathname === '/config') {
-    return true;
-  }
-  if (pathname === '/auth/unlock' || pathname === '/auth/logout' || pathname === '/auth/status') {
-    return true;
-  }
-  if (pathname.startsWith('/assets/')) {
-    return true;
-  }
-  if (pathname === '/favicon.ico' || pathname.endsWith('.map')) {
-    return true;
-  }
-  return false;
-}
+// isSiteUnlocked / shouldBypassSiteGate 由 ./app/siteGate 深模块唯一拥有，此处不再本地重定义
 
 // Turnstile 深模块转发: 保留中间件壳以兼容旧路由，内部委托给 turnstile.ts
 // 新处理器应直接调用 verifyTurnstileToken(body, env, ip) 而非依赖 c.set('parsedBody')
@@ -158,8 +130,7 @@ api.post('/verify', turnstile, async (c) => {
   const mailbox = `${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}@${domain}`;
 
   const db = getD1DB(c.env.DB);
-  await incrementAddressesCreated(db);
-  await incrementDailyAddressesCreated(db);
+  await record(db, "addressCreated");
 
   const mailboxToken = c.env.MAILBOX_TOKEN_SECRET
     ? await createMailboxToken(
@@ -234,7 +205,7 @@ api.post('/send', async (c) => {
   const ipLimit = parsePositiveLimit(c.env.SEND_IP_RATE_LIMIT_PER_MINUTE, 10);
   const clientIp = c.req.header('CF-Connecting-IP') || 'unknown';
   // 通过 RateLimit 深模块统一 window 计算与 header 推导
-  const drizzleStore = createDrizzleRateLimitStore(db, drizzleIncrementRateWindow as any);
+  const drizzleStore = createDrizzleRateLimitStore(db, drizzleIncrementRateWindow);
   const mailboxRl = await checkRateLimit(`send-mailbox:${mailbox}`, mailboxLimit, nowSec, drizzleStore);
   const ipRl = await checkRateLimit(`send-ip:${clientIp}`, ipLimit, nowSec, drizzleStore);
 
@@ -329,9 +300,8 @@ api.post('/api-keys', requireOpenApi, turnstile, async (c) => {
 
   try {
     await insertApiKey(db, newApiKey);
-    // 增加 API Key 创建计数
-    await incrementApiKeysCreated(db);
-    await incrementDailyApiKeysCreated(db);
+    // 通过 Stats 深模块同时写 site + daily
+    await record(db, "apiKeyCreated");
     // 只返回一次完整的 API Key，之后无法再获取
     return c.json({
       data: {
@@ -575,12 +545,11 @@ const workerHandlers = {
       // **关键修复**：显式地从解析结果中映射字段，而不是使用对象展开(...)
       // 这样可以避免属性覆盖和类型不匹配的问题
       // 通过 Ingestion 深模块完成 PostalMime → InsertEmail 映射与校验
-      const email = mapPostalToInsertEmail(mail as any, message, now, nanoid());
+      const email = mapPostalToInsertEmail(mail as unknown as ParsedMail, message, now, nanoid());
       // 插入数据库
       await insertEmail(db, email);
-      // 增加邮件接收计数
-      await incrementEmailsReceived(db);
-      await incrementDailyEmailsReceived(db);
+      // 通过 Stats 深模块同时写 site + daily
+      await record(db, "emailReceived");
     } catch (e: any) {
       // **关键修复**：向 Cloudflare 发出拒绝信号
       // 当发生任何错误时，调用 message.setReject() 告知 Cloudflare 处理失败。
