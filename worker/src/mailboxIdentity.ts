@@ -11,7 +11,10 @@ const textEncoder = new TextEncoder();
 function bytesToBase64Url(bytes: Uint8Array): string {
   let binary = "";
   for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  return btoa(binary)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
 }
 function base64UrlToBytes(value: string): Uint8Array {
   const base64 = value.replace(/-/g, "+").replace(/_/g, "/");
@@ -20,17 +23,29 @@ function base64UrlToBytes(value: string): Uint8Array {
   return Uint8Array.from(binary, (c) => c.charCodeAt(0));
 }
 async function importHmacKey(secret: string): Promise<CryptoKey> {
-  return crypto.subtle.importKey("raw", textEncoder.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign", "verify"]);
+  return crypto.subtle.importKey(
+    "raw",
+    textEncoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign", "verify"],
+  );
 }
 
 export function parseAllowedDomains(csv: string): Set<string> {
   return new Set(
-    csv.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean)
+    csv
+      .split(",")
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean),
   );
 }
 
 // 兼容旧签名的纯函数，供 index.ts / tests 直接使用
-export function isAllowedMailboxAddress(address: string, emailDomains: string): boolean {
+export function isAllowedMailboxAddress(
+  address: string,
+  emailDomains: string,
+): boolean {
   const normalized = address.trim().toLowerCase();
   const sep = normalized.lastIndexOf("@");
   if (sep <= 0 || sep === normalized.length - 1) return false;
@@ -38,25 +53,63 @@ export function isAllowedMailboxAddress(address: string, emailDomains: string): 
   return parseAllowedDomains(emailDomains).has(domain);
 }
 
-interface MailboxTokenPayload { v: 1; address: string; expiresAt: number; }
+interface MailboxTokenPayload {
+  v: 1;
+  address: string;
+  expiresAt: number;
+}
 
-export async function createMailboxToken(address: string, secret: string, now: number = Date.now(), ttlSeconds: number = 24*60*60): Promise<string> {
-  const payload: MailboxTokenPayload = { v: 1, address: address.trim().toLowerCase(), expiresAt: now + ttlSeconds * 1000 };
-  const encodedPayload = bytesToBase64Url(textEncoder.encode(JSON.stringify(payload)));
-  const sig = await crypto.subtle.sign("HMAC", await importHmacKey(secret), textEncoder.encode(encodedPayload));
+export async function createMailboxToken(
+  address: string,
+  secret: string,
+  now: number = Date.now(),
+  ttlSeconds: number = 24 * 60 * 60,
+): Promise<string> {
+  const payload: MailboxTokenPayload = {
+    v: 1,
+    address: address.trim().toLowerCase(),
+    expiresAt: now + ttlSeconds * 1000,
+  };
+  const encodedPayload = bytesToBase64Url(
+    textEncoder.encode(JSON.stringify(payload)),
+  );
+  const sig = await crypto.subtle.sign(
+    "HMAC",
+    await importHmacKey(secret),
+    textEncoder.encode(encodedPayload),
+  );
   return `${encodedPayload}.${bytesToBase64Url(new Uint8Array(sig))}`;
 }
 
-export async function verifyMailboxToken(token: string, secret: string, now: number = Date.now()): Promise<string | null> {
+export async function verifyMailboxToken(
+  token: string,
+  secret: string,
+  now: number = Date.now(),
+): Promise<string | null> {
   try {
     const [encodedPayload, encodedSignature, extra] = token.split(".");
     if (!encodedPayload || !encodedSignature || extra) return null;
-    const valid = await crypto.subtle.verify("HMAC", await importHmacKey(secret), base64UrlToBytes(encodedSignature), textEncoder.encode(encodedPayload));
+    const valid = await crypto.subtle.verify(
+      "HMAC",
+      await importHmacKey(secret),
+      base64UrlToBytes(encodedSignature),
+      textEncoder.encode(encodedPayload),
+    );
     if (!valid) return null;
-    const payload = JSON.parse(new TextDecoder().decode(base64UrlToBytes(encodedPayload))) as MailboxTokenPayload;
-    if (payload.v !== 1 || typeof payload.address !== "string" || typeof payload.expiresAt !== "number" || payload.expiresAt <= now) return null;
+    const payload = JSON.parse(
+      new TextDecoder().decode(base64UrlToBytes(encodedPayload)),
+    ) as MailboxTokenPayload;
+    if (
+      payload.v !== 1 ||
+      typeof payload.address !== "string" ||
+      typeof payload.expiresAt !== "number" ||
+      payload.expiresAt <= now
+    )
+      return null;
     return payload.address;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 export function getBearerToken(authorizationHeader?: string): string | null {
@@ -68,12 +121,19 @@ export function getBearerToken(authorizationHeader?: string): string | null {
 export interface MailboxIdentity {
   isAllowed(address: string): boolean;
   isAllowedDomain(domain: string): boolean;
-  createToken(address: string, now?: number, ttlSeconds?: number): Promise<string | null>;
+  createToken(
+    address: string,
+    now?: number,
+    ttlSeconds?: number,
+  ): Promise<string | null>;
   verifyToken(token: string, now?: number): Promise<string | null>;
   getBearerToken(header?: string): string | null;
 }
 
-export function createMailboxIdentity(emailDomains: string, tokenSecret?: string): MailboxIdentity {
+export function createMailboxIdentity(
+  emailDomains: string,
+  tokenSecret?: string,
+): MailboxIdentity {
   const allowed = parseAllowedDomains(emailDomains);
   return {
     isAllowed(address: string): boolean {
@@ -85,7 +145,11 @@ export function createMailboxIdentity(emailDomains: string, tokenSecret?: string
     isAllowedDomain(domain: string): boolean {
       return allowed.has(domain.trim().toLowerCase());
     },
-    async createToken(address: string, now?: number, ttlSeconds?: number): Promise<string | null> {
+    async createToken(
+      address: string,
+      now?: number,
+      ttlSeconds?: number,
+    ): Promise<string | null> {
       if (!tokenSecret) return null;
       return createMailboxToken(address, tokenSecret, now, ttlSeconds);
     },

@@ -1,38 +1,56 @@
-import { Hono } from 'hono';
-import { serveStatic } from 'hono/cloudflare-workers';
-import { cors } from 'hono/cors';
+import { Hono } from "hono";
+import { serveStatic } from "hono/cloudflare-workers";
+import { cors } from "hono/cors";
 // 导入数据库相关的模块
-import { deleteEmails, findEmailById, getEmailsByMessageTo, insertEmail, deleteExpiredEmails, insertApiKey, getSiteStats, getMailboxMetaByAddress, incrementAndGetApiRateWindowCount } from './database/dao';
-import { getD1DB } from './database/db';
-import type { InsertEmail } from './database/schema';
-import { nanoid } from 'nanoid/non-secure';
-import PostalMime from 'postal-mime';
-import { EmailMessage } from 'cloudflare:email';
-// 导入加解密工具函数
-import { decrypt } from './utils';
-// 导入 v1 API
-import v1Api from './api/v1';
-import { isOpenApiEnabled, requireOpenApi } from './openapi';
 import {
-  buildCloudflareMimeMessage,
-  buildMailChannelsPayload,
-  buildResendPayload,
+  deleteEmails,
+  findEmailById,
+  getEmailsByMessageTo,
+  insertEmail,
+  deleteExpiredEmails,
+  insertApiKey,
+  getSiteStats,
+  getMailboxMetaByAddress,
+  incrementAndGetApiRateWindowCount,
+} from "./database/dao";
+import { getD1DB } from "./database/db";
+import type { InsertEmail } from "./database/schema";
+import { nanoid } from "nanoid/non-secure";
+import PostalMime from "postal-mime";
+// 导入加解密工具函数
+import { decrypt } from "./utils";
+// 导入 v1 API
+import v1Api from "./api/v1";
+import { isOpenApiEnabled, requireOpenApi } from "./openapi";
+import {
+  createMailboxIdentity,
   createMailboxToken,
   getBearerToken,
   getConfiguredSendChannel,
-  isAllowedMailboxAddress,
+  sendEmail,
   sendRequestSchema,
   verifyMailboxToken,
-} from './sender';
-import { checkRateLimit, createDrizzleRateLimitStore, rateLimitHeaders } from './rateLimit';
-import { incrementAndGetApiRateWindowCount as drizzleIncrementRateWindow } from './database/dao';
-import { isTurnstileEnabled, verifyTurnstileToken } from './turnstile';
-import type { Env } from './env';
-export type { Env } from './env';
-import { SITE_AUTH_COOKIE, isSiteUnlocked, shouldBypassSiteGate } from './app/siteGate';
-import { mapPostalToInsertEmail, type ParsedMail } from './app/ingestion';
-import { record } from './database/stats';
-
+} from "./sender";
+import {
+  checkRateLimit,
+  createDrizzleRateLimitStore,
+  rateLimitHeaders,
+} from "./rateLimit";
+import { incrementAndGetApiRateWindowCount as drizzleIncrementRateWindow } from "./database/dao";
+import {
+  isTurnstileEnabled,
+  parseJsonBody,
+  verifyTurnstileToken,
+} from "./turnstile";
+import type { Env } from "./env";
+export type { Env } from "./env";
+import {
+  SITE_AUTH_COOKIE,
+  isSiteUnlocked,
+  shouldBypassSiteGate,
+} from "./app/siteGate";
+import { mapPostalToInsertEmail, type ParsedMail } from "./app/ingestion";
+import { record } from "./database/stats";
 
 // Env 来自共享模块，保持单源
 
@@ -40,19 +58,21 @@ import { record } from './database/stats';
 const app = new Hono<{ Bindings: Env }>();
 
 // 配置 CORS
-app.use('/api/v1/*', cors());
-
+app.use("/api/v1/*", cors());
 
 function parseRateLimitPerMinute(env: Env): number {
-  const parsed = Number.parseInt(env.API_RATE_LIMIT_PER_MINUTE ?? '', 10);
+  const parsed = Number.parseInt(env.API_RATE_LIMIT_PER_MINUTE ?? "", 10);
   if (!Number.isFinite(parsed) || parsed < 1) {
     return 100;
   }
   return parsed;
 }
 
-function parsePositiveLimit(value: string | undefined, fallback: number): number {
-  const parsed = Number.parseInt(value ?? '', 10);
+function parsePositiveLimit(
+  value: string | undefined,
+  fallback: number,
+): number {
+  const parsed = Number.parseInt(value ?? "", 10);
   if (!Number.isFinite(parsed) || parsed < 1) {
     return fallback;
   }
@@ -65,69 +85,47 @@ function getMailboxTokenTtlSeconds(): number {
 
 // isSiteUnlocked / shouldBypassSiteGate 由 ./app/siteGate 深模块唯一拥有，此处不再本地重定义
 
-// Turnstile 深模块转发: 保留中间件壳以兼容旧路由，内部委托给 turnstile.ts
-// 新处理器应直接调用 verifyTurnstileToken(body, env, ip) 而非依赖 c.set('parsedBody')
-const turnstile = async (c: any, next: any) => {
-  let body: any;
-  try {
-    const rawBody = await c.req.text();
-    body = rawBody ? JSON.parse(rawBody) : {};
-  } catch (e) {
-    console.error("请求体解析为JSON时出错:", e);
-    return c.json({ message: '错误的请求：请求体无效或为空。' }, 400);
-  }
-
-  if (!isTurnstileEnabled(c.env)) {
-    c.set('parsedBody', body);
-    await next();
-    return;
-  }
-
-  const token = body.token || c.req.header('cf-turnstile-token');
-  const ip = c.req.header('CF-Connecting-IP');
-  if (!token) {
-    return c.json({ message: '缺少 turnstile token' }, 400);
-  }
-
-  const ok = await verifyTurnstileToken(token, c.env, ip);
-  if (!ok) {
-    return c.json({ message: 'token 无效' }, 400);
-  }
-
-  c.set('parsedBody', body);
-  await next();
-};
-
-// 显式校验 helper，供新处理器使用，避免 c.set/c.get 隐式接口
+// 显式校验 helper，供处理器直接使用，避免 c.set/c.get 隐式接口
 async function requireTurnstile(c: any, body: any): Promise<Response | null> {
   if (!isTurnstileEnabled(c.env)) return null;
-  const token = body?.token || c.req.header('cf-turnstile-token');
-  const ip = c.req.header('CF-Connecting-IP');
+  const token = body?.token || c.req.header("cf-turnstile-token");
+  const ip = c.req.header("CF-Connecting-IP");
   if (!token) {
-    return c.json({ message: '缺少 turnstile token' }, 400);
+    return c.json({ message: "缺少 turnstile token" }, 400);
   }
   const ok = await verifyTurnstileToken(token, c.env, ip);
   if (!ok) {
-    return c.json({ message: 'token 无效' }, 400);
+    return c.json({ message: "token 无效" }, 400);
   }
   return null;
 }
 
 // API 路由组
-const api = app.basePath('/api');
+const api = app.basePath("/api");
 
 // feat: 新增一个专门用于人机验证的接口。
 // 前端应在生成邮箱地址前先调用此接口。
-api.post('/verify', turnstile, async (c) => {
-  const body = c.get('parsedBody') as { domain?: string };
+api.post("/verify", async (c) => {
+  const parsed = await parseJsonBody(c);
+  if (parsed.errorResponse) return parsed.errorResponse;
+  const body = parsed.body as { domain?: string; token?: string };
+  const turnstileError = await requireTurnstile(c, body);
+  if (turnstileError) return turnstileError;
   const domain = body?.domain?.trim().toLowerCase();
-  if (!domain || !isAllowedMailboxAddress(`mailbox@${domain}`, c.env.EMAIL_DOMAIN)) {
-    return c.json({
-      code: 'INVALID_MAILBOX',
-      message: 'Mailbox domain is not configured',
-    }, 400);
+  const identity = createMailboxIdentity(
+    c.env.EMAIL_DOMAIN,
+    c.env.MAILBOX_TOKEN_SECRET,
+  );
+  if (!domain || !identity.isAllowedDomain(domain)) {
+    return c.json(
+      {
+        code: "INVALID_MAILBOX",
+        message: "Mailbox domain is not configured",
+      },
+      400,
+    );
   }
-  const mailbox = `${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}@${domain}`;
+  const mailbox = `${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}@${domain}`;
 
   const db = getD1DB(c.env.DB);
   await record(db, "addressCreated");
@@ -149,17 +147,29 @@ api.post('/verify', turnstile, async (c) => {
   });
 });
 
-api.post('/mailbox-token/refresh', async (c) => {
+api.post("/mailbox-token/refresh", async (c) => {
   if (!c.env.MAILBOX_TOKEN_SECRET) {
-    return c.json({ code: 'SEND_UNAVAILABLE', message: 'Email sending is unavailable' }, 503);
+    return c.json(
+      { code: "SEND_UNAVAILABLE", message: "Email sending is unavailable" },
+      503,
+    );
   }
 
-  const token = getBearerToken(c.req.header('Authorization'));
+  const token = getBearerToken(c.req.header("Authorization"));
   const mailbox = token
     ? await verifyMailboxToken(token, c.env.MAILBOX_TOKEN_SECRET)
     : null;
-  if (!mailbox || !isAllowedMailboxAddress(mailbox, c.env.EMAIL_DOMAIN)) {
-    return c.json({ code: 'SEND_UNAUTHORIZED', message: 'Mailbox authorization is invalid or expired' }, 401);
+  if (
+    !mailbox ||
+    !createMailboxIdentity(c.env.EMAIL_DOMAIN).isAllowed(mailbox)
+  ) {
+    return c.json(
+      {
+        code: "SEND_UNAUTHORIZED",
+        message: "Mailbox authorization is invalid or expired",
+      },
+      401,
+    );
   }
 
   return c.json({
@@ -173,49 +183,88 @@ api.post('/mailbox-token/refresh', async (c) => {
 });
 
 // Unified, authenticated email sending endpoint.
-api.post('/send', async (c) => {
+api.post("/send", async (c) => {
   const sendChannel = getConfiguredSendChannel(c.env);
   if (!sendChannel || !c.env.MAILBOX_TOKEN_SECRET || !c.env.SENDER_EMAIL) {
-    return c.json({ code: 'SEND_UNAVAILABLE', message: 'Email sending is unavailable' }, 503);
+    return c.json(
+      { code: "SEND_UNAVAILABLE", message: "Email sending is unavailable" },
+      503,
+    );
   }
 
-  const token = getBearerToken(c.req.header('Authorization'));
+  const token = getBearerToken(c.req.header("Authorization"));
   const mailbox = token
     ? await verifyMailboxToken(token, c.env.MAILBOX_TOKEN_SECRET)
     : null;
-  if (!mailbox || !isAllowedMailboxAddress(mailbox, c.env.EMAIL_DOMAIN)) {
-    return c.json({ code: 'SEND_UNAUTHORIZED', message: 'Mailbox authorization is invalid or expired' }, 401);
+  if (
+    !mailbox ||
+    !createMailboxIdentity(c.env.EMAIL_DOMAIN).isAllowed(mailbox)
+  ) {
+    return c.json(
+      {
+        code: "SEND_UNAUTHORIZED",
+        message: "Mailbox authorization is invalid or expired",
+      },
+      401,
+    );
   }
 
   let requestBody: unknown;
   try {
     requestBody = await c.req.json();
   } catch {
-    return c.json({ code: 'INVALID_SEND_REQUEST', message: 'Invalid JSON request body' }, 400);
+    return c.json(
+      { code: "INVALID_SEND_REQUEST", message: "Invalid JSON request body" },
+      400,
+    );
   }
 
   const parsedRequest = sendRequestSchema.safeParse(requestBody);
   if (!parsedRequest.success) {
-    return c.json({ code: 'INVALID_SEND_REQUEST', message: 'Invalid email fields' }, 400);
+    return c.json(
+      { code: "INVALID_SEND_REQUEST", message: "Invalid email fields" },
+      400,
+    );
   }
 
   const db = getD1DB(c.env.DB);
   const nowSec = Math.floor(Date.now() / 1000);
   const mailboxLimit = parsePositiveLimit(c.env.SEND_RATE_LIMIT_PER_MINUTE, 3);
   const ipLimit = parsePositiveLimit(c.env.SEND_IP_RATE_LIMIT_PER_MINUTE, 10);
-  const clientIp = c.req.header('CF-Connecting-IP') || 'unknown';
+  const clientIp = c.req.header("CF-Connecting-IP") || "unknown";
   // 通过 RateLimit 深模块统一 window 计算与 header 推导
-  const drizzleStore = createDrizzleRateLimitStore(db, drizzleIncrementRateWindow);
-  const mailboxRl = await checkRateLimit(`send-mailbox:${mailbox}`, mailboxLimit, nowSec, drizzleStore);
-  const ipRl = await checkRateLimit(`send-ip:${clientIp}`, ipLimit, nowSec, drizzleStore);
+  const drizzleStore = createDrizzleRateLimitStore(
+    db,
+    drizzleIncrementRateWindow,
+  );
+  const mailboxRl = await checkRateLimit(
+    `send-mailbox:${mailbox}`,
+    mailboxLimit,
+    nowSec,
+    drizzleStore,
+  );
+  const ipRl = await checkRateLimit(
+    `send-ip:${clientIp}`,
+    ipLimit,
+    nowSec,
+    drizzleStore,
+  );
 
   // 暴露 mailbox 维度的剩余配额（与原行为一致）
-  c.header('X-RateLimit-Limit', String(mailboxRl.limit));
-  c.header('X-RateLimit-Remaining', String(mailboxRl.remaining));
+  c.header("X-RateLimit-Limit", String(mailboxRl.limit));
+  c.header("X-RateLimit-Remaining", String(mailboxRl.remaining));
   if (!mailboxRl.allowed || !ipRl.allowed) {
-    const retryAfter = String(Math.max(mailboxRl.retryAfter, ipRl.retryAfter, 1));
-    c.header('Retry-After', retryAfter);
-    return c.json({ code: 'SEND_RATE_LIMITED', message: 'Email sending rate limit exceeded' }, 429);
+    const retryAfter = String(
+      Math.max(mailboxRl.retryAfter, ipRl.retryAfter, 1),
+    );
+    c.header("Retry-After", retryAfter);
+    return c.json(
+      {
+        code: "SEND_RATE_LIMITED",
+        message: "Email sending rate limit exceeded",
+      },
+      429,
+    );
   }
 
   const outgoingEmail = {
@@ -224,52 +273,30 @@ api.post('/send', async (c) => {
   };
 
   try {
-    if (sendChannel === 'resend') {
-      const response = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${c.env.RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(buildResendPayload(outgoingEmail, c.env.SENDER_EMAIL)),
-      });
-      if (!response.ok) {
-        console.error('Resend send failed:', response.status, await response.text());
-        return c.json({ code: 'SEND_PROVIDER_ERROR', message: 'Email provider rejected the message' }, 502);
-      }
-    } else if (sendChannel === 'mailchannels') {
-      const response = await fetch('https://api.mailchannels.net/tx/v1/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': c.env.MAILCHANNELS_API_KEY!,
-        },
-        body: JSON.stringify(buildMailChannelsPayload(outgoingEmail, c.env.SENDER_EMAIL)),
-      });
-      if (!response.ok) {
-        console.error('MailChannels send failed:', response.status, await response.text());
-        return c.json({ code: 'SEND_PROVIDER_ERROR', message: 'Email provider rejected the message' }, 502);
-      }
-    } else {
-      const emailMessage = new EmailMessage(
-        c.env.SENDER_EMAIL,
-        outgoingEmail.receiverEmail,
-        buildCloudflareMimeMessage(outgoingEmail, c.env.SENDER_EMAIL),
-      );
-      await c.env.SEND_EMAIL!.send(emailMessage);
-    }
-
+    await sendEmail(c.env as any, outgoingEmail);
     return c.json({ success: true, channel: sendChannel });
-  } catch (error) {
-    console.error('Email send failed:', error);
-    return c.json({ code: 'SEND_PROVIDER_ERROR', message: 'Email provider is unavailable' }, 502);
+  } catch (error: any) {
+    const msg = String(error?.message || error);
+    if (msg.includes("SEND_UNAVAILABLE")) {
+      console.error("邮件发送不可用:", error);
+      return c.json(
+        { code: "SEND_UNAVAILABLE", message: "Email sending is unavailable" },
+        503,
+      );
+    }
+    console.error("邮件发送失败:", error);
+    return c.json(
+      { code: "SEND_PROVIDER_ERROR", message: "Email provider is unavailable" },
+      502,
+    );
   }
 });
 
 // 生成 API Key 的函数
 function generateApiKey(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let key = 'vmail_';
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let key = "vmail_";
   for (let i = 0; i < 32; i++) {
     key += chars.charAt(Math.floor(Math.random() * chars.length));
   }
@@ -277,13 +304,17 @@ function generateApiKey(): string {
 }
 
 // 创建 API Key 接口（需要 Turnstile 验证）
-api.post('/api-keys', requireOpenApi, turnstile, async (c) => {
+api.post("/api-keys", requireOpenApi, async (c) => {
+  const parsed = await parseJsonBody(c);
+  if (parsed.errorResponse) return parsed.errorResponse;
+  const body = parsed.body as { name?: string; token?: string };
+  const turnstileError = await requireTurnstile(c, body);
+  if (turnstileError) return turnstileError;
   const db = getD1DB(c.env.DB);
-  const body = c.get('parsedBody') as { name?: string };
 
   const now = new Date();
   const apiKey = generateApiKey();
-  const keyPrefix = apiKey.substring(0, 12) + '...';
+  const keyPrefix = apiKey.substring(0, 12) + "...";
 
   const newApiKey = {
     id: nanoid(),
@@ -303,119 +334,126 @@ api.post('/api-keys', requireOpenApi, turnstile, async (c) => {
     // 通过 Stats 深模块同时写 site + daily
     await record(db, "apiKeyCreated");
     // 只返回一次完整的 API Key，之后无法再获取
-    return c.json({
-      data: {
-        id: newApiKey.id,
-        key: apiKey,  // 完整的 API Key，只展示这一次
-        keyPrefix: keyPrefix,
-        name: newApiKey.name,
-        createdAt: now.toISOString(),
+    return c.json(
+      {
+        data: {
+          id: newApiKey.id,
+          key: apiKey, // 完整的 API Key，只展示这一次
+          keyPrefix: keyPrefix,
+          name: newApiKey.name,
+          createdAt: now.toISOString(),
+        },
+        message:
+          "API Key created successfully. Please save it now, it will not be shown again!",
       },
-      message: 'API Key created successfully. Please save it now, it will not be shown again!'
-    }, 201);
+      201,
+    );
   } catch (e: any) {
-    console.error('Create API Key error:', e);
-    return c.json({
-      error: {
-        code: 'INTERNAL_ERROR',
-        message: 'Failed to create API Key',
-      }
-    }, 500);
+    console.error("Create API Key error:", e);
+    return c.json(
+      {
+        error: {
+          code: "INTERNAL_ERROR",
+          message: "Failed to create API Key",
+        },
+      },
+      500,
+    );
   }
 });
 
 // fix: 移除获取邮件列表接口的 turnstile 验证。
 // 这个接口现在是公开的，刷新收件箱时可以直接调用，不再需要重复验证。
-api.post('/emails', async (c) => {
+api.post("/emails", async (c) => {
   const db = getD1DB(c.env.DB);
   let body: any;
   try {
     body = await c.req.json();
   } catch (e) {
-    return c.json({ message: '错误的请求：请求体无效或为空。' }, 400);
+    return c.json({ message: "错误的请求：请求体无效或为空。" }, 400);
   }
   const address = body?.address;
-  const limit = Number.parseInt(body?.limit ?? '', 10);
+  const limit = Number.parseInt(body?.limit ?? "", 10);
 
   if (!address) {
-    return c.json({ message: 'address is required' }, 400);
+    return c.json({ message: "address is required" }, 400);
   }
-  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(limit, 100) : 50;
+  const safeLimit =
+    Number.isFinite(limit) && limit > 0 ? Math.min(limit, 100) : 50;
   const emails = await getEmailsByMessageTo(db, address as string, safeLimit);
   return c.json(emails);
 });
 
-api.post('/emails/meta', async (c) => {
+api.post("/emails/meta", async (c) => {
   const db = getD1DB(c.env.DB);
   let body: any;
   try {
     body = await c.req.json();
   } catch {
-    return c.json({ message: '错误的请求：请求体无效或为空。' }, 400);
+    return c.json({ message: "错误的请求：请求体无效或为空。" }, 400);
   }
 
   const address = body?.address;
   if (!address) {
-    return c.json({ message: 'address is required' }, 400);
+    return c.json({ message: "address is required" }, 400);
   }
 
   const meta = await getMailboxMetaByAddress(db, address as string);
   return c.json(meta);
 });
 
-
 // 获取单封邮件详情
-api.get('/emails/:id', async (c) => {
+api.get("/emails/:id", async (c) => {
   const db = getD1DB(c.env.DB);
   const { id } = c.req.param();
   // 函数调用修正：使用 findEmailById 函数
   const email = await findEmailById(db, id);
   if (!email) {
-    return c.json({ message: 'Email not found'}, 404);
+    return c.json({ message: "Email not found" }, 404);
   }
   return c.json(email);
 });
 
 // fix: 删除邮件接口不再需要 turnstile 验证，因为通常这是在已知邮箱上下文中操作的。
-api.post('/delete-emails', async (c) => {
-    const db = getD1DB(c.env.DB);
-    const body = await c.req.json();
-    const ids = body?.ids;
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
-        return c.json({ message: 'ids are required' }, 400);
-    }
-    const result = await deleteEmails(db, ids as string[]);
-    return c.json(result);
+api.post("/delete-emails", async (c) => {
+  const db = getD1DB(c.env.DB);
+  const body = await c.req.json();
+  const ids = body?.ids;
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return c.json({ message: "ids are required" }, 400);
+  }
+  const result = await deleteEmails(db, ids as string[]);
+  return c.json(result);
 });
 
 // 修复：移除登录接口的 turnstile 中间件，使其不再需要人机验证。
-api.post('/login', async (c) => {
+api.post("/login", async (c) => {
   // const db = getD1DB(c.env.DB); // 数据库连接不再需要用于验证
   // 修复：由于移除了 turnstile 中间件，现在需要在此处直接解析请求体。
   const body = await c.req.json();
   const password = body?.password;
 
   if (!password) {
-    return c.json({ message: 'Password is required' }, 400);
+    return c.json({ message: "Password is required" }, 400);
   }
 
   try {
     // 解密密码以获取邮箱地址
     const address = decrypt(password, c.env.COOKIES_SECRET);
-    
+
     // **核心修复**：移除数据库邮件检查逻辑
     // 不再需要查询数据库中是否存在该地址的邮件
     // const emails = await getEmailsByMessageTo(db, address);
     // if (emails.length === 0) {
-      // 如果该地址从未收到过邮件，则视为无效密码
-      // return c.json({ message: 'Invalid password' }, 404);
+    // 如果该地址从未收到过邮件，则视为无效密码
+    // return c.json({ message: 'Invalid password' }, 404);
     // }
 
     // 可选：添加一个简单的邮箱地址格式校验，增加健壮性
     // 例如，检查是否包含 '@' 符号
-    if (!address || typeof address !== 'string' || !address.includes('@')) {
-        console.error("解密后的地址格式无效:", address);
-        return c.json({ message: 'Invalid password' }, 400); // 地址格式不对也视为密码无效
+    if (!address || typeof address !== "string" || !address.includes("@")) {
+      console.error("解密后的地址格式无效:", address);
+      return c.json({ message: "Invalid password" }, 400); // 地址格式不对也视为密码无效
     }
 
     // Legacy passwords are client-derived and therefore cannot prove send ownership.
@@ -423,15 +461,16 @@ api.post('/login', async (c) => {
   } catch (e) {
     console.error("Login error:", e);
     // 如果解密失败或发生其他错误，返回无效密码错误
-    return c.json({ message: 'Invalid password' }, 400);
+    return c.json({ message: "Invalid password" }, 400);
   }
 });
 
-
 // 前端配置接口
-app.get('/config', (c) => {
+app.get("/config", (c) => {
   // feat: 将 emailDomain 拆分为数组以支持多域名
-  const emailDomain = c.env.EMAIL_DOMAIN ? c.env.EMAIL_DOMAIN.split(',').map(d => d.trim()) : [];
+  const emailDomain = c.env.EMAIL_DOMAIN
+    ? c.env.EMAIL_DOMAIN.split(",").map((d) => d.trim())
+    : [];
   const turnstileEnabled = isTurnstileEnabled(c.env);
   const openApiEnabled = isOpenApiEnabled(c.env);
 
@@ -446,15 +485,15 @@ app.get('/config', (c) => {
     sitePasswordEnabled: Boolean(c.env.PASSWORD),
     apiRateLimitPerMinute: parseRateLimitPerMinute(c.env),
     openApiEnabled,
-    showAff: c.env.SHOW_AFF === 'true',
+    showAff: c.env.SHOW_AFF === "true",
     enabledSenders,
-    sendChannel: sendChannel || '',
-    senderEmail: sendChannel ? c.env.SENDER_EMAIL : '',
+    sendChannel: sendChannel || "",
+    senderEmail: sendChannel ? c.env.SENDER_EMAIL : "",
   });
 });
 
 // 站点统计数据接口（公开）
-api.get('/stats', async (c) => {
+api.get("/stats", async (c) => {
   const cache = caches.default;
   const cacheKey = new Request(c.req.url, c.req.raw);
   const cached = await cache.match(cacheKey);
@@ -476,12 +515,12 @@ api.get('/stats', async (c) => {
     totals,
   });
 
-  response.headers.set('Cache-Control', 'public, max-age=300');
+  response.headers.set("Cache-Control", "public, max-age=300");
   c.executionCtx.waitUntil(cache.put(cacheKey, response.clone()));
   return response;
 });
 
-app.post('/auth/unlock', async (c) => {
+app.post("/auth/unlock", async (c) => {
   if (!c.env.PASSWORD) {
     return c.json({ success: true, bypassed: true });
   }
@@ -490,22 +529,22 @@ app.post('/auth/unlock', async (c) => {
   try {
     body = await c.req.json();
   } catch {
-    return c.json({ message: 'Invalid request body' }, 400);
+    return c.json({ message: "Invalid request body" }, 400);
   }
 
   if (body.password !== c.env.PASSWORD) {
-    return c.json({ message: 'Invalid password' }, 401);
+    return c.json({ message: "Invalid password" }, 401);
   }
 
   c.header(
-    'Set-Cookie',
+    "Set-Cookie",
     `${SITE_AUTH_COOKIE}=1; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400; Secure`,
   );
 
   return c.json({ success: true });
 });
 
-app.get('/auth/status', (c) => {
+app.get("/auth/status", (c) => {
   const unlocked = isSiteUnlocked(c.req.raw, c.env);
   return c.json({
     unlocked,
@@ -513,22 +552,21 @@ app.get('/auth/status', (c) => {
   });
 });
 
-app.post('/auth/logout', (c) => {
+app.post("/auth/logout", (c) => {
   c.header(
-    'Set-Cookie',
+    "Set-Cookie",
     `${SITE_AUTH_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Secure`,
   );
   return c.json({ success: true });
 });
 
 // 挂载 v1 API 路由
-app.route('/api/v1', v1Api);
+app.route("/api/v1", v1Api);
 
 // 修正: 确保 serveStatic 正确指向静态文件目录
 // Hono v4 中 serveStatic 默认处理根路径，我们需要确保它指向正确的子目录
-app.get('/*', serveStatic({ root: './' }))
-app.get('/assets/*', serveStatic({ root: './' }))
-
+app.get("/*", serveStatic({ root: "./" }));
+app.get("/assets/*", serveStatic({ root: "./" }));
 
 // Worker 主处理逻辑
 const workerHandlers = {
@@ -545,7 +583,12 @@ const workerHandlers = {
       // **关键修复**：显式地从解析结果中映射字段，而不是使用对象展开(...)
       // 这样可以避免属性覆盖和类型不匹配的问题
       // 通过 Ingestion 深模块完成 PostalMime → InsertEmail 映射与校验
-      const email = mapPostalToInsertEmail(mail as unknown as ParsedMail, message, now, nanoid());
+      const email = mapPostalToInsertEmail(
+        mail as unknown as ParsedMail,
+        message,
+        now,
+        nanoid(),
+      );
       // 插入数据库
       await insertEmail(db, email);
       // 通过 Stats 深模块同时写 site + daily
@@ -554,26 +597,34 @@ const workerHandlers = {
       // **关键修复**：向 Cloudflare 发出拒绝信号
       // 当发生任何错误时，调用 message.setReject() 告知 Cloudflare 处理失败。
       // 这会让 Cloudflare 尝试重新投递邮件，而不是直接删除。
-      console.error('处理邮件失败:', e);
+      console.error("处理邮件失败:", e);
       message.setReject(`邮件处理失败: ${e.message}`);
     }
   },
 
   // HTTP 请求处理逻辑
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(
+    request: Request,
+    env: Env,
+    ctx: ExecutionContext,
+  ): Promise<Response> {
     const url = new URL(request.url);
 
     if (!shouldBypassSiteGate(url.pathname) && !isSiteUnlocked(request, env)) {
-      return new Response(JSON.stringify({ message: 'Site is locked' }), {
+      return new Response(JSON.stringify({ message: "Site is locked" }), {
         status: 401,
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
     }
 
     // API 路由
-    if (url.pathname.startsWith('/api/') || url.pathname === '/config' || url.pathname.startsWith('/auth/')) {
+    if (
+      url.pathname.startsWith("/api/") ||
+      url.pathname === "/config" ||
+      url.pathname.startsWith("/auth/")
+    ) {
       return app.fetch(request, env, ctx);
     }
 
@@ -583,7 +634,10 @@ const workerHandlers = {
     // SPA 路由回退：如果静态资源返回 404，则返回 index.html
     // 这样可以支持直接访问 /api-docs 等前端路由
     if (response.status === 404) {
-      const indexRequest = new Request(new URL('/', request.url).toString(), request);
+      const indexRequest = new Request(
+        new URL("/", request.url).toString(),
+        request,
+      );
       return env.ASSETS.fetch(indexRequest);
     }
 
@@ -592,12 +646,14 @@ const workerHandlers = {
 
   // 定时任务 (清理过期邮件)
   async scheduled(event, env, ctx) {
-      const db = getD1DB(env.DB);
-      // 修复：将清理时间从1小时修改为24小时（1天）
-      const oneDayAgo = new Date(Date.now() - 1000 * 60 * 60 * 24);
-      await deleteExpiredEmails(db, oneDayAgo);
-      console.log(`已清理 ${oneDayAgo.toISOString()} 之前的过期邮件`); // 添加日志
+    const db = getD1DB(env.DB);
+    // 修复：将清理时间从1小时修改为24小时（1天）
+    const oneDayAgo = new Date(Date.now() - 1000 * 60 * 60 * 24);
+    await deleteExpiredEmails(db, oneDayAgo);
+    console.log(`已清理 ${oneDayAgo.toISOString()} 之前的过期邮件`); // 添加日志
   },
 };
-export function createApp(){ return workerHandlers; }
+export function createApp() {
+  return workerHandlers;
+}
 export default workerHandlers;

@@ -142,7 +142,8 @@ export async function sendEmail(
       },
       body: JSON.stringify(buildResendPayload(outgoing, env.SENDER_EMAIL)),
     });
-    if (!r.ok) throw new Error(`Resend failed: ${r.status} ${await r.text()}`);
+    if (!r.ok)
+      throw new Error(`Resend 发送失败: ${r.status} ${await r.text()}`);
     return channel;
   } else if (channel === "mailchannels") {
     const r = await fetch("https://api.mailchannels.net/tx/v1/send", {
@@ -156,15 +157,13 @@ export async function sendEmail(
       ),
     });
     if (!r.ok)
-      throw new Error(`MailChannels failed: ${r.status} ${await r.text()}`);
+      throw new Error(`MailChannels 发送失败: ${r.status} ${await r.text()}`);
     return channel;
   } else {
     // 仅在 Worker 运行时解析 cloudflare:email，避免 Node 测试时静态导入失败
     const emailMod: any = await import("cloudflare:email").catch(() => null);
     if (!emailMod?.EmailMessage)
-      throw new Error(
-        "SEND_UNAVAILABLE: SEND_EMAIL binding not available in this runtime",
-      );
+      throw new Error("SEND_UNAVAILABLE: 当前运行时 SEND_EMAIL 绑定不可用");
     const msg = new emailMod.EmailMessage(
       env.SENDER_EMAIL,
       outgoing.receiverEmail,

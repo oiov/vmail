@@ -6,7 +6,10 @@
 // 之前: index.ts 内 30 行 turnstile 中间件直接 fetch+解析，两个处理器靠 c.set('parsedBody') 隐式耦合
 // 之后: 中间件委托 verifyTurnstileToken，处理器显式拿 body
 
-export function isTurnstileEnabled(env: { TURNSTILE_KEY?: string; TURNSTILE_SECRET?: string }): boolean {
+export function isTurnstileEnabled(env: {
+  TURNSTILE_KEY?: string;
+  TURNSTILE_SECRET?: string;
+}): boolean {
   return Boolean(env.TURNSTILE_KEY && env.TURNSTILE_SECRET);
 }
 
@@ -20,13 +23,19 @@ export async function verifyTurnstileToken(
   params.append("response", token);
   if (ip) params.append("remoteip", ip);
 
-  const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: params.toString(),
-  });
+  const res = await fetch(
+    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params.toString(),
+    },
+  );
 
-  const data = await res.json() as { success?: boolean; "error-codes"?: unknown };
+  const data = (await res.json()) as {
+    success?: boolean;
+    "error-codes"?: unknown;
+  };
   if (!data.success) {
     console.error("Turnstile 验证失败:", data["error-codes"]);
     return false;
@@ -35,7 +44,9 @@ export async function verifyTurnstileToken(
 }
 
 // 供处理器在无中间件时显式解析的 helper，保持 body 读取集中
-export async function parseJsonBody(c: { req: { text(): Promise<string> } }): Promise<{ body: unknown; errorResponse?: Response }> {
+export async function parseJsonBody(c: {
+  req: { text(): Promise<string> };
+}): Promise<{ body: unknown; errorResponse?: Response }> {
   try {
     const rawBody = await c.req.text();
     return { body: rawBody ? JSON.parse(rawBody) : {} };
@@ -43,10 +54,13 @@ export async function parseJsonBody(c: { req: { text(): Promise<string> } }): Pr
     console.error("请求体解析为JSON时出错:", e);
     return {
       body: null,
-      errorResponse: new Response(JSON.stringify({ message: "错误的请求：请求体无效或为空。" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      }),
+      errorResponse: new Response(
+        JSON.stringify({ message: "错误的请求：请求体无效或为空。" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        },
+      ),
     };
   }
 }
