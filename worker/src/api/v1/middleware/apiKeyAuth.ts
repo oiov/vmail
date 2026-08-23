@@ -1,6 +1,8 @@
 import { Context, Next } from 'hono';
 import { getD1DB } from '../../../database/db';
-import { findApiKeyByKey, incrementApiCalls, incrementDailyApiCalls, incrementAndGetApiRateWindowCount } from '../../../database/dao';
+import { findApiKeyByKey, incrementApiCalls, incrementDailyApiCalls } from '../../../database/dao';
+import { checkRateLimit, createDrizzleRateLimitStore, rateLimitHeaders } from '../../rateLimit';
+import { incrementAndGetApiRateWindowCount } from '../../../database/dao';
 import type { Env } from '../../../index';
 
 /**
@@ -10,7 +12,6 @@ import type { Env } from '../../../index';
 export const apiKeyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
   const db = getD1DB(c.env.DB);
   const now = Math.floor(Date.now() / 1000);
-  const currentWindow = Math.floor(now / 60) * 60;
   const configuredLimit = Number.parseInt(c.env.API_RATE_LIMIT_PER_MINUTE ?? '', 10);
   const rateLimit = Number.isFinite(configuredLimit) && configuredLimit > 0 ? configuredLimit : 100;
 
@@ -85,18 +86,15 @@ export const apiKeyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
     }, 403);
   }
 
-  // 5. 原子限流检查
-  const currentCount = await incrementAndGetApiRateWindowCount(
-    db,
-    keyRecord.id,
-    currentWindow,
-  );
+  // 5. 限流检查 — 通过 RateLimit 深模块，window 计算与 header 推导集中在一处
+  const store = createDrizzleRateLimitStore(db, incrementAndGetApiRateWindowCount as any);
+  const rl = await checkRateLimit(keyRecord.id, rateLimit, now, store);
 
-  if (currentCount > rateLimit) {
-    const retryAfter = currentWindow + 60 - now;
-    c.header('X-RateLimit-Limit', `${rateLimit}`);
-    c.header('X-RateLimit-Remaining', '0');
-    c.header('Retry-After', `${retryAfter > 0 ? retryAfter : 1}`);
+  if (!rl.allowed) {
+    const headers = rateLimitHeaders(rl);
+    c.header('X-RateLimit-Limit', headers['X-RateLimit-Limit']);
+    c.header('X-RateLimit-Remaining', headers['X-RateLimit-Remaining']);
+    c.header('Retry-After', headers['Retry-After']!);
     return c.json(
       {
         error: {
@@ -109,12 +107,10 @@ export const apiKeyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
   }
 
   // 6. 增加 API 调用计数 (异步，不阻塞请求)
-  // 注意：移除了 updateApiKeyLastUsed 调用以减少 D1 写入次数
   c.executionCtx.waitUntil(Promise.all([incrementApiCalls(db), incrementDailyApiCalls(db)]));
 
-  const remaining = Math.max(rateLimit - currentCount, 0);
-  c.header('X-RateLimit-Limit', `${rateLimit}`);
-  c.header('X-RateLimit-Remaining', `${remaining}`);
+  c.header('X-RateLimit-Limit', String(rl.limit));
+  c.header('X-RateLimit-Remaining', String(rl.remaining));
 
   // 7. 将 API Key 信息存入上下文
   c.set('apiKey', {
