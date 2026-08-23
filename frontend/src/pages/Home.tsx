@@ -2,7 +2,6 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Turnstile } from "@marsidev/react-turnstile";
 import { useTranslation } from "react-i18next";
-import Cookies from "js-cookie";
 import { Link } from "react-router-dom";
 // feat: 导入全局 toast
 import { toast } from "react-hot-toast";
@@ -14,13 +13,9 @@ import {
   getEmails,
   getMailboxMeta,
   deleteEmails,
-  loginByPassword,
-  refreshMailboxToken,
-  verifyTurnstile,
 } from "../services/api.ts";
 import { useConfig } from "../hooks/useConfig.ts";
-// feat: 导入加密函数
-import { encrypt } from "../lib/utlis.ts";
+import { useMailboxSession } from "../hooks/useMailboxSession.ts";
 
 // feat: 导入密码模态框和相关 hook
 import { usePasswordModal } from "../components/password.tsx";
@@ -48,20 +43,18 @@ export function Home() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
-  // 状态管理
-  const [address, setAddress] = useState<string | undefined>(() =>
-    Cookies.get("userMailbox"),
-  );
-  const [mailboxToken, setMailboxToken] = useState<string>(
-    () => Cookies.get("mailboxToken") || "",
-  );
-  // feat: 新增状态，用于存储邮箱过期时间戳
-  const [expiryTimestamp, setExpiryTimestamp] = useState<number | undefined>(
-    () => {
-      const expiry = Cookies.get("emailExpiry");
-      return expiry ? parseInt(expiry, 10) : undefined;
-    },
-  );
+  // 会话状态由深 Hook 统一持有（Cookies + 24h TTL + token 刷新）
+  const {
+    address, setAddress,
+    mailboxToken, setMailboxToken,
+    expiryTimestamp, setExpiryTimestamp,
+    isLoggingIn,
+    create: createMailboxSession,
+    stop: stopMailboxSession,
+    resetExpiry: resetMailboxExpiry,
+    login: loginWithPassword,
+    getPassword,
+  } = useMailboxSession(config);
   const [turnstileToken, setTurnstileToken] = useState<string>("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null); // 新增状态，用于存储当前选中的邮件
@@ -79,7 +72,6 @@ export function Home() {
 
   // feat: 初始化密码模态框
   const { PasswordModal, setShowPasswordModal } = usePasswordModal();
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // feat: 初始化发件弹窗
   const { SenderModal, setShowSenderModal } = useSenderModal(
@@ -224,12 +216,6 @@ export function Home() {
       // feat: 清除过期时间戳状态
       setExpiryTimestamp(undefined);
       toast.dismiss("password-notification");
-    } else {
-      // feat: 当地址存在时，尝试读取过期时间 cookie
-      const expiry = Cookies.get("emailExpiry");
-      if (expiry && !expiryTimestamp) {
-        setExpiryTimestamp(parseInt(expiry, 10));
-      }
     }
 
     prevEmailsLength.current = emails.length;
@@ -237,55 +223,18 @@ export function Home() {
     // feat: 添加 expiryTimestamp 到依赖项
   }, [emails, address, hasReceivedEmail, expiryTimestamp]);
 
-  // 创建新邮箱地址的处理函数
+  // 创建新邮箱 — 委托深 Hook，视图仅补充 UI 重置
   const handleCreateAddress = async () => {
-    const requireTurnstile = config.turnstileEnabled;
-
-    if (requireTurnstile && !turnstileToken) {
-      toast.error(t("No captcha response"));
-      return;
-    }
-
-    try {
-      const authorization = await verifyTurnstile(
-        selectedDomain,
-        requireTurnstile ? turnstileToken : undefined,
-      );
-      const mailbox = authorization.mailbox;
-      // feat: 计算并存储过期时间戳 (当前时间 + 24小时)
-      const now = Date.now();
-      const expires = now + 24 * 60 * 60 * 1000;
-      Cookies.set("userMailbox", mailbox, { expires: 1 }); // cookie 有效期1天
-      Cookies.set("emailExpiry", expires.toString(), { expires: 1 }); // 存储过期时间戳
-      if (authorization.mailboxToken) {
-        Cookies.set("mailboxToken", authorization.mailboxToken, { expires: 1 });
-      } else {
-        Cookies.remove("mailboxToken");
-      }
-      setAddress(mailbox);
-      setMailboxToken(authorization.mailboxToken || "");
-      setExpiryTimestamp(expires); // 更新状态
-      setHasReceivedEmail(false); // 重置接收邮件状态
-      toast.success(t("Email created successfully")); // feat: 使用全局 toast 提示
-    } catch (error) {
-      toast.error(t("Failed to verify captcha"));
-      console.error("Turnstile verification failed:", error);
-    }
+    await createMailboxSession(selectedDomain, turnstileToken);
+    setHasReceivedEmail(false);
   };
 
-  // 停止使用当前邮箱地址
+  // 停止使用当前邮箱 — 委托深 Hook，视图补充邮件选中清理
   const handleStopAddress = () => {
-    Cookies.remove("userMailbox");
-    Cookies.remove("mailboxToken");
-    // feat: 移除过期时间 cookie
-    Cookies.remove("emailExpiry");
-    setAddress(undefined);
-    setMailboxToken("");
+    stopMailboxSession();
     mailboxMetaSignatureRef.current = null;
-    setHasReceivedEmail(false); // 重置状态
-    setSelectedEmail(null); // 清除选中的邮件
-    setExpiryTimestamp(undefined); // 清除过期时间状态
-    queryClient.invalidateQueries({ queryKey: ["emails"] }); // 清理缓存
+    setHasReceivedEmail(false);
+    setSelectedEmail(null);
   };
 
   // feat: 手动刷新邮件
@@ -294,30 +243,9 @@ export function Home() {
     toast.success(t("Mailbox refreshed"));
   };
 
-  // 修改：将延长邮箱有效期改为重置邮箱有效期
   const handleResetExpiry = useCallback(async () => {
-    if (mailboxToken) {
-      try {
-        const refreshedToken = await refreshMailboxToken(mailboxToken);
-        Cookies.set("mailboxToken", refreshedToken, { expires: 1 });
-        setMailboxToken(refreshedToken);
-      } catch {
-        toast.error(t("SEND_UNAUTHORIZED"));
-        return;
-      }
-    }
-
-    // feat: 计算新的过期时间戳 (当前时间 + 24小时)
-    const newExpiry = Date.now() + 24 * 60 * 60 * 1000;
-    // 计算新的 Cookie 过期时间（相对于当前时间1天）
-    const cookieExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-    Cookies.set("emailExpiry", newExpiry.toString(), {
-      expires: cookieExpires,
-    }); // 更新 Cookie，有效期设为从现在起1天
-    setExpiryTimestamp(newExpiry); // 更新状态
-    toast.success(t("Validity reset successfully")); // 修改：显示重置成功提示
-  }, [mailboxToken, t]);
+    await resetMailboxExpiry();
+  }, [resetMailboxExpiry]);
 
   // 删除邮件的 useMutation hook
   const deleteMutation = useMutation({
@@ -344,43 +272,12 @@ export function Home() {
     deleteMutation.mutate(ids);
   };
 
-  // feat: 处理密码登录的函数
-  // fix: 移除登录时的 turnstile token 校验逻辑
   const handleLogin = async (password: string) => {
-    setIsLoggingIn(true);
-    try {
-      // fix: 调用更新后的 loginByPassword 函数，不再传递 token
-      const data = await loginByPassword(password);
-      // feat: 登录成功后也设置过期时间戳
-      const now = Date.now();
-      const expires = now + 24 * 60 * 60 * 1000;
-      Cookies.set("userMailbox", data.address, { expires: 1 });
-      Cookies.set("emailExpiry", expires.toString(), { expires: 1 });
-      if (data.mailboxToken) {
-        Cookies.set("mailboxToken", data.mailboxToken, { expires: 1 });
-      } else {
-        Cookies.remove("mailboxToken");
-      }
-      setAddress(data.address);
-      setMailboxToken(data.mailboxToken || "");
-      setExpiryTimestamp(expires); // 更新状态
-      setShowPasswordModal(false); // 关闭模态框
-      toast.success(t("Login successful"));
-    } catch (error: any) {
-      // fix: 使用 i18n 翻译错误信息
-      toast.error(`${t("Login failed")}: ${t(error.message)}`);
-    } finally {
-      setIsLoggingIn(false);
-    }
+    const ok = await loginWithPassword(password);
+    if (ok) setShowPasswordModal(false);
   };
 
-  // feat: 获取密码（基于当前邮箱地址和 COOKIES_SECRET 加密）
-  const getPassword = useCallback(() => {
-    if (address && config.cookiesSecret) {
-      return encrypt(address, config.cookiesSecret);
-    }
-    return null;
-  }, [address, config.cookiesSecret]);
+  // 密码由深 Hook 基于 address + cookiesSecret 派生，视图不再直接依赖 encrypt
 
   // 新增：处理邮件选择
   const handleSelectEmail = (email: Email) => {
