@@ -4,7 +4,7 @@ import { cors } from 'hono/cors';
 // 导入数据库相关的模块
 import { deleteEmails, findEmailById, getEmailsByMessageTo, insertEmail, deleteExpiredEmails, insertApiKey, getSiteStats, incrementEmailsReceived, incrementApiKeysCreated, incrementAddressesCreated, incrementDailyAddressesCreated, incrementDailyEmailsReceived, incrementDailyApiKeysCreated, getMailboxMetaByAddress, incrementAndGetApiRateWindowCount } from './database/dao';
 import { getD1DB } from './database/db';
-import { InsertEmail, insertEmailSchema } from './database/schema';
+import type { InsertEmail } from './database/schema';
 import { nanoid } from 'nanoid/non-secure';
 import PostalMime from 'postal-mime';
 import { EmailMessage } from 'cloudflare:email';
@@ -24,6 +24,11 @@ import {
   sendRequestSchema,
   verifyMailboxToken,
 } from './sender';
+import { checkRateLimit, createDrizzleRateLimitStore, rateLimitHeaders } from './rateLimit';
+import { incrementAndGetApiRateWindowCount as drizzleIncrementRateWindow } from './database/dao';
+import { isTurnstileEnabled, verifyTurnstileToken } from './turnstile';
+import { SITE_AUTH_COOKIE, isSiteUnlocked, shouldBypassSiteGate } from './app/siteGate';
+import { mapPostalToInsertEmail } from './app/ingestion';
 
 
 // 定义 Cloudflare 绑定和环境变量的类型
@@ -57,10 +62,6 @@ const app = new Hono<{ Bindings: Env }>();
 app.use('/api/v1/*', cors());
 
 const SITE_AUTH_COOKIE = 'vmail_site_auth';
-
-function isTurnstileEnabled(env: Env): boolean {
-  return Boolean(env.TURNSTILE_KEY && env.TURNSTILE_SECRET);
-}
 
 function parseRateLimitPerMinute(env: Env): number {
   const parsed = Number.parseInt(env.API_RATE_LIMIT_PER_MINUTE ?? '', 10);
@@ -113,61 +114,53 @@ function shouldBypassSiteGate(pathname: string): boolean {
   return false;
 }
 
-// fix: 增强请求体验证逻辑。
-// 此前的实现方式在请求体解析失败时会静默处理，导致后续处理流程因缺少数据而返回一个模糊的400错误。
-// 新的实现方式会严格校验请求体，如果解析为JSON失败（例如请求体为空或格式错误），将立即返回一个明确的400错误，从而阻止无效请求继续执行。
-const turnstile = async (c, next) => {
+// Turnstile 深模块转发: 保留中间件壳以兼容旧路由，内部委托给 turnstile.ts
+// 新处理器应直接调用 verifyTurnstileToken(body, env, ip) 而非依赖 c.set('parsedBody')
+const turnstile = async (c: any, next: any) => {
   let body: any;
   try {
     const rawBody = await c.req.text();
     body = rawBody ? JSON.parse(rawBody) : {};
   } catch (e) {
-    // 捕获异常，记录错误日志，并返回一个清晰的错误响应。
     console.error("请求体解析为JSON时出错:", e);
     return c.json({ message: '错误的请求：请求体无效或为空。' }, 400);
   }
 
-  // 将解析后的 body 存入上下文，以便下游处理器直接使用，避免重复解析。
-  c.set('parsedBody', body);
-
   if (!isTurnstileEnabled(c.env)) {
+    c.set('parsedBody', body);
     await next();
     return;
   }
 
   const token = body.token || c.req.header('cf-turnstile-token');
   const ip = c.req.header('CF-Connecting-IP');
-
   if (!token) {
     return c.json({ message: '缺少 turnstile token' }, 400);
   }
 
-  // fix: 切换到 application/x-www-form-urlencoded 格式来发送验证请求。
-  // 这可以提高兼容性，并可能解决由 FormData 编码引起的边界问题。
-  const params = new URLSearchParams();
-  params.append('secret', c.env.TURNSTILE_SECRET);
-  params.append('response', token);
-  if (ip) {
-    params.append('remoteip', ip);
-  }
-
-  const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: params.toString(),
-  });
-
-  const data = await res.json();
-  if (!data.success) {
-    // feat: 增加详细的错误日志，方便调试
-    console.error("Turnstile 验证失败:", data['error-codes']);
+  const ok = await verifyTurnstileToken(token, c.env, ip);
+  if (!ok) {
     return c.json({ message: 'token 无效' }, 400);
   }
 
+  c.set('parsedBody', body);
   await next();
 };
+
+// 显式校验 helper，供新处理器使用，避免 c.set/c.get 隐式接口
+async function requireTurnstile(c: any, body: any): Promise<Response | null> {
+  if (!isTurnstileEnabled(c.env)) return null;
+  const token = body?.token || c.req.header('cf-turnstile-token');
+  const ip = c.req.header('CF-Connecting-IP');
+  if (!token) {
+    return c.json({ message: '缺少 turnstile token' }, 400);
+  }
+  const ok = await verifyTurnstileToken(token, c.env, ip);
+  if (!ok) {
+    return c.json({ message: 'token 无效' }, 400);
+  }
+  return null;
+}
 
 // API 路由组
 const api = app.basePath('/api');
@@ -257,25 +250,21 @@ api.post('/send', async (c) => {
   }
 
   const db = getD1DB(c.env.DB);
-  const windowStartEpochSec = Math.floor(Date.now() / 60_000) * 60;
+  const nowSec = Math.floor(Date.now() / 1000);
   const mailboxLimit = parsePositiveLimit(c.env.SEND_RATE_LIMIT_PER_MINUTE, 3);
   const ipLimit = parsePositiveLimit(c.env.SEND_IP_RATE_LIMIT_PER_MINUTE, 10);
   const clientIp = c.req.header('CF-Connecting-IP') || 'unknown';
-  const mailboxCount = await incrementAndGetApiRateWindowCount(
-    db,
-    `send-mailbox:${mailbox}`,
-    windowStartEpochSec,
-  );
-  const ipCount = await incrementAndGetApiRateWindowCount(
-    db,
-    `send-ip:${clientIp}`,
-    windowStartEpochSec,
-  );
+  // 通过 RateLimit 深模块统一 window 计算与 header 推导
+  const drizzleStore = createDrizzleRateLimitStore(db, drizzleIncrementRateWindow as any);
+  const mailboxRl = await checkRateLimit(`send-mailbox:${mailbox}`, mailboxLimit, nowSec, drizzleStore);
+  const ipRl = await checkRateLimit(`send-ip:${clientIp}`, ipLimit, nowSec, drizzleStore);
 
-  c.header('X-RateLimit-Limit', `${mailboxLimit}`);
-  c.header('X-RateLimit-Remaining', `${Math.max(mailboxLimit - mailboxCount, 0)}`);
-  if (mailboxCount > mailboxLimit || ipCount > ipLimit) {
-    c.header('Retry-After', '60');
+  // 暴露 mailbox 维度的剩余配额（与原行为一致）
+  c.header('X-RateLimit-Limit', String(mailboxRl.limit));
+  c.header('X-RateLimit-Remaining', String(mailboxRl.remaining));
+  if (!mailboxRl.allowed || !ipRl.allowed) {
+    const retryAfter = String(Math.max(mailboxRl.retryAfter, ipRl.retryAfter, 1));
+    c.header('Retry-After', retryAfter);
     return c.json({ code: 'SEND_RATE_LIMITED', message: 'Email sending rate limit exceeded' }, 429);
   }
 
@@ -606,32 +595,8 @@ export default {
 
       // **关键修复**：显式地从解析结果中映射字段，而不是使用对象展开(...)
       // 这样可以避免属性覆盖和类型不匹配的问题
-      const newEmail: InsertEmail = {
-        id: nanoid(),
-        messageFrom: message.from,
-        messageTo: message.to,
-        headers: mail.headers || [], // 确保 headers 存在
-        from: mail.from,
-        sender: mail.sender,
-        replyTo: mail.replyTo,
-        deliveredTo: mail.deliveredTo,
-        returnPath: mail.returnPath,
-        to: mail.to,
-        cc: mail.cc,
-        bcc: mail.bcc,
-        subject: mail.subject,
-        messageId: mail.messageId, // messageId 在数据库中是必需的
-        inReplyTo: mail.inReplyTo,
-        references: mail.references,
-        date: mail.date,
-        html: mail.html,
-        text: mail.text,
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      // 验证待插入的数据是否符合 schema
-      const email = insertEmailSchema.parse(newEmail);
+      // 通过 Ingestion 深模块完成 PostalMime → InsertEmail 映射与校验
+      const email = mapPostalToInsertEmail(mail as any, message, now, nanoid());
       // 插入数据库
       await insertEmail(db, email);
       // 增加邮件接收计数
