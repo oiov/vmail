@@ -12,7 +12,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type { AppConfig } from "./useConfig";
 import { encrypt } from "../lib/utlis";
-import { verifyTurnstile, loginByPassword, refreshMailboxToken } from "../services/api";
+import {
+  verifyTurnstile,
+  loginByPassword,
+  refreshMailboxToken,
+} from "../services/api";
 
 export const COOKIE_KEYS = {
   mailbox: "userMailbox",
@@ -22,7 +26,11 @@ export const COOKIE_KEYS = {
 
 export const MAILBOX_TTL_MS = 24 * 60 * 60 * 1000;
 
-export function readMailboxSessionFromCookies(): { address?: string; mailboxToken: string; expiryTimestamp?: number } {
+export function readMailboxSessionFromCookies(): {
+  address?: string;
+  mailboxToken: string;
+  expiryTimestamp?: number;
+} {
   const address = Cookies.get(COOKIE_KEYS.mailbox);
   const mailboxToken = Cookies.get(COOKIE_KEYS.token) || "";
   const expiryRaw = Cookies.get(COOKIE_KEYS.expiry);
@@ -30,10 +38,15 @@ export function readMailboxSessionFromCookies(): { address?: string; mailboxToke
   return { address, mailboxToken, expiryTimestamp };
 }
 
-export function writeMailboxSessionCookies(mailbox: string, mailboxToken: string | undefined, expires: number) {
+export function writeMailboxSessionCookies(
+  mailbox: string,
+  mailboxToken: string | undefined,
+  expires: number,
+) {
   Cookies.set(COOKIE_KEYS.mailbox, mailbox, { expires: 1 });
   Cookies.set(COOKIE_KEYS.expiry, String(expires), { expires: 1 });
-  if (mailboxToken) Cookies.set(COOKIE_KEYS.token, mailboxToken, { expires: 1 });
+  if (mailboxToken)
+    Cookies.set(COOKIE_KEYS.token, mailboxToken, { expires: 1 });
   else Cookies.remove(COOKIE_KEYS.token);
 }
 
@@ -47,33 +60,49 @@ export function useMailboxSession(config: AppConfig) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
-  const [address, setAddress] = useState<string | undefined>(() => Cookies.get(COOKIE_KEYS.mailbox));
-  const [mailboxToken, setMailboxToken] = useState<string>(() => Cookies.get(COOKIE_KEYS.token) || "");
-  const [expiryTimestamp, setExpiryTimestamp] = useState<number | undefined>(() => {
-    const v = Cookies.get(COOKIE_KEYS.expiry);
-    return v ? parseInt(v, 10) : undefined;
-  });
+  const [address, setAddress] = useState<string | undefined>(() =>
+    Cookies.get(COOKIE_KEYS.mailbox),
+  );
+  const [mailboxToken, setMailboxToken] = useState<string>(
+    () => Cookies.get(COOKIE_KEYS.token) || "",
+  );
+  const [expiryTimestamp, setExpiryTimestamp] = useState<number | undefined>(
+    () => {
+      const v = Cookies.get(COOKIE_KEYS.expiry);
+      return v ? parseInt(v, 10) : undefined;
+    },
+  );
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const create = useCallback(async (selectedDomain: string, turnstileToken: string) => {
-    if (config.turnstileEnabled && !turnstileToken) {
-      toast.error(t("No captcha response"));
-      return;
-    }
-    try {
-      const authorization = await verifyTurnstile(selectedDomain, config.turnstileEnabled ? turnstileToken : undefined);
-      const now = Date.now();
-      const expires = now + MAILBOX_TTL_MS;
-      writeMailboxSessionCookies(authorization.mailbox, authorization.mailboxToken, expires);
-      setAddress(authorization.mailbox);
-      setMailboxToken(authorization.mailboxToken || "");
-      setExpiryTimestamp(expires);
-      toast.success(t("Email created successfully"));
-    } catch (error) {
-      toast.error(t("Failed to verify captcha"));
-      console.error("Turnstile verification failed:", error);
-    }
-  }, [config.turnstileEnabled, t]);
+  const create = useCallback(
+    async (selectedDomain: string, turnstileToken: string) => {
+      if (config.turnstileEnabled && !turnstileToken) {
+        toast.error(t("No captcha response"));
+        return;
+      }
+      try {
+        const authorization = await verifyTurnstile(
+          selectedDomain,
+          config.turnstileEnabled ? turnstileToken : undefined,
+        );
+        const now = Date.now();
+        const expires = now + MAILBOX_TTL_MS;
+        writeMailboxSessionCookies(
+          authorization.mailbox,
+          authorization.mailboxToken,
+          expires,
+        );
+        setAddress(authorization.mailbox);
+        setMailboxToken(authorization.mailboxToken || "");
+        setExpiryTimestamp(expires);
+        toast.success(t("Email created successfully"));
+      } catch (error) {
+        toast.error(t("Failed to verify captcha"));
+        console.error("Turnstile verification failed:", error);
+      }
+    },
+    [config.turnstileEnabled, t],
+  );
 
   const stop = useCallback(() => {
     clearMailboxSessionCookies();
@@ -96,35 +125,51 @@ export function useMailboxSession(config: AppConfig) {
     }
     const newExpiry = Date.now() + MAILBOX_TTL_MS;
     const cookieExpires = new Date(Date.now() + MAILBOX_TTL_MS);
-    Cookies.set(COOKIE_KEYS.expiry, String(newExpiry), { expires: cookieExpires });
+    Cookies.set(COOKIE_KEYS.expiry, String(newExpiry), {
+      expires: cookieExpires,
+    });
     setExpiryTimestamp(newExpiry);
     toast.success(t("Validity reset successfully"));
   }, [mailboxToken, t]);
 
-  const login = useCallback(async (password: string): Promise<boolean> => {
-    setIsLoggingIn(true);
-    try {
-      const data = await loginByPassword(password);
-      const now = Date.now();
-      const expires = now + MAILBOX_TTL_MS;
-      writeMailboxSessionCookies(data.address, data.mailboxToken, expires);
-      setAddress(data.address);
-      setMailboxToken(data.mailboxToken || "");
-      setExpiryTimestamp(expires);
-      toast.success(t("Login successful"));
-      return true;
-    } catch (error: any) {
-      toast.error(`${t("Login failed")}: ${t(error.message)}`);
-      return false;
-    } finally {
-      setIsLoggingIn(false);
-    }
-  }, [t]);
+  const login = useCallback(
+    async (password: string): Promise<boolean> => {
+      setIsLoggingIn(true);
+      try {
+        const data = await loginByPassword(password);
+        const now = Date.now();
+        const expires = now + MAILBOX_TTL_MS;
+        writeMailboxSessionCookies(data.address, data.mailboxToken, expires);
+        setAddress(data.address);
+        setMailboxToken(data.mailboxToken || "");
+        setExpiryTimestamp(expires);
+        toast.success(t("Login successful"));
+        return true;
+      } catch (error: any) {
+        toast.error(`${t("Login failed")}: ${t(error.message)}`);
+        return false;
+      } finally {
+        setIsLoggingIn(false);
+      }
+    },
+    [t],
+  );
 
   const getPassword = useCallback((): string | null => {
-    if (address && config.cookiesSecret) return encrypt(address, config.cookiesSecret);
+    if (address && config.cookiesSecret)
+      return encrypt(address, config.cookiesSecret);
     return null;
   }, [address, config.cookiesSecret]);
 
-  return { address, mailboxToken, expiryTimestamp, isLoggingIn, create, stop, resetExpiry, login, getPassword };
+  return {
+    address,
+    mailboxToken,
+    expiryTimestamp,
+    isLoggingIn,
+    create,
+    stop,
+    resetExpiry,
+    login,
+    getPassword,
+  };
 }

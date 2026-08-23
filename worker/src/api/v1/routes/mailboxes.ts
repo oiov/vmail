@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import type { Env } from '../../../index';
+import type { Env } from '../../../env';
 import { getD1DB } from '../../../database/db';
 import { nanoid } from 'nanoid/non-secure';
 import {
