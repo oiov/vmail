@@ -73,6 +73,11 @@ export function escapeHtml(value: string): string {
       )[c]!,
   );
 }
+// RFC 5322 显示名加引号并转义，防止名称中的 <> 被解析成第二个地址 token
+// （schema 已挡 CRLF 注入，这里补引号层防御，CodeRabbit PR#39 #3586）
+export function quoteDisplayName(name: string): string {
+  return `"${name.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
 function senderAttribution(m: OutgoingEmail): string {
   return m.senderName ? `${m.senderName} <${m.replyTo}>` : m.replyTo;
 }
@@ -83,7 +88,9 @@ export function appendSenderAttribution(m: OutgoingEmail): string {
   return `${m.content}\n\n--\nReply-To: ${a}`;
 }
 export function getProviderSenderName(m: OutgoingEmail): string {
-  return m.senderName ? `${m.senderName} via Vmail` : "Vmail";
+  return m.senderName
+    ? `${quoteDisplayName(`${m.senderName} via Vmail`)}`
+    : quoteDisplayName("Vmail");
 }
 
 export function buildResendPayload(
@@ -91,7 +98,7 @@ export function buildResendPayload(
   senderEmail: string,
 ): Record<string, unknown> {
   const p: Record<string, unknown> = {
-    from: `${getProviderSenderName(m)} <${senderEmail}>`,
+    from: getProviderSenderName(m) + " <" + senderEmail + ">",
     to: [m.receiverEmail],
     reply_to: m.replyTo,
     subject: m.subject,
@@ -141,6 +148,8 @@ export async function sendEmail(
         "Content-Type": "application/json",
       },
       body: JSON.stringify(buildResendPayload(outgoing, env.SENDER_EMAIL)),
+      // 出站请求加超时，provider 挂起时不拖住 Worker（CodeRabbit PR#39 #3594）
+      signal: AbortSignal.timeout(15_000),
     });
     if (!r.ok)
       throw new Error(`Resend 发送失败: ${r.status} ${await r.text()}`);
@@ -155,6 +164,7 @@ export async function sendEmail(
       body: JSON.stringify(
         buildMailChannelsPayload(outgoing, env.SENDER_EMAIL),
       ),
+      signal: AbortSignal.timeout(15_000),
     });
     if (!r.ok)
       throw new Error(`MailChannels 发送失败: ${r.status} ${await r.text()}`);

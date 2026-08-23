@@ -417,7 +417,12 @@ api.get("/emails/:id", async (c) => {
 // fix: 删除邮件接口不再需要 turnstile 验证，因为通常这是在已知邮箱上下文中操作的。
 api.post("/delete-emails", async (c) => {
   const db = getD1DB(c.env.DB);
-  const body = await c.req.json();
+  let body: any;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ message: "错误的请求：请求体无效或为空。" }, 400);
+  }
   const ids = body?.ids;
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return c.json({ message: "ids are required" }, 400);

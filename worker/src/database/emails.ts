@@ -6,12 +6,10 @@ import { count, desc, asc, eq, and, inArray, lt, sql } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import { emails, type InsertEmail } from "./schema.ts";
 
+// 契约: 插入失败必须抛出，由 email() 的 catch 走 setReject() 触发 Cloudflare 重投
+// 吞掉错误会导致邮件静默丢失且统计照常递增（CodeRabbit PR#39 #3772/#3777）
 export async function insertEmail(db: DrizzleD1Database, email: InsertEmail) {
-  try {
-    await db.insert(emails).values(email).execute();
-  } catch (e) {
-    console.error(e);
-  }
+  await db.insert(emails).values(email).execute();
 }
 export async function getEmails(db: DrizzleD1Database) {
   try {

@@ -8,6 +8,7 @@ import {
   getBearerToken,
   getConfiguredSendChannel,
   isAllowedMailboxAddress,
+  quoteDisplayName,
   sendRequestSchema,
   verifyMailboxToken,
   type OutgoingEmail,
@@ -140,7 +141,7 @@ test("provider payloads use the configured sender and authenticated reply-to", (
     outgoingEmail,
     "verified@example.com",
   );
-  assert.equal(resendPayload.from, "Alice via Vmail <verified@example.com>");
+  assert.equal(resendPayload.from, '"Alice via Vmail" <verified@example.com>');
   assert.equal(resendPayload.reply_to, "alice@example.com");
   assert.equal(
     resendPayload.text,
@@ -161,6 +162,21 @@ test("provider payloads use the configured sender and authenticated reply-to", (
   assert.match(cloudflareMime, /^From: .*<verified@example\.com>\r?$/m);
   assert.match(cloudflareMime, /^Reply-To: <alice@example\.com>\r?$/m);
   assert.match(cloudflareMime, /^To: <recipient@example\.net>\r?$/m);
+});
+
+test("display names are quoted and escaped against address-token injection", () => {
+  // senderName 含 <> 时不得被解析成第二个地址 token（RFC 5322 引号层防御）
+  assert.equal(quoteDisplayName("evil <a@b.c>"), '"evil <a@b.c>"');
+  // String.raw 保证期望值中的反斜杠不被二次转义
+  assert.equal(quoteDisplayName('say "hi"'), String.raw`"say \"hi\""`);
+  const payload = buildResendPayload(
+    { ...outgoingEmail, senderName: "evil <spoof@x.com>" },
+    "verified@example.com",
+  );
+  assert.equal(
+    payload.from,
+    '"evil <spoof@x.com> via Vmail" <verified@example.com>',
+  );
 });
 
 test("HTML attribution escapes user-controlled sender metadata", () => {
