@@ -1,0 +1,89 @@
+// worker/src/outbound.ts
+// 深模块: 出站邮件（渠道选择 + Provider Payload + Cloudflare MIME）的唯一出口
+// Interface: getConfiguredSendChannel(env) + build*Payload + buildCloudflareMimeMessage + sendEmail(env, outgoing)
+// Implementation: 内部封装 Resend/MailChannels/Cloudflare 三个 Adapter 的分支
+import { z } from "zod";
+import { createMimeMessage, Mailbox } from "mimetext/browser";
+
+export type SendChannel = "resend" | "mailchannels" | "cloudflare";
+export interface SenderEnv {
+  SEND_CHANNEL?: string; SENDER_EMAIL?: string; RESEND_API_KEY?: string; MAILCHANNELS_API_KEY?: string; MAILBOX_TOKEN_SECRET?: string; SEND_EMAIL?: { send(message: any): Promise<void> };
+}
+
+const emailAddress = z.string().trim().email().max(254);
+const senderName = z.string().trim().max(100).refine((v) => !/[\r\n]/.test(v), "Header values cannot contain line breaks");
+const subject = z.string().trim().min(1).max(200).refine((v) => !/[\r\n]/.test(v), "Header values cannot contain line breaks");
+
+export const sendRequestSchema = z.object({
+  senderName: senderName.optional().default(""),
+  receiverEmail: emailAddress,
+  subject,
+  content: z.string().min(1).max(100_000),
+  type: z.enum(["text/plain", "text/html"]).default("text/plain"),
+}).strict();
+
+export type SendRequest = z.infer<typeof sendRequestSchema>;
+export interface OutgoingEmail extends SendRequest { replyTo: string; }
+
+export function getConfiguredSendChannel(env: SenderEnv): SendChannel | null {
+  if (!env.MAILBOX_TOKEN_SECRET || !env.SENDER_EMAIL) return null;
+  switch (env.SEND_CHANNEL) {
+    case "resend": return env.RESEND_API_KEY ? "resend" : null;
+    case "mailchannels": return env.MAILCHANNELS_API_KEY ? "mailchannels" : null;
+    case "cloudflare":
+    case "send_email": return env.SEND_EMAIL ? "cloudflare" : null;
+    default: return null;
+  }
+}
+
+export function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" } as Record<string,string>)[c]!);
+}
+function senderAttribution(m: OutgoingEmail): string { return m.senderName ? `${m.senderName} <${m.replyTo}>` : m.replyTo; }
+export function appendSenderAttribution(m: OutgoingEmail): string {
+  const a = senderAttribution(m);
+  if (m.type === "text/html") return `${m.content}<hr style="border:0;border-top:1px solid #e0e0e0;margin-top:24px"/><p style="font-size:12px;color:#666;">Reply-To: ${escapeHtml(a)}</p>`;
+  return `${m.content}\n\n--\nReply-To: ${a}`;
+}
+export function getProviderSenderName(m: OutgoingEmail): string { return m.senderName ? `${m.senderName} via Vmail` : "Vmail"; }
+
+export function buildResendPayload(m: OutgoingEmail, senderEmail: string): Record<string, unknown> {
+  const p: Record<string, unknown> = { from: `${getProviderSenderName(m)} <${senderEmail}>`, to: [m.receiverEmail], reply_to: m.replyTo, subject: m.subject };
+  if (m.type === "text/html") p.html = appendSenderAttribution(m); else p.text = appendSenderAttribution(m);
+  return p;
+}
+export function buildMailChannelsPayload(m: OutgoingEmail, senderEmail: string): Record<string, unknown> {
+  return { personalizations: [{ to: [{ email: m.receiverEmail }] }], from: { email: senderEmail, name: getProviderSenderName(m) }, reply_to: { email: m.replyTo }, subject: m.subject, content: [{ type: m.type, value: appendSenderAttribution(m) }] };
+}
+export function buildCloudflareMimeMessage(m: OutgoingEmail, senderEmail: string): string {
+  const mime = createMimeMessage();
+  mime.setSender({ name: getProviderSenderName(m), addr: senderEmail });
+  mime.setRecipient(m.receiverEmail);
+  mime.setSubject(m.subject);
+  mime.setHeader("Reply-To", new Mailbox(m.replyTo));
+  mime.addMessage({ contentType: m.type, data: appendSenderAttribution(m) });
+  return mime.asRaw();
+}
+
+// 深模块统一发件入口 — 隐藏三分支，调用方只处理成功/异常
+// EmailMessage 仅在 Cloudflare Worker 运行时存在，不在 Node 测试中静态导入
+export async function sendEmail(env: SenderEnv, outgoing: OutgoingEmail): Promise<SendChannel> {
+  const channel = getConfiguredSendChannel(env as any);
+  if (!channel || !env.SENDER_EMAIL) throw new Error("SEND_UNAVAILABLE");
+  if (channel === "resend") {
+    const r = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" }, body: JSON.stringify(buildResendPayload(outgoing, env.SENDER_EMAIL)) });
+    if (!r.ok) throw new Error(`Resend failed: ${r.status} ${await r.text()}`);
+    return channel;
+  } else if (channel === "mailchannels") {
+    const r = await fetch("https://api.mailchannels.net/tx/v1/send", { method: "POST", headers: { "Content-Type": "application/json", "X-API-Key": env.MAILCHANNELS_API_KEY! }, body: JSON.stringify(buildMailChannelsPayload(outgoing, env.SENDER_EMAIL)) });
+    if (!r.ok) throw new Error(`MailChannels failed: ${r.status} ${await r.text()}`);
+    return channel;
+  } else {
+    // 仅在 Worker 运行时解析 cloudflare:email，避免 Node 测试时静态导入失败
+    const emailMod: any = await import("cloudflare:email").catch(() => null);
+    if (!emailMod?.EmailMessage) throw new Error("SEND_UNAVAILABLE: SEND_EMAIL binding not available in this runtime");
+    const msg = new emailMod.EmailMessage(env.SENDER_EMAIL, outgoing.receiverEmail, buildCloudflareMimeMessage(outgoing, env.SENDER_EMAIL));
+    await env.SEND_EMAIL!.send(msg as any);
+    return channel;
+  }
+}
