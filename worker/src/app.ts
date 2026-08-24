@@ -295,13 +295,22 @@ api.post("/send", async (c) => {
   }
 });
 
-// 生成 API Key 的函数
+// 生成 API Key 的函数 — 使用 CSPRNG (crypto.getRandomValues) 保证不可预测性
+// （API Key 是凭证，不能用 Math.random；mailboxToken 已是 HMAC-SHA256，强度对齐）
 function generateApiKey(): string {
   const chars =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const random = new Uint32Array(32);
+  crypto.getRandomValues(random);
   let key = "vmail_";
   for (let i = 0; i < 32; i++) {
-    key += chars.charAt(Math.floor(Math.random() * chars.length));
+    // 拒绝采样避免模偏差：Uint32 上界 2^32 无法被 62 整除，丢弃超界值
+    let byte = random[i];
+    while (byte >= Math.floor(0x100000000 / chars.length) * chars.length) {
+      crypto.getRandomValues(random.subarray(i, i + 1));
+      byte = random[i];
+    }
+    key += chars.charAt(byte % chars.length);
   }
   return key;
 }
