@@ -13,7 +13,6 @@ import {
   getMailboxMetaByAddress,
 } from "./database/dao";
 import { getD1DB } from "./database/db";
-import type { InsertEmail } from "./database/schema";
 import { nanoid } from "nanoid/non-secure";
 import PostalMime from "postal-mime";
 // 导入加解密工具函数
@@ -33,7 +32,6 @@ import {
 import {
   checkRateLimit,
   createDrizzleRateLimitStore,
-  rateLimitHeaders,
 } from "./rateLimit";
 import { incrementAndGetApiRateWindowCount as drizzleIncrementRateWindow } from "./database/dao";
 import {
@@ -45,6 +43,7 @@ import type { Env } from "./env";
 export type { Env } from "./env";
 import {
   SITE_AUTH_COOKIE,
+  SITE_GATE_TTL_MS,
   createSiteGateCookieValue,
   isSiteUnlocked,
   shouldBypassSiteGate,
@@ -387,7 +386,11 @@ api.post("/emails", async (c) => {
   }
   const address = typeof body?.address === "string" ? body.address : undefined;
   const limit = Number.parseInt(
-    typeof body?.limit === "string" ? body.limit : "",
+    typeof body?.limit === "string"
+      ? body.limit
+      : typeof body?.limit === "number" && Number.isFinite(body.limit)
+        ? String(body.limit)
+        : "",
     10,
   );
 
@@ -563,7 +566,8 @@ app.post("/auth/unlock", async (c) => {
   const cookieValue = await createSiteGateCookieValue(c.env.PASSWORD);
   c.header(
     "Set-Cookie",
-    `${SITE_AUTH_COOKIE}=${cookieValue}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400; Secure`,
+    // review-D4: Max-Age 与签名有效期共用 SITE_GATE_TTL_MS 单源，避免双源漂移
+      `${SITE_AUTH_COOKIE}=${cookieValue}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SITE_GATE_TTL_MS / 1000}; Secure`,
   );
 
   return c.json({ success: true });
