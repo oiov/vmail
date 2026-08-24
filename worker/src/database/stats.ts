@@ -145,7 +145,7 @@ async function upsertDailyStatsField(
   dateKey: string = getDateKey(),
 ) {
   const now = new Date();
-  // 字段名 → drizzle 列对象显式映射，替代 (dailyStats as any)[field] 动态逃逸
+  // 字段名 → drizzle 列对象显式映射，替代旧的动态索引类型逃逸
   const dailyColumn = {
     addressesCreated: dailyStats.addressesCreated,
     emailsReceived: dailyStats.emailsReceived,

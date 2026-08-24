@@ -16,7 +16,7 @@ export interface ParsedAddress {
   name?: string;
 }
 
-// 与 schema 的 Header[]/Address/Address[] 结构对齐，消除映射层的 as any 宽化断言
+// 与 schema 的 Header[]/Address/Address[] 结构对齐，映射层不再需要宽化断言
 export interface ParsedMail {
   headers?: Header[];
   from?: Address;

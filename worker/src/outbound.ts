@@ -173,7 +173,13 @@ export async function sendEmail(
     return channel;
   } else {
     // 仅在 Worker 运行时解析 cloudflare:email，避免 Node 测试时静态导入失败
-    const emailMod: any = await import("cloudflare:email").catch(() => null);
+    // 动态导入的最小结构契约：构造器产物即官方全局 EmailMessage 类型
+    interface CloudflareEmailModule {
+      EmailMessage: new (from: string, to: string, raw: string) => EmailMessage;
+    }
+    const emailMod = (await import("cloudflare:email").catch(
+      () => null,
+    )) as CloudflareEmailModule | null;
     if (!emailMod?.EmailMessage)
       throw new Error("SEND_UNAVAILABLE: 当前运行时 SEND_EMAIL 绑定不可用");
     const msg = new emailMod.EmailMessage(

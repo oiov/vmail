@@ -278,8 +278,8 @@ api.post("/send", async (c) => {
   try {
     await sendEmail(c.env, outgoingEmail);
     return c.json({ success: true, channel: sendChannel });
-  } catch (error: any) {
-    const msg = String(error?.message || error);
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
     if (msg.includes("SEND_UNAVAILABLE")) {
       console.error("邮件发送不可用:", error);
       return c.json(
@@ -351,7 +351,7 @@ api.post("/api-keys", requireOpenApi, async (c) => {
       },
       201,
     );
-  } catch (e: any) {
+  } catch (e) {
     console.error("Create API Key error:", e);
     return c.json(
       {
@@ -369,14 +369,17 @@ api.post("/api-keys", requireOpenApi, async (c) => {
 // 这个接口现在是公开的，刷新收件箱时可以直接调用，不再需要重复验证。
 api.post("/emails", async (c) => {
   const db = getD1DB(c.env.DB);
-  let body: any;
+  let body: Record<string, unknown> | null;
   try {
-    body = await c.req.json();
+    body = (await c.req.json()) as Record<string, unknown>;
   } catch (e) {
     return c.json({ message: "错误的请求：请求体无效或为空。" }, 400);
   }
-  const address = body?.address;
-  const limit = Number.parseInt(body?.limit ?? "", 10);
+  const address = typeof body?.address === "string" ? body.address : undefined;
+  const limit = Number.parseInt(
+    typeof body?.limit === "string" ? body.limit : "",
+    10,
+  );
 
   if (!address) {
     return c.json({ message: "address is required" }, 400);
@@ -389,14 +392,14 @@ api.post("/emails", async (c) => {
 
 api.post("/emails/meta", async (c) => {
   const db = getD1DB(c.env.DB);
-  let body: any;
+  let body: Record<string, unknown> | null;
   try {
-    body = await c.req.json();
+    body = (await c.req.json()) as Record<string, unknown>;
   } catch {
     return c.json({ message: "错误的请求：请求体无效或为空。" }, 400);
   }
 
-  const address = body?.address;
+  const address = typeof body?.address === "string" ? body.address : undefined;
   if (!address) {
     return c.json({ message: "address is required" }, 400);
   }
@@ -420,13 +423,16 @@ api.get("/emails/:id", async (c) => {
 // fix: 删除邮件接口不再需要 turnstile 验证，因为通常这是在已知邮箱上下文中操作的。
 api.post("/delete-emails", async (c) => {
   const db = getD1DB(c.env.DB);
-  let body: any;
+  let body: Record<string, unknown> | null;
   try {
-    body = await c.req.json();
+    body = (await c.req.json()) as Record<string, unknown>;
   } catch {
     return c.json({ message: "错误的请求：请求体无效或为空。" }, 400);
   }
-  const ids = body?.ids;
+  const ids =
+    typeof body?.ids !== "undefined" && Array.isArray(body.ids)
+      ? body.ids
+      : undefined;
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return c.json({ message: "ids are required" }, 400);
   }
@@ -606,12 +612,13 @@ const workerHandlers = {
       await insertEmail(db, email);
       // 通过 Stats 深模块同时写 site + daily
       await record(db, "emailReceived");
-    } catch (e: any) {
+    } catch (e) {
       // **关键修复**：向 Cloudflare 发出拒绝信号
       // 当发生任何错误时，调用 message.setReject() 告知 Cloudflare 处理失败。
       // 这会让 Cloudflare 尝试重新投递邮件，而不是直接删除。
       console.error("处理邮件失败:", e);
-      message.setReject(`邮件处理失败: ${e.message}`);
+      const msg = e instanceof Error ? e.message : String(e);
+      message.setReject(`邮件处理失败: ${msg}`);
     }
   },
 

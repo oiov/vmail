@@ -630,8 +630,9 @@ mailboxesRouter.post("/", async (c) => {
       },
       201,
     );
-  } catch (e: any) {
-    if (e.message?.includes("UNIQUE constraint failed")) {
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("UNIQUE constraint failed")) {
       return c.json(
         {
           error: {
