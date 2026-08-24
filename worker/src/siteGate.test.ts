@@ -1,22 +1,51 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isSiteUnlocked, shouldBypassSiteGate, SITE_AUTH_COOKIE } from "./app/siteGate.ts";
-
-test("SiteGate Module — 无 PASSWORD 时任意请求视为已解锁", () => {
+import {
+  createSiteGateCookieValue,
+  isSiteUnlocked,
+  shouldBypassSiteGate,
+  SITE_AUTH_COOKIE,
+} from "./app/siteGate.ts";
+test("SiteGate Module — 无 PASSWORD 时任意请求视为已解锁", async () => {
   const req = new Request("https://vmail.test/", { headers: {} });
-  assert.equal(isSiteUnlocked(req, {}), true);
-  assert.equal(isSiteUnlocked(req, { PASSWORD: "" }), true);
+  assert.equal(await isSiteUnlocked(req, {}), true);
+  assert.equal(await isSiteUnlocked(req, { PASSWORD: "" }), true);
 });
 
-test("SiteGate Module — 有 PASSWORD 时仅当 cookie 含 vmail_site_auth=1 才放行", () => {
-  const unlocked = new Request("https://vmail.test/", { headers: { cookie: `${SITE_AUTH_COOKIE}=1` } });
-  const wrong = new Request("https://vmail.test/", { headers: { cookie: "other=1" } });
-  const empty = new Request("https://vmail.test/", { headers: {} });
-  const spaced = new Request("https://vmail.test/", { headers: { cookie: `${SITE_AUTH_COOKIE}=1; other=1` } });
-  assert.equal(isSiteUnlocked(unlocked, { PASSWORD: "secret" }), true);
-  assert.equal(isSiteUnlocked(spaced, { PASSWORD: "secret" }), true);
-  assert.equal(isSiteUnlocked(wrong, { PASSWORD: "secret" }), false);
-  assert.equal(isSiteUnlocked(empty, { PASSWORD: "secret" }), false);
+test("SiteGate Module — 签发的合法 cookie 放行，伪造/过期/篡改一律拒绝", async () => {
+  const password = "secret";
+  const value = await createSiteGateCookieValue(password);
+  const unlocked = new Request("https://vmail.test/", {
+    headers: { cookie: `${SITE_AUTH_COOKIE}=${value}` },
+  });
+  const spaced = new Request("https://vmail.test/", {
+    headers: { cookie: `${SITE_AUTH_COOKIE}=${value}; other=1` },
+  });
+  // 旧版明文 "1" 不再被认可
+  const legacy = new Request("https://vmail.test/", {
+    headers: { cookie: `${SITE_AUTH_COOKIE}=1` },
+  });
+  // 篡改 expiry 的值（签名不匹配）
+  const tampered = new Request("https://vmail.test/", {
+    headers: {
+      cookie: `${SITE_AUTH_COOKIE}=99999999999999.${value.split(".")[1]}`,
+    },
+  });
+  // 错误密码签发的 cookie
+  const wrongKey = await createSiteGateCookieValue("other-password");
+  const wrongSigned = new Request("https://vmail.test/", {
+    headers: { cookie: `${SITE_AUTH_COOKIE}=${wrongKey}` },
+  });
+  const noCookie = new Request("https://vmail.test/", { headers: {} });
+  assert.equal(await isSiteUnlocked(unlocked, { PASSWORD: password }), true);
+  assert.equal(await isSiteUnlocked(spaced, { PASSWORD: password }), true);
+  assert.equal(await isSiteUnlocked(legacy, { PASSWORD: password }), false);
+  assert.equal(await isSiteUnlocked(tampered, { PASSWORD: password }), false);
+  assert.equal(
+    await isSiteUnlocked(wrongSigned, { PASSWORD: password }),
+    false,
+  );
+  assert.equal(await isSiteUnlocked(noCookie, { PASSWORD: password }), false);
 });
 
 test("SiteGate Module — 白名单路径直接绕过门禁", () => {

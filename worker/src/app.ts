@@ -45,6 +45,7 @@ import type { Env } from "./env";
 export type { Env } from "./env";
 import {
   SITE_AUTH_COOKIE,
+  createSiteGateCookieValue,
   isSiteUnlocked,
   shouldBypassSiteGate,
 } from "./app/siteGate";
@@ -560,16 +561,17 @@ app.post("/auth/unlock", async (c) => {
     return c.json({ message: "Invalid password" }, 401);
   }
 
+  const cookieValue = await createSiteGateCookieValue(c.env.PASSWORD);
   c.header(
     "Set-Cookie",
-    `${SITE_AUTH_COOKIE}=1; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400; Secure`,
+    `${SITE_AUTH_COOKIE}=${cookieValue}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400; Secure`,
   );
 
   return c.json({ success: true });
 });
 
-app.get("/auth/status", (c) => {
-  const unlocked = isSiteUnlocked(c.req.raw, c.env);
+app.get("/auth/status", async (c) => {
+  const unlocked = await isSiteUnlocked(c.req.raw, c.env);
   return c.json({
     unlocked,
     sitePasswordEnabled: Boolean(c.env.PASSWORD),
@@ -640,7 +642,10 @@ const workerHandlers = {
   ): Promise<Response> {
     const url = new URL(request.url);
 
-    if (!shouldBypassSiteGate(url.pathname) && !isSiteUnlocked(request, env)) {
+    if (
+      !shouldBypassSiteGate(url.pathname) &&
+      !(await isSiteUnlocked(request, env))
+    ) {
       return new Response(JSON.stringify({ message: "Site is locked" }), {
         status: 401,
         headers: {
