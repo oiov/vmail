@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createMailboxIdentity, isAllowedMailboxAddress } from "./mailboxIdentity.ts";
+import {
+  createMailboxIdentity,
+  isAllowedMailboxAddress,
+} from "./mailboxIdentity.ts";
 
 test("MailboxIdentity Module — 对象接口固化白名单解析，仅暴露 isAllowed/verify", async () => {
   const id = createMailboxIdentity("example.com, mail.test", "secret");
@@ -9,7 +12,10 @@ test("MailboxIdentity Module — 对象接口固化白名单解析，仅暴露 i
   assert.equal(id.isAllowedDomain("mail.test"), true);
   assert.equal(id.isAllowed("not-an-email"), false);
   // CSV 只在构造时解析一次
-  assert.equal(isAllowedMailboxAddress("alice@mail.test", " example.com , MAIL.TEST "), true);
+  assert.equal(
+    isAllowedMailboxAddress("alice@mail.test", " example.com , MAIL.TEST "),
+    true,
+  );
 });
 
 test("MailboxIdentity Module — token 生命周期由 Module 拥有", async () => {

@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { checkRateLimit, createMemoryRateLimitStore, rateLimitHeaders } from "./rateLimit.ts";
+import {
+  checkRateLimit,
+  createMemoryRateLimitStore,
+  rateLimitHeaders,
+} from "./rateLimit.ts";
 
 test("RateLimit Module — 单 key 在限额内保持 allowed，remaining 递减", async () => {
   const store = createMemoryRateLimitStore();
@@ -50,13 +54,28 @@ test("RateLimit Module — 不同 key 互不影响，跨 window 计数重置", a
   const now = 1_700_000_000;
   const limit = 2;
 
-  const rA1 = await checkRateLimit("send-mailbox:a@example.com", limit, now, store);
-  const rB1 = await checkRateLimit("send-mailbox:b@example.com", limit, now, store);
+  const rA1 = await checkRateLimit(
+    "send-mailbox:a@example.com",
+    limit,
+    now,
+    store,
+  );
+  const rB1 = await checkRateLimit(
+    "send-mailbox:b@example.com",
+    limit,
+    now,
+    store,
+  );
   assert.equal(rA1.count, 1);
   assert.equal(rB1.count, 1);
 
   const nextWindow = now + 61;
-  const rA2 = await checkRateLimit("send-mailbox:a@example.com", limit, nextWindow, store);
+  const rA2 = await checkRateLimit(
+    "send-mailbox:a@example.com",
+    limit,
+    nextWindow,
+    store,
+  );
   assert.equal(rA2.count, 1);
   assert.equal(rA2.windowStart, Math.floor(nextWindow / 60) * 60);
 });
