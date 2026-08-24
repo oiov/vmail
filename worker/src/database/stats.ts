@@ -145,9 +145,16 @@ async function upsertDailyStatsField(
   dateKey: string = getDateKey(),
 ) {
   const now = new Date();
+  // 字段名 → drizzle 列对象显式映射，替代 (dailyStats as any)[field] 动态逃逸
+  const dailyColumn = {
+    addressesCreated: dailyStats.addressesCreated,
+    emailsReceived: dailyStats.emailsReceived,
+    apiCalls: dailyStats.apiCalls,
+    apiKeysCreated: dailyStats.apiKeysCreated,
+  }[field];
   const updates: Record<string, unknown> = {
     updatedAt: now,
-    [field]: sql`${(dailyStats as any)[field]} + ${amount}`,
+    [field]: sql`${dailyColumn} + ${amount}`,
   };
   await db
     .insert(dailyStats)
