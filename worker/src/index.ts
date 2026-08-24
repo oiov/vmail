@@ -1,5 +1,5 @@
-import workerHandlers, { createApp } from './app';
-export type { Env } from './env';
+import workerHandlers, { createApp } from "./app";
+export type { Env } from "./env";
 // 薄入口：Worker 的三个入口由深模块 App 统一拥有，index.ts 仅做 seam 转发
 export default workerHandlers;
 export { createApp };

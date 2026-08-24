@@ -36,7 +36,9 @@ export async function checkRateLimit(
   return { allowed, count, remaining, retryAfter, limit, windowStart };
 }
 
-export function rateLimitHeaders(result: RateLimitResult): Record<string, string> {
+export function rateLimitHeaders(
+  result: RateLimitResult,
+): Record<string, string> {
   const headers: Record<string, string> = {
     "X-RateLimit-Limit": String(result.limit),
     "X-RateLimit-Remaining": String(result.remaining),
@@ -48,7 +50,10 @@ export function rateLimitHeaders(result: RateLimitResult): Record<string, string
 }
 
 // 内存 Adapter — 供测试使用，第二 Adapter 证实 seam 存在
-export function createMemoryRateLimitStore(): RateLimitStore & { clear(): void; size(): number } {
+export function createMemoryRateLimitStore(): RateLimitStore & {
+  clear(): void;
+  size(): number;
+} {
   const map = new Map<string, number>();
   return {
     async incrementAndGet(key: string, windowStart: number): Promise<number> {
@@ -57,8 +62,12 @@ export function createMemoryRateLimitStore(): RateLimitStore & { clear(): void; 
       map.set(mapKey, next);
       return next;
     },
-    clear() { map.clear(); },
-    size() { return map.size; },
+    clear() {
+      map.clear();
+    },
+    size() {
+      return map.size;
+    },
   };
 }
 

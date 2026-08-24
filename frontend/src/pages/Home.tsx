@@ -9,11 +9,7 @@ import { toast } from "react-hot-toast";
 import { MailList } from "../components/MailList.tsx";
 import { CopyButton } from "../components/CopyButton.tsx";
 // feat: 导入 loginByPassword
-import {
-  getEmails,
-  getMailboxMeta,
-  deleteEmails,
-} from "../services/api.ts";
+import { getEmails, getMailboxMeta, deleteEmails } from "../services/api.ts";
 import { useConfig } from "../hooks/useConfig.ts";
 import { useMailboxSession } from "../hooks/useMailboxSession.ts";
 
@@ -153,7 +149,8 @@ export function Home() {
               <button
                 onClick={() => toast.dismiss(toastInstance.id)}
                 className="p-1 rounded-full text-gray-400 hover:bg-slate-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                aria-label="Close">
+                aria-label="Close"
+              >
                 <Close className="h-5 w-5" />
               </button>
             </div>
@@ -301,7 +298,8 @@ export function Home() {
         <InfoModal
           showModal={showEmailModal}
           setShowModal={setShowEmailModal}
-          title={t("Email Detail")}>
+          title={t("Email Detail")}
+        >
           <MailDetail
             email={selectedEmail}
             onClose={() => setShowEmailModal(false)}
@@ -312,7 +310,8 @@ export function Home() {
         <InfoModal
           showModal={showPromoModal}
           setShowModal={setShowPromoModal}
-          title="🎉 Vmail & Nbility 联动福利">
+          title="🎉 Vmail & Nbility 联动福利"
+        >
           <div className="space-y-4 text-gray-200">
             {/* 主标题 */}
             <div className="text-center">
@@ -393,7 +392,8 @@ export function Home() {
                 href="https://nbility.ai/auth/register?aff=Dptp"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full text-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-bold text-white shadow-lg shadow-cyan-500/50 hover:shadow-cyan-500/70 hover:scale-[1.02] transition-all duration-200">
+                className="block w-full text-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-bold text-white shadow-lg shadow-cyan-500/50 hover:shadow-cyan-500/70 hover:scale-[1.02] transition-all duration-200"
+              >
                 🚀 立即注册领取免费额度
               </a>
               <p className="text-[10px] text-center text-gray-500 mt-2">
@@ -413,7 +413,8 @@ export function Home() {
             <button
               type="button"
               onClick={() => setShowPromoModal(true)}
-              className="mb-6 text-left text-sm text-cyan-400 hover:text-cyan-300 transition-colors underline underline-offset-4 decoration-cyan-500/60">
+              className="mb-6 text-left text-sm text-cyan-400 hover:text-cyan-300 transition-colors underline underline-offset-4 decoration-cyan-500/60"
+            >
               Vmail & Nbility 联动注册送 Claude Code、Codex 免费额度
             </button>
           )}
@@ -422,7 +423,8 @@ export function Home() {
               href="https://github.com/oiov/vmail"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center after:content-['↗'] gap-1.5 hover:text-cyan-400 transition-colors cursor-pointer">
+              className="flex items-center after:content-['↗'] gap-1.5 hover:text-cyan-400 transition-colors cursor-pointer"
+            >
               <CodeBracketIcon className="size-5 text-blue-400" />{" "}
               {t("Open Source")}
             </a>
@@ -432,7 +434,8 @@ export function Home() {
             </div>
             <Link
               to="/api-docs"
-              className="flex items-center after:content-['↗'] gap-1.5 hover:text-cyan-400 transition-colors cursor-pointer">
+              className="flex items-center after:content-['↗'] gap-1.5 hover:text-cyan-400 transition-colors cursor-pointer"
+            >
               <ApiIcon className="size-5 text-blue-400" />
               {t("Open RESTful API")}
             </Link>
@@ -462,7 +465,8 @@ export function Home() {
             )}
             <button
               onClick={handleStopAddress}
-              className="py-2.5 rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500">
+              className="py-2.5 rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500"
+            >
               {t("Stop")}
             </button>
           </div>
@@ -474,7 +478,8 @@ export function Home() {
               <select
                 value={selectedDomain}
                 onChange={(e) => setSelectedDomain(e.target.value)}
-                className="w-full p-2.5 rounded-md bg-white/10 text-white border border-cyan-50/20">
+                className="w-full p-2.5 rounded-md bg-white/10 text-white border border-cyan-50/20"
+              >
                 {config.emailDomain.map((domain) => (
                   <option key={domain} value={domain} className="text-black">
                     @{domain}
@@ -498,12 +503,14 @@ export function Home() {
             <button
               onClick={handleCreateAddress}
               disabled={config.turnstileEnabled && !turnstileToken}
-              className="py-2.5 rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500">
+              className="py-2.5 rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500"
+            >
               {t("Create temporary email")}
             </button>
             <p
               className="mt-4 text-sm text-cyan-500 cursor-pointer"
-              onClick={() => setShowPasswordModal(true)}>
+              onClick={() => setShowPasswordModal(true)}
+            >
               <PasswordIcon className="inline-block w-4 h-4 mr-2" />
               {t("Have a password? Login.")}
             </p>
