@@ -547,6 +547,8 @@ function generateRandomLocalPart(): string {
   return pick(patterns)();
 }
 
+import { isValidLocalPart } from "../localPart";
+
 const mailboxesRouter = new Hono<{
   Bindings: Env;
   Variables: { apiKey: { id: string; rateLimit: number } };
@@ -600,7 +602,7 @@ mailboxesRouter.post("/", async (c) => {
     typeof body.localPart === "string" && body.localPart
       ? body.localPart
       : generateRandomLocalPart();
-  if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,30}[a-zA-Z0-9])?$/.test(localPart)) {
+  if (!isValidLocalPart(localPart)) {
     return c.json(
       {
         error: {
