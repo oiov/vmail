@@ -11,7 +11,6 @@ import {
   insertApiKey,
   getSiteStats,
   getMailboxMetaByAddress,
-  incrementAndGetApiRateWindowCount,
 } from "./database/dao";
 import { getD1DB } from "./database/db";
 import type { InsertEmail } from "./database/schema";
