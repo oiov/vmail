@@ -10,3 +10,8 @@ export const LOCAL_PART_PATTERN =
 export function isValidLocalPart(value: string): boolean {
   return LOCAL_PART_PATTERN.test(value);
 }
+
+/** 归一化入口(2026-08-25 review-F3): 小写化后再过格式闸口, 与身份/白名单层 toLowerCase 链路对齐 */
+export function normalizeLocalPart(value: string): string {
+  return value.trim().toLowerCase();
+}

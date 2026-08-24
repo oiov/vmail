@@ -9,7 +9,7 @@ import {
   findMailboxMessage,
   deleteMailboxMessage,
   getMailboxMessageCount,
-  incrementAddressesCreated,
+  record,
 } from "../../../database/dao";
 
 // 随机邮箱名称生成（模拟真实用户命名习惯）
@@ -547,7 +547,7 @@ function generateRandomLocalPart(): string {
   return pick(patterns)();
 }
 
-import { isValidLocalPart } from "../localPart";
+import { isValidLocalPart, normalizeLocalPart } from "../localPart";
 
 const mailboxesRouter = new Hono<{
   Bindings: Env;
@@ -561,7 +561,9 @@ mailboxesRouter.post("/", async (c) => {
 
   let body: { localPart?: string; domain?: string; expiresIn?: number } = {};
   try {
-    body = await c.req.json();
+    // review-F2: 合法 JSON null 体归一为空对象，避免 body.domain 抛 TypeError 致裸 500
+    const parsedBody = await c.req.json();
+    if (parsedBody && typeof parsedBody === "object") body = parsedBody;
   } catch {
     // 允许空请求体
   }
@@ -582,8 +584,8 @@ mailboxesRouter.post("/", async (c) => {
     );
   }
 
-  // 验证域名
-  const domain = body.domain || availableDomains[0];
+  // 验证域名（review-F3: 与身份/白名单层一致，统一小写归一化）
+  const domain = (body.domain || availableDomains[0]).toLowerCase();
   if (!availableDomains.includes(domain)) {
     return c.json(
       {
@@ -600,7 +602,7 @@ mailboxesRouter.post("/", async (c) => {
   // 生成邮箱地址
   const localPart =
     typeof body.localPart === "string" && body.localPart
-      ? body.localPart
+      ? normalizeLocalPart(body.localPart)
       : generateRandomLocalPart();
   if (!isValidLocalPart(localPart)) {
     return c.json(
@@ -618,7 +620,18 @@ mailboxesRouter.post("/", async (c) => {
   const address = `${localPart}@${domain}`;
 
   // 计算过期时间
-  const expiresIn = body.expiresIn || 24 * 60 * 60; // 默认 24 小时
+  // review-F1: 校验 expiresIn 为正有限数且不超过 30 天上限，
+  // 负值/NaN/Infinity/超大值一律回退默认 24 小时——
+  // 杜绝"出生即过期"邮箱与 Invalid time value 序列化 500
+  const DEFAULT_EXPIRES_IN = 24 * 60 * 60;
+  const rawExpiresIn = body.expiresIn;
+  const expiresIn =
+    typeof rawExpiresIn === "number" &&
+    Number.isFinite(rawExpiresIn) &&
+    rawExpiresIn > 0 &&
+    rawExpiresIn <= DEFAULT_EXPIRES_IN * 30
+      ? Math.floor(rawExpiresIn)
+      : DEFAULT_EXPIRES_IN;
   const expiresAt = new Date(Date.now() + expiresIn * 1000);
 
   const now = new Date();
@@ -634,8 +647,8 @@ mailboxesRouter.post("/", async (c) => {
 
   try {
     await insertMailbox(db, mailbox);
-    // 增加邮箱地址创建计数
-    await incrementAddressesCreated(db);
+    // 增加邮箱地址创建计数（review-E1: 接线 record 统一双写入口，daily 图表不再漏计 v1 建箱）
+    await record(db, "addressCreated");
     return c.json(
       {
         data: {
