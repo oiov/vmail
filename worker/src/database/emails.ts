@@ -94,10 +94,8 @@ export async function deleteEmails(db: DrizzleD1Database, ids: string[]) {
   if (!ids || ids.length === 0) return { count: 0 };
   try {
     const result = await db.delete(emails).where(inArray(emails.id, ids));
-    // drizzle D1 驱动在运行时返回 meta.changes，类型层 D1Result 未声明 rowsAffected，这里做窄化
-    return {
-      count: (result as unknown as { rowsAffected: number }).rowsAffected ?? 0,
-    };
+    // D1 删除行数在 D1Result.meta.changes（rowsAffected 属性不存在，旧写法恒得 0）
+    return { count: result.meta.changes ?? 0 };
   } catch (e) {
     console.error(e);
     return { count: 0 };
@@ -112,10 +110,8 @@ export async function deleteExpiredEmails(
       .delete(emails)
       .where(lt(emails.createdAt, expirationTime))
       .execute();
-    // drizzle D1 驱动在运行时返回 meta.changes，类型层 D1Result 未声明 rowsAffected，这里做窄化
-    return {
-      count: (result as unknown as { rowsAffected: number }).rowsAffected ?? 0,
-    };
+    // D1 删除行数在 D1Result.meta.changes（rowsAffected 属性不存在，旧写法恒得 0）
+    return { count: result.meta.changes ?? 0 };
   } catch (e) {
     console.error("清理过期邮件失败:", e);
     return { count: 0 };
@@ -178,9 +174,8 @@ export async function deleteMailboxMessage(
       .delete(emails)
       .where(and(eq(emails.id, messageId), eq(emails.messageTo, address)))
       .execute();
-    return (
-      ((result as unknown as { rowsAffected?: number }).rowsAffected ?? 0) > 0
-    );
+    // D1 删除行数在 D1Result.meta.changes（rowsAffected 属性不存在，旧写法恒判失败）
+    return (result.meta.changes ?? 0) > 0;
   } catch (e) {
     console.error("deleteMailboxMessage error:", e);
     return false;
