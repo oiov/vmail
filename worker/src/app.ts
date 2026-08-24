@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { serveStatic } from "hono/cloudflare-workers";
 import { cors } from "hono/cors";
 // 导入数据库相关的模块
@@ -85,7 +85,11 @@ function getMailboxTokenTtlSeconds(): number {
 // isSiteUnlocked / shouldBypassSiteGate 由 ./app/siteGate 深模块唯一拥有，此处不再本地重定义
 
 // 显式校验 helper，供处理器直接使用，避免 c.set/c.get 隐式接口
-async function requireTurnstile(c: any, body: any): Promise<Response | null> {
+type TurnstileBody = { token?: string } | undefined;
+async function requireTurnstile(
+  c: Context<{ Bindings: Env }>,
+  body: TurnstileBody,
+): Promise<Response | null> {
   if (!isTurnstileEnabled(c.env)) return null;
   const token = body?.token || c.req.header("cf-turnstile-token");
   const ip = c.req.header("CF-Connecting-IP");
