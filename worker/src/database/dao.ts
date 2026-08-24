@@ -4,4 +4,16 @@ export * from "./emails.ts";
 export * from "./mailboxes.ts";
 export * from "./stats.ts";
 // 显式重导出以保持类型检查稳定（兼容 origin 的 import type ... from './dao'）
-export type { InsertEmail, InsertMailbox, InsertApiKey, ApiKey, Mailbox, Email, Header, Address, SiteStats, DailyStats, ApiRateLimitWindow } from "./schema.ts";
+export type {
+  InsertEmail,
+  InsertMailbox,
+  InsertApiKey,
+  ApiKey,
+  Mailbox,
+  Email,
+  Header,
+  Address,
+  SiteStats,
+  DailyStats,
+  ApiRateLimitWindow,
+} from "./schema.ts";
