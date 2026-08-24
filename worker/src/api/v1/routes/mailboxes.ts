@@ -16,6 +16,7 @@ import {
 function generateRandomLocalPart(): string {
   const firstNames = [
     // 男性名
+    "james",
     "john",
     "robert",
     "michael",
@@ -146,6 +147,7 @@ function generateRandomLocalPart(): string {
     "lloyd",
     "marshall",
     // 女性名
+    "mary",
     "patricia",
     "jennifer",
     "linda",
