@@ -550,14 +550,13 @@ app.post("/auth/unlock", async (c) => {
     return c.json({ success: true, bypassed: true });
   }
 
-  let body: { password?: string };
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ message: "Invalid request body" }, 400);
-  }
+  // 与 /api/login 同款: parseJsonBody 统一守卫 + 可选链，
+  // 合法 JSON null / 数组等畸形体走 401/400，不再抛 TypeError 由兜底返回 500
+  const parsed = await parseJsonBody(c);
+  if (parsed.errorResponse) return parsed.errorResponse;
+  const body = parsed.body as { password?: string } | null;
 
-  if (body.password !== c.env.PASSWORD) {
+  if (body?.password !== c.env.PASSWORD) {
     return c.json({ message: "Invalid password" }, 401);
   }
 
