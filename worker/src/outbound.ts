@@ -89,10 +89,11 @@ export function appendSenderAttribution(m: OutgoingEmail): string {
     return `${m.content}<hr style="border:0;border-top:1px solid #e0e0e0;margin-top:24px"/><p style="font-size:12px;color:#666;">Reply-To: ${escapeHtml(a)}</p>`;
   return `${m.content}\n\n--\nReply-To: ${a}`;
 }
+// review-A1: 返回裸名——MailChannels/Cloudflare 走结构化 name 字段，
+// provider 侧自行做 RFC2047 编码；引号层防御只属于 Resend 的字符串插值路径，
+// 在共享层包引号会被 mimetext 当普通字符二次编码，收件方看到带字面引号的显示名
 export function getProviderSenderName(m: OutgoingEmail): string {
-  return m.senderName
-    ? `${quoteDisplayName(`${m.senderName} via Vmail`)}`
-    : quoteDisplayName("Vmail");
+  return m.senderName ? `${m.senderName} via Vmail` : "Vmail";
 }
 
 export function buildResendPayload(
@@ -100,7 +101,8 @@ export function buildResendPayload(
   senderEmail: string,
 ): Record<string, unknown> {
   const p: Record<string, unknown> = {
-    from: getProviderSenderName(m) + " <" + senderEmail + ">",
+    // Resend from 是字符串插值，加引号防名称中的 <> 解析成第二个地址 token
+    from: quoteDisplayName(getProviderSenderName(m)) + " <" + senderEmail + ">",
     to: [m.receiverEmail],
     reply_to: m.replyTo,
     subject: m.subject,
