@@ -442,9 +442,10 @@ api.post("/delete-emails", async (c) => {
 
 // 修复：移除登录接口的 turnstile 中间件，使其不再需要人机验证。
 api.post("/login", async (c) => {
-  // const db = getD1DB(c.env.DB); // 数据库连接不再需要用于验证
-  // 修复：由于移除了 turnstile 中间件，现在需要在此处直接解析请求体。
-  const body = await c.req.json();
+  // 与 /verify、/delete-emails 同款：parseJsonBody 统一守卫，坏 JSON 返回 400 而非未捕获异常
+  const parsed = await parseJsonBody(c);
+  if (parsed.errorResponse) return parsed.errorResponse;
+  const body = parsed.body as { password?: string };
   const password = body?.password;
 
   if (!password) {
