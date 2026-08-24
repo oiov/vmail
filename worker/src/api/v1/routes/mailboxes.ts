@@ -596,7 +596,23 @@ mailboxesRouter.post("/", async (c) => {
   }
 
   // 生成邮箱地址
-  const localPart = body.localPart || generateRandomLocalPart();
+  const localPart =
+    typeof body.localPart === "string" && body.localPart
+      ? body.localPart
+      : generateRandomLocalPart();
+  if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,30}[a-zA-Z0-9])?$/.test(localPart)) {
+    return c.json(
+      {
+        error: {
+          code: "VALIDATION_ERROR",
+          message:
+            "Invalid localPart. Use 2-32 chars: letters, digits, dot, hyphen, underscore; must start and end with letter or digit",
+          details: { field: "localPart" },
+        },
+      },
+      400,
+    );
+  }
   const address = `${localPart}@${domain}`;
 
   // 计算过期时间
