@@ -1,21 +1,4 @@
 // worker/src/env.ts — 共享绑定类型，深模块与浅入口共用
-export interface Env {
-  DB: D1Database;
-  ASSETS: Fetcher;
-  EMAIL_DOMAIN: string;
-  COOKIES_SECRET: string;
-  TURNSTILE_KEY: string;
-  TURNSTILE_SECRET: string;
-  PASSWORD?: string;
-  RESEND_API_KEY?: string;
-  MAILCHANNELS_API_KEY?: string;
-  MAILBOX_TOKEN_SECRET?: string;
-  SENDER_EMAIL?: string;
-  SEND_RATE_LIMIT_PER_MINUTE?: string;
-  SEND_IP_RATE_LIMIT_PER_MINUTE?: string;
-  API_RATE_LIMIT_PER_MINUTE?: string;
-  SHOW_AFF?: string;
-  ENABLE_OPENAPI?: string;
-  SEND_CHANNEL?: string;
-  SEND_EMAIL?: SendEmail;
-}
+// 单源为 wrangler types 生成的 worker-configuration.d.ts (Cloudflare.Env)，
+// 本文件仅做转发，避免手写 Env 与生成类型漂移（review S5）。
+export type Env = Cloudflare.Env;

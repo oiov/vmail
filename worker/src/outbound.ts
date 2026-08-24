@@ -12,7 +12,9 @@ export interface SenderEnv {
   RESEND_API_KEY?: string;
   MAILCHANNELS_API_KEY?: string;
   MAILBOX_TOKEN_SECRET?: string;
-  SEND_EMAIL?: { send(message: unknown): Promise<void> };
+  // 与 Cloudflare 官方绑定一致: SendEmail.send 返回 Promise<EmailSendResult>
+  // （wrangler types 生成的 Env.SEND_EMAIL 即此形状，勿再手写窄化签名）
+  SEND_EMAIL?: SendEmail;
 }
 
 const emailAddress = z.string().trim().email().max(254);
@@ -138,7 +140,7 @@ export async function sendEmail(
   env: SenderEnv,
   outgoing: OutgoingEmail,
 ): Promise<SendChannel> {
-  const channel = getConfiguredSendChannel(env as any);
+  const channel = getConfiguredSendChannel(env);
   if (!channel || !env.SENDER_EMAIL) throw new Error("SEND_UNAVAILABLE");
   if (channel === "resend") {
     const r = await fetch("https://api.resend.com/emails", {
@@ -179,7 +181,8 @@ export async function sendEmail(
       outgoing.receiverEmail,
       buildCloudflareMimeMessage(outgoing, env.SENDER_EMAIL),
     );
-    await env.SEND_EMAIL!.send(msg as any);
+    // emailMod 动态导入自 cloudflare:email，运行时类型与官方 SendEmail 参数一致
+    await env.SEND_EMAIL!.send(msg);
     return channel;
   }
 }

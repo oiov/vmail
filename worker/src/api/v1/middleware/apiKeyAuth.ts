@@ -1,5 +1,6 @@
 import { Context, Next } from 'hono';
 import { getD1DB } from '../../../database/db';
+import type { ApiKey } from '../../../database/schema';
 import { findApiKeyByKey, incrementAndGetApiRateWindowCount } from '../../../database/dao';
 import { record } from '../../../database/stats';
 import { checkRateLimit, createDrizzleRateLimitStore, rateLimitHeaders } from '../../../rateLimit';
@@ -9,7 +10,9 @@ import type { Env } from '../../../env';
  * API Key 认证中间件
  * 从请求头 X-API-Key 或 Authorization: Bearer <key> 中提取 API Key
  */
-export const apiKeyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
+type ApiKeyEnv = { Bindings: Env; Variables: { apiKey: { id: string; rateLimit: number } } };
+
+export const apiKeyAuth = async (c: Context<ApiKeyEnv>, next: Next) => {
   const db = getD1DB(c.env.DB);
   const now = Math.floor(Date.now() / 1000);
   const configuredLimit = Number.parseInt(c.env.API_RATE_LIMIT_PER_MINUTE ?? '', 10);
@@ -39,10 +42,10 @@ export const apiKeyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
   const cacheKey = new Request(`https://apikey-cache.internal/${apiKey}`);
   const cached = await cache.match(cacheKey);
 
-  let keyRecord;
+  let keyRecord: ApiKey | null | undefined;
   if (cached) {
     // 从缓存读取
-    keyRecord = await cached.json();
+    keyRecord = (await cached.json<ApiKey>()) as ApiKey;
   } else {
     // 缓存未命中，从数据库查询
     keyRecord = await findApiKeyByKey(db, apiKey);

@@ -145,7 +145,7 @@ async function upsertDailyStatsField(
   dateKey: string = getDateKey(),
 ) {
   const now = new Date();
-  const updates: Record<typeof field | "updatedAt", any> = {
+  const updates: Record<string, unknown> = {
     updatedAt: now,
     [field]: sql`${(dailyStats as any)[field]} + ${amount}`,
   };

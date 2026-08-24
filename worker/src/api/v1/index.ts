@@ -5,7 +5,10 @@ import { apiKeyAuth } from './middleware/apiKeyAuth';
 import mailboxesRouter from './routes/mailboxes';
 import { requireOpenApi } from '../../openapi';
 
-const v1 = new Hono<{ Bindings: Env }>();
+const v1 = new Hono<{
+  Bindings: Env;
+  Variables: { apiKey: { id: string; rateLimit: number } };
+}>();
 
 // 配置 CORS
 v1.use('/*', cors());

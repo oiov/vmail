@@ -276,7 +276,7 @@ api.post("/send", async (c) => {
   };
 
   try {
-    await sendEmail(c.env as any, outgoingEmail);
+    await sendEmail(c.env, outgoingEmail);
     return c.json({ success: true, channel: sendChannel });
   } catch (error: any) {
     const msg = String(error?.message || error);
@@ -573,13 +573,18 @@ app.route("/api/v1", v1Api);
 
 // 修正: 确保 serveStatic 正确指向静态文件目录
 // Hono v4 中 serveStatic 默认处理根路径，我们需要确保它指向正确的子目录
-app.get("/*", serveStatic({ root: "./" }));
-app.get("/assets/*", serveStatic({ root: "./" }));
+// manifest 传空: 静态资源由 wrangler.toml [assets] 绑定托管，不经 Hono manifest 驱动
+app.get("/*", serveStatic({ root: "./", manifest: {} }));
+app.get("/assets/*", serveStatic({ root: "./", manifest: {} }));
 
 // Worker 主处理逻辑
 const workerHandlers = {
   // 邮件处理逻辑
-  async email(message: ForwardableEmail, env: Env, ctx: ExecutionContext) {
+  async email(
+    message: ForwardableEmailMessage,
+    env: Env,
+    ctx: ExecutionContext,
+  ) {
     try {
       const db = getD1DB(env.DB);
       // 将原始邮件流转换为文本
@@ -653,7 +658,11 @@ const workerHandlers = {
   },
 
   // 定时任务 (清理过期邮件)
-  async scheduled(event, env, ctx) {
+  async scheduled(
+    event: ScheduledEvent,
+    env: Env,
+    ctx: ExecutionContext,
+  ) {
     const db = getD1DB(env.DB);
     // 修复：将清理时间从1小时修改为24小时（1天）
     const oneDayAgo = new Date(Date.now() - 1000 * 60 * 60 * 24);

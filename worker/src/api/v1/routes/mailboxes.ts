@@ -95,7 +95,10 @@ function generateRandomLocalPart(): string {
   return pick(patterns)();
 }
 
-const mailboxesRouter = new Hono<{ Bindings: Env }>();
+const mailboxesRouter = new Hono<{
+  Bindings: Env;
+  Variables: { apiKey: { id: string; rateLimit: number } };
+}>();
 
 // POST /api/v1/mailboxes - 创建邮箱
 mailboxesRouter.post('/', async (c) => {
