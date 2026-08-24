@@ -15,6 +15,8 @@ export async function getEmails(db: DrizzleD1Database) {
   try {
     return await db.select().from(emails).execute();
   } catch (e) {
+    // 读路径吞错是既有降级策略，但必须留痕：否则 D1 故障伪装成空收件箱无法察觉
+    console.error("getEmails error:", e);
     return [];
   }
 }
@@ -26,7 +28,8 @@ export async function findEmailById(db: DrizzleD1Database, id: string) {
       .where(and(eq(emails.id, id)))
       .execute();
     return result.length === 1 ? result[0] : null;
-  } catch {
+  } catch (e) {
+    console.error("findEmailById error:", e);
     return null;
   }
 }
@@ -43,7 +46,8 @@ export async function getEmailsByMessageTo(
       .orderBy(desc(emails.createdAt));
     if (limit && limit > 0) query = query.limit(limit) as typeof query;
     return await query.execute();
-  } catch {
+  } catch (e) {
+    console.error("getEmailsByMessageTo error:", e);
     return [];
   }
 }
@@ -81,7 +85,8 @@ export async function getEmailsCount(db: DrizzleD1Database) {
   try {
     const res = await db.select({ count: count() }).from(emails);
     return res[0]?.count;
-  } catch {
+  } catch (e) {
+    console.error("getEmailsCount error:", e);
     return 0;
   }
 }
