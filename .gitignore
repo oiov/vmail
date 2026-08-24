@@ -13,3 +13,4 @@ frontend/build
 CLAUDE.md
 CLAUDE.local.md
 .wrangler
+.agents
