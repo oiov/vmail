@@ -54,6 +54,7 @@ export async function isSiteUnlocked(
   const expiry = value.slice(0, dot);
   if (!/^\d+$/.test(expiry) || Number(expiry) <= Date.now()) return false;
   const expected = await signValue(expiry, env.PASSWORD);
+  // 长度守卫防越界读取；XOR 循环本身恒定工作量跑满 43 字符，不构成逐字符时序泄漏
   if (expected.length !== value.slice(dot + 1).length) return false;
   let diff = 0;
   for (let i = 0; i < expected.length; i++)
