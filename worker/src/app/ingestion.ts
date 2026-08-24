@@ -3,18 +3,30 @@
 // Interface: mapPostalToInsertEmail(mail, message, now, id) · ingestEmail(db, message, deps?)
 // Implementation: 内部隐藏 PostalMime 字段映射与 insert/统计细节，映射逻辑可纯测
 
-import { insertEmailSchema, type InsertEmail } from "../database/schema.ts";
+import {
+  type Address,
+  type Header,
+  insertEmailSchema,
+  type InsertEmail,
+} from "../database/schema.ts";
 
+// PostalMime 解析出的地址对象形状（address 必有，name 可缺省）
+export interface ParsedAddress {
+  address: string;
+  name?: string;
+}
+
+// 与 schema 的 Header[]/Address/Address[] 结构对齐，消除映射层的 as any 宽化断言
 export interface ParsedMail {
-  headers?: unknown[];
-  from?: unknown;
-  sender?: unknown;
-  replyTo?: unknown;
+  headers?: Header[];
+  from?: Address;
+  sender?: Address;
+  replyTo?: Address[];
   deliveredTo?: string;
   returnPath?: string;
-  to?: unknown[];
-  cc?: unknown[];
-  bcc?: unknown[];
+  to?: Address[];
+  cc?: Address[];
+  bcc?: Address[];
   subject?: string;
   messageId?: string;
   inReplyTo?: string;
@@ -31,28 +43,28 @@ export interface ForwardableEmailLike {
   setReject?: (reason: string) => void;
 }
 
-
 export function mapPostalToInsertEmail(
   mail: ParsedMail,
   message: Pick<ForwardableEmailLike, "from" | "to">,
   now: Date,
   id: string,
 ): InsertEmail {
-  const newEmail: InsertEmail = {
+  // parse 入参允许缺省字段（如 messageId），由 schema 校验把门；parse 返回值才是 InsertEmail
+  const newEmail: Omit<InsertEmail, "messageId"> & { messageId?: string } = {
     id,
     messageFrom: message.from,
     messageTo: message.to,
-    headers: (mail.headers as any) || [],
-    from: mail.from as any,
-    sender: mail.sender as any,
-    replyTo: mail.replyTo as any,
+    headers: mail.headers || [],
+    from: mail.from ?? { address: message.from, name: "" },
+    sender: mail.sender,
+    replyTo: mail.replyTo,
     deliveredTo: mail.deliveredTo,
     returnPath: mail.returnPath,
-    to: mail.to as any,
-    cc: mail.cc as any,
-    bcc: mail.bcc as any,
+    to: mail.to,
+    cc: mail.cc,
+    bcc: mail.bcc,
     subject: mail.subject,
-    messageId: mail.messageId as any,
+    messageId: mail.messageId,
     inReplyTo: mail.inReplyTo,
     references: mail.references,
     date: mail.date,
