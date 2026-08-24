@@ -145,8 +145,10 @@ export function useMailboxSession(config: AppConfig) {
         setExpiryTimestamp(expires);
         toast.success(t("Login successful"));
         return true;
-      } catch (error: any) {
-        toast.error(`${t("Login failed")}: ${t(error.message)}`);
+      } catch (error: unknown) {
+        const msg =
+          error instanceof Error ? error.message : String(error ?? "");
+        toast.error(`${t("Login failed")}: ${t(msg)}`);
         return false;
       } finally {
         setIsLoggingIn(false);
