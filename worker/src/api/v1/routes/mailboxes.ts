@@ -15,8 +15,7 @@ import {
 // 随机邮箱名称生成（模拟真实用户命名习惯）
 function generateRandomLocalPart(): string {
   const firstNames = [
-    // male
-    "james",
+    // 男性名
     "john",
     "robert",
     "michael",
@@ -146,8 +145,7 @@ function generateRandomLocalPart(): string {
     "lance",
     "lloyd",
     "marshall",
-    // female
-    "mary",
+    // 女性名
     "patricia",
     "jennifer",
     "linda",
@@ -535,13 +533,13 @@ function generateRandomLocalPart(): string {
 
   // 7 种命名模式，随机选取一种
   const patterns: (() => string)[] = [
-    () => `${first}.${last}`, // john.smith
-    () => `${first}_${last}`, // john_smith
-    () => `${first}${last}`, // johnsmith
-    () => `${f}.${last}`, // j.smith
-    () => `${f}${last}`, // jsmith
-    () => `${first}${num2()}`, // john84
-    () => `${first}.${last}${yearSuffix()}`, // john.smith92
+    () => `${first}.${last}`, // 示例: john.smith（点分隔）
+    () => `${first}_${last}`, // 示例: john_smith（下划线）
+    () => `${first}${last}`, // 示例: johnsmith（直接拼接）
+    () => `${f}.${last}`, // 示例: j.smith（名缩写.姓）
+    () => `${f}${last}`, // 示例: jsmith（名缩写+姓）
+    () => `${first}${num2()}`, // 示例: john84（名+两位数字）
+    () => `${first}.${last}${yearSuffix()}`, // 示例: john.smith92（点分隔+年份后缀）
   ];
 
   return pick(patterns)();
