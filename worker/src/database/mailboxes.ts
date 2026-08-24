@@ -58,7 +58,9 @@ export async function deleteExpiredMailboxes(db: DrizzleD1Database) {
       .where(lt(mailboxes.expiresAt, now))
       .execute();
     // drizzle D1 驱动运行时返回 rowsAffected，类型层 D1Result 未声明，做一次窄化
-    return { count: (r as unknown as { rowsAffected: number }).rowsAffected ?? 0 };
+    return {
+      count: (r as unknown as { rowsAffected: number }).rowsAffected ?? 0,
+    };
   } catch (e) {
     console.error("deleteExpiredMailboxes error:", e);
     return { count: 0 };

@@ -658,11 +658,7 @@ const workerHandlers = {
   },
 
   // 定时任务 (清理过期邮件)
-  async scheduled(
-    event: ScheduledEvent,
-    env: Env,
-    ctx: ExecutionContext,
-  ) {
+  async scheduled(event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
     const db = getD1DB(env.DB);
     // 修复：将清理时间从1小时修改为24小时（1天）
     const oneDayAgo = new Date(Date.now() - 1000 * 60 * 60 * 24);
