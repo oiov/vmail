@@ -23,25 +23,32 @@ export async function verifyTurnstileToken(
   params.append("response", token);
   if (ip) params.append("remoteip", ip);
 
-  const res = await fetch(
-    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: params.toString(),
-      signal: AbortSignal.timeout(15_000), // 与 outbound.ts 出站标准一致: 15s 有界
-    },
-  );
+  try {
+    const res = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString(),
+        signal: AbortSignal.timeout(15_000), // 与 outbound.ts 出站标准一致: 15s 有界
+      },
+    );
 
-  const data = (await res.json()) as {
-    success?: boolean;
-    "error-codes"?: unknown;
-  };
-  if (!data.success) {
-    console.error("Turnstile 验证失败:", data["error-codes"]);
+    const data = (await res.json()) as {
+      success?: boolean;
+      "error-codes"?: unknown;
+    };
+    if (!data.success) {
+      console.error("Turnstile 验证失败:", data["error-codes"]);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    // siteverify 不可达/超时/非 JSON 响应 = 验证未通过，返回 false 走调用方既有 400 分支，
+    // 不向上抛出致 hono 兜底 500（与 outbound 的 502 映射不同，此处语义即"校验失败"）
+    console.error("Turnstile siteverify 请求失败:", e);
     return false;
   }
-  return true;
 }
 
 // 供处理器在无中间件时显式解析的 helper，保持 body 读取集中

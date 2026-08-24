@@ -72,3 +72,24 @@ test("Turnstile Module — parseJsonBody 隔离 JSON 解析错误", async () => 
   assert.ok(bad.errorResponse);
   assert.equal(bad.errorResponse!.status, 400);
 });
+
+test("Turnstile Module — siteverify 网络异常/超时视为验证未通过而非 500", async () => {
+  const originalFetch = globalThis.fetch;
+  // 模拟 siteverify 不可达: fetch reject TimeoutError（AbortSignal.timeout 的真实形态）
+  globalThis.fetch = (async () => {
+    throw new DOMException(
+      "The operation was aborted due to timeout",
+      "TimeoutError",
+    );
+  }) as typeof fetch;
+  try {
+    const ok = await verifyTurnstileToken("tok", { TURNSTILE_SECRET: "s" });
+    assert.equal(
+      ok,
+      false,
+      "网络异常必须返回 false (验证未通过), 不得向上抛出致 hono 兜底 500",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
