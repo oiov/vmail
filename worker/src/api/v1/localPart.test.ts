@@ -38,7 +38,9 @@ test("LOCAL_PART_PATTERN — 单字符与畸形值一律拒绝", () => {
 test("normalizeLocalPart — 大写归一化为小写", async () => {
   const { normalizeLocalPart } = await import("./localPart.ts");
   if (normalizeLocalPart("John.Smith") !== "john.smith") {
-    throw new Error("大写未被归一化: John.Smith -> " + normalizeLocalPart("John.Smith"));
+    throw new Error(
+      "大写未被归一化: John.Smith -> " + normalizeLocalPart("John.Smith"),
+    );
   }
   if (normalizeLocalPart("JOHN") !== "john") {
     throw new Error("大写未被归一化: JOHN -> " + normalizeLocalPart("JOHN"));

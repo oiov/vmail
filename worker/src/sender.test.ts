@@ -202,7 +202,9 @@ test("HTML attribution escapes user-controlled sender metadata", () => {
 // MailChannels/Cloudflare 是结构化 name 字段, 由 provider 侧自行编码,
 // 共享层再包引号会被 mimetext 当普通字符二次 RFC2047 编码, 收件方看到带字面引号的显示名
 test("structured-field channels use bare display names (no double quoting)", async () => {
-  const { buildMailChannelsPayload, buildCloudflareMimeMessage } = await import("./outbound.ts");
+  const { buildMailChannelsPayload, buildCloudflareMimeMessage } = await import(
+    "./outbound.ts"
+  );
   const mailChannelsPayload = buildMailChannelsPayload(
     outgoingEmail,
     "verified@example.com",

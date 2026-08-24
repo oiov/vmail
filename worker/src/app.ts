@@ -29,10 +29,7 @@ import {
   sendRequestSchema,
   verifyMailboxToken,
 } from "./sender";
-import {
-  checkRateLimit,
-  createDrizzleRateLimitStore,
-} from "./rateLimit";
+import { checkRateLimit, createDrizzleRateLimitStore } from "./rateLimit";
 import { incrementAndGetApiRateWindowCount as drizzleIncrementRateWindow } from "./database/dao";
 import {
   isTurnstileEnabled,
@@ -567,7 +564,7 @@ app.post("/auth/unlock", async (c) => {
   c.header(
     "Set-Cookie",
     // review-D4: Max-Age 与签名有效期共用 SITE_GATE_TTL_MS 单源，避免双源漂移
-      `${SITE_AUTH_COOKIE}=${cookieValue}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SITE_GATE_TTL_MS / 1000}; Secure`,
+    `${SITE_AUTH_COOKIE}=${cookieValue}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SITE_GATE_TTL_MS / 1000}; Secure`,
   );
 
   return c.json({ success: true });
