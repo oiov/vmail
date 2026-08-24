@@ -29,6 +29,7 @@ export async function verifyTurnstileToken(
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: params.toString(),
+      signal: AbortSignal.timeout(15_000), // 与 outbound.ts 出站标准一致: 15s 有界
     },
   );
 
