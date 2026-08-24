@@ -223,6 +223,8 @@ export async function incrementAndGetApiRateWindowCount(
       .execute();
     return result[0]?.requestCount ?? 1;
   } catch (e) {
+    // 有意降级 (fail-open): DB 故障时返回 1 放行请求，不因限流计数器故障阻断正常调用。
+    // 该策略为上游既有行为 (CodeRabbit PR#39 #3580 说明保留)，契约由 stats.rateLimit.test.ts 锁定。
     console.error("incrementAndGetApiRateWindowCount error:", e);
     return 1;
   }
