@@ -1,36 +1,60 @@
-import { Context, Next } from 'hono';
-import { getD1DB } from '../../../database/db';
-import { findApiKeyByKey, incrementApiCalls, incrementDailyApiCalls, incrementAndGetApiRateWindowCount } from '../../../database/dao';
-import type { Env } from '../../../index';
+import { Context, Next } from "hono";
+import { getD1DB } from "../../../database/db";
+import type { ApiKey } from "../../../database/schema";
+import {
+  findApiKeyByKey,
+  incrementAndGetApiRateWindowCount,
+} from "../../../database/dao";
+import { record } from "../../../database/stats";
+import {
+  checkRateLimit,
+  createDrizzleRateLimitStore,
+  rateLimitHeaders,
+} from "../../../rateLimit";
+import type { Env } from "../../../env";
 
 /**
  * API Key 认证中间件
  * 从请求头 X-API-Key 或 Authorization: Bearer <key> 中提取 API Key
  */
-export const apiKeyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
+type ApiKeyEnv = {
+  Bindings: Env;
+  Variables: { apiKey: { id: string; rateLimit: number } };
+};
+
+export const apiKeyAuth = async (c: Context<ApiKeyEnv>, next: Next) => {
   const db = getD1DB(c.env.DB);
   const now = Math.floor(Date.now() / 1000);
-  const currentWindow = Math.floor(now / 60) * 60;
-  const configuredLimit = Number.parseInt(c.env.API_RATE_LIMIT_PER_MINUTE ?? '', 10);
-  const rateLimit = Number.isFinite(configuredLimit) && configuredLimit > 0 ? configuredLimit : 100;
+  const configuredLimit = Number.parseInt(
+    c.env.API_RATE_LIMIT_PER_MINUTE ?? "",
+    10,
+  );
+  const rateLimit =
+    Number.isFinite(configuredLimit) && configuredLimit > 0
+      ? configuredLimit
+      : 100;
 
   // 1. 提取 API Key
-  let apiKey = c.req.header('X-API-Key');
+  let apiKey = c.req.header("X-API-Key");
 
   if (!apiKey) {
-    const authHeader = c.req.header('Authorization');
-    if (authHeader?.startsWith('Bearer ')) {
+    const authHeader = c.req.header("Authorization");
+    if (authHeader?.startsWith("Bearer ")) {
       apiKey = authHeader.substring(7);
     }
   }
 
   if (!apiKey) {
-    return c.json({
-      error: {
-        code: 'UNAUTHORIZED',
-        message: 'Missing API Key. Provide it via X-API-Key header or Authorization: Bearer <key>',
-      }
-    }, 401);
+    return c.json(
+      {
+        error: {
+          code: "UNAUTHORIZED",
+          message:
+            "Missing API Key. Provide it via X-API-Key header or Authorization: Bearer <key>",
+        },
+      },
+      401,
+    );
   }
 
   // 2. 尝试从缓存获取 API Key 信息
@@ -38,28 +62,31 @@ export const apiKeyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
   const cacheKey = new Request(`https://apikey-cache.internal/${apiKey}`);
   const cached = await cache.match(cacheKey);
 
-  let keyRecord;
+  let keyRecord: ApiKey | null | undefined;
   if (cached) {
     // 从缓存读取
-    keyRecord = await cached.json();
+    keyRecord = (await cached.json<ApiKey>()) as ApiKey;
   } else {
     // 缓存未命中，从数据库查询
     keyRecord = await findApiKeyByKey(db, apiKey);
 
     if (!keyRecord) {
-      return c.json({
-        error: {
-          code: 'UNAUTHORIZED',
-          message: 'Invalid API Key',
-        }
-      }, 401);
+      return c.json(
+        {
+          error: {
+            code: "UNAUTHORIZED",
+            message: "Invalid API Key",
+          },
+        },
+        401,
+      );
     }
 
     // 将结果缓存5分钟
     const response = new Response(JSON.stringify(keyRecord), {
       headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'public, max-age=300',
+        "Content-Type": "application/json",
+        "Cache-Control": "public, max-age=300",
       },
     });
     c.executionCtx.waitUntil(cache.put(cacheKey, response));
@@ -67,40 +94,46 @@ export const apiKeyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
 
   // 3. 检查是否启用
   if (!keyRecord.isActive) {
-    return c.json({
-      error: {
-        code: 'FORBIDDEN',
-        message: 'API Key is disabled',
-      }
-    }, 403);
+    return c.json(
+      {
+        error: {
+          code: "FORBIDDEN",
+          message: "API Key is disabled",
+        },
+      },
+      403,
+    );
   }
 
   // 4. 检查是否过期
   if (keyRecord.expiresAt && new Date(keyRecord.expiresAt) < new Date()) {
-    return c.json({
-      error: {
-        code: 'FORBIDDEN',
-        message: 'API Key has expired',
-      }
-    }, 403);
-  }
-
-  // 5. 原子限流检查
-  const currentCount = await incrementAndGetApiRateWindowCount(
-    db,
-    keyRecord.id,
-    currentWindow,
-  );
-
-  if (currentCount > rateLimit) {
-    const retryAfter = currentWindow + 60 - now;
-    c.header('X-RateLimit-Limit', `${rateLimit}`);
-    c.header('X-RateLimit-Remaining', '0');
-    c.header('Retry-After', `${retryAfter > 0 ? retryAfter : 1}`);
     return c.json(
       {
         error: {
-          code: 'RATE_LIMITED',
+          code: "FORBIDDEN",
+          message: "API Key has expired",
+        },
+      },
+      403,
+    );
+  }
+
+  // 5. 限流检查 — 通过 RateLimit 深模块，window 计算与 header 推导集中在一处
+  const store = createDrizzleRateLimitStore(
+    db,
+    incrementAndGetApiRateWindowCount,
+  );
+  const rl = await checkRateLimit(keyRecord.id, rateLimit, now, store);
+
+  if (!rl.allowed) {
+    const headers = rateLimitHeaders(rl);
+    c.header("X-RateLimit-Limit", headers["X-RateLimit-Limit"]);
+    c.header("X-RateLimit-Remaining", headers["X-RateLimit-Remaining"]);
+    c.header("Retry-After", headers["Retry-After"]!);
+    return c.json(
+      {
+        error: {
+          code: "RATE_LIMITED",
           message: `Rate limit exceeded. Max ${rateLimit} requests per minute`,
         },
       },
@@ -108,16 +141,14 @@ export const apiKeyAuth = async (c: Context<{ Bindings: Env }>, next: Next) => {
     );
   }
 
-  // 6. 增加 API 调用计数 (异步，不阻塞请求)
-  // 注意：移除了 updateApiKeyLastUsed 调用以减少 D1 写入次数
-  c.executionCtx.waitUntil(Promise.all([incrementApiCalls(db), incrementDailyApiCalls(db)]));
+  // 6. 增加 API 调用计数 (异步，不阻塞请求) — 通过 Stats 深模块统一 site+daily
+  c.executionCtx.waitUntil(record(db, "apiCall"));
 
-  const remaining = Math.max(rateLimit - currentCount, 0);
-  c.header('X-RateLimit-Limit', `${rateLimit}`);
-  c.header('X-RateLimit-Remaining', `${remaining}`);
+  c.header("X-RateLimit-Limit", String(rl.limit));
+  c.header("X-RateLimit-Remaining", String(rl.remaining));
 
   // 7. 将 API Key 信息存入上下文
-  c.set('apiKey', {
+  c.set("apiKey", {
     id: keyRecord.id,
     rateLimit,
   });
