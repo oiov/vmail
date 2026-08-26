@@ -56,8 +56,8 @@ function App() {
     try {
       await unlockSite(password);
       setIsUnlocked(true);
-    } catch (err: any) {
-      setUnlockError(err?.message || "Invalid password");
+    } catch (err: unknown) {
+      setUnlockError(err instanceof Error ? err.message : "Invalid password");
     } finally {
       setIsUnlocking(false);
     }

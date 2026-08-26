@@ -2,7 +2,6 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Turnstile } from "@marsidev/react-turnstile";
 import { useTranslation } from "react-i18next";
-import Cookies from "js-cookie";
 import { Link } from "react-router-dom";
 // feat: 导入全局 toast
 import { toast } from "react-hot-toast";
@@ -10,17 +9,9 @@ import { toast } from "react-hot-toast";
 import { MailList } from "../components/MailList.tsx";
 import { CopyButton } from "../components/CopyButton.tsx";
 // feat: 导入 loginByPassword
-import {
-  getEmails,
-  getMailboxMeta,
-  deleteEmails,
-  loginByPassword,
-  refreshMailboxToken,
-  verifyTurnstile,
-} from "../services/api.ts";
+import { getEmails, getMailboxMeta, deleteEmails } from "../services/api.ts";
 import { useConfig } from "../hooks/useConfig.ts";
-// feat: 导入加密函数
-import { encrypt } from "../lib/utlis.ts";
+import { useMailboxSession } from "../hooks/useMailboxSession.ts";
 
 // feat: 导入密码模态框和相关 hook
 import { usePasswordModal } from "../components/password.tsx";
@@ -48,20 +39,18 @@ export function Home() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
-  // 状态管理
-  const [address, setAddress] = useState<string | undefined>(() =>
-    Cookies.get("userMailbox"),
-  );
-  const [mailboxToken, setMailboxToken] = useState<string>(
-    () => Cookies.get("mailboxToken") || "",
-  );
-  // feat: 新增状态，用于存储邮箱过期时间戳
-  const [expiryTimestamp, setExpiryTimestamp] = useState<number | undefined>(
-    () => {
-      const expiry = Cookies.get("emailExpiry");
-      return expiry ? parseInt(expiry, 10) : undefined;
-    },
-  );
+  // 会话状态由深 Hook 统一持有（Cookies + 24h TTL + token 刷新）
+  const {
+    address,
+    mailboxToken,
+    expiryTimestamp,
+    isLoggingIn,
+    create: createMailboxSession,
+    stop: stopMailboxSession,
+    resetExpiry: resetMailboxExpiry,
+    login: loginWithPassword,
+    getPassword,
+  } = useMailboxSession(config);
   const [turnstileToken, setTurnstileToken] = useState<string>("");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [selectedEmail, setSelectedEmail] = useState<Email | null>(null); // 新增状态，用于存储当前选中的邮件
@@ -79,7 +68,6 @@ export function Home() {
 
   // feat: 初始化密码模态框
   const { PasswordModal, setShowPasswordModal } = usePasswordModal();
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // feat: 初始化发件弹窗
   const { SenderModal, setShowSenderModal } = useSenderModal(
@@ -161,7 +149,8 @@ export function Home() {
               <button
                 onClick={() => toast.dismiss(toastInstance.id)}
                 className="p-1 rounded-full text-gray-400 hover:bg-slate-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                aria-label="Close">
+                aria-label="Close"
+              >
                 <Close className="h-5 w-5" />
               </button>
             </div>
@@ -219,17 +208,10 @@ export function Home() {
     }
 
     // 当用户停止使用邮箱时（地址被清除），重置状态并关闭通知
+    // expiry 由 Hook 内部在 stop() 时已清理，此处不再直接操作 Hook 内部状态
     if (!address) {
       setHasReceivedEmail(false);
-      // feat: 清除过期时间戳状态
-      setExpiryTimestamp(undefined);
       toast.dismiss("password-notification");
-    } else {
-      // feat: 当地址存在时，尝试读取过期时间 cookie
-      const expiry = Cookies.get("emailExpiry");
-      if (expiry && !expiryTimestamp) {
-        setExpiryTimestamp(parseInt(expiry, 10));
-      }
     }
 
     prevEmailsLength.current = emails.length;
@@ -237,55 +219,18 @@ export function Home() {
     // feat: 添加 expiryTimestamp 到依赖项
   }, [emails, address, hasReceivedEmail, expiryTimestamp]);
 
-  // 创建新邮箱地址的处理函数
+  // 创建新邮箱 — 委托深 Hook，视图仅补充 UI 重置
   const handleCreateAddress = async () => {
-    const requireTurnstile = config.turnstileEnabled;
-
-    if (requireTurnstile && !turnstileToken) {
-      toast.error(t("No captcha response"));
-      return;
-    }
-
-    try {
-      const authorization = await verifyTurnstile(
-        selectedDomain,
-        requireTurnstile ? turnstileToken : undefined,
-      );
-      const mailbox = authorization.mailbox;
-      // feat: 计算并存储过期时间戳 (当前时间 + 24小时)
-      const now = Date.now();
-      const expires = now + 24 * 60 * 60 * 1000;
-      Cookies.set("userMailbox", mailbox, { expires: 1 }); // cookie 有效期1天
-      Cookies.set("emailExpiry", expires.toString(), { expires: 1 }); // 存储过期时间戳
-      if (authorization.mailboxToken) {
-        Cookies.set("mailboxToken", authorization.mailboxToken, { expires: 1 });
-      } else {
-        Cookies.remove("mailboxToken");
-      }
-      setAddress(mailbox);
-      setMailboxToken(authorization.mailboxToken || "");
-      setExpiryTimestamp(expires); // 更新状态
-      setHasReceivedEmail(false); // 重置接收邮件状态
-      toast.success(t("Email created successfully")); // feat: 使用全局 toast 提示
-    } catch (error) {
-      toast.error(t("Failed to verify captcha"));
-      console.error("Turnstile verification failed:", error);
-    }
+    await createMailboxSession(selectedDomain, turnstileToken);
+    setHasReceivedEmail(false);
   };
 
-  // 停止使用当前邮箱地址
+  // 停止使用当前邮箱 — 委托深 Hook，视图补充邮件选中清理
   const handleStopAddress = () => {
-    Cookies.remove("userMailbox");
-    Cookies.remove("mailboxToken");
-    // feat: 移除过期时间 cookie
-    Cookies.remove("emailExpiry");
-    setAddress(undefined);
-    setMailboxToken("");
+    stopMailboxSession();
     mailboxMetaSignatureRef.current = null;
-    setHasReceivedEmail(false); // 重置状态
-    setSelectedEmail(null); // 清除选中的邮件
-    setExpiryTimestamp(undefined); // 清除过期时间状态
-    queryClient.invalidateQueries({ queryKey: ["emails"] }); // 清理缓存
+    setHasReceivedEmail(false);
+    setSelectedEmail(null);
   };
 
   // feat: 手动刷新邮件
@@ -294,30 +239,9 @@ export function Home() {
     toast.success(t("Mailbox refreshed"));
   };
 
-  // 修改：将延长邮箱有效期改为重置邮箱有效期
   const handleResetExpiry = useCallback(async () => {
-    if (mailboxToken) {
-      try {
-        const refreshedToken = await refreshMailboxToken(mailboxToken);
-        Cookies.set("mailboxToken", refreshedToken, { expires: 1 });
-        setMailboxToken(refreshedToken);
-      } catch {
-        toast.error(t("SEND_UNAUTHORIZED"));
-        return;
-      }
-    }
-
-    // feat: 计算新的过期时间戳 (当前时间 + 24小时)
-    const newExpiry = Date.now() + 24 * 60 * 60 * 1000;
-    // 计算新的 Cookie 过期时间（相对于当前时间1天）
-    const cookieExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-    Cookies.set("emailExpiry", newExpiry.toString(), {
-      expires: cookieExpires,
-    }); // 更新 Cookie，有效期设为从现在起1天
-    setExpiryTimestamp(newExpiry); // 更新状态
-    toast.success(t("Validity reset successfully")); // 修改：显示重置成功提示
-  }, [mailboxToken, t]);
+    await resetMailboxExpiry();
+  }, [resetMailboxExpiry]);
 
   // 删除邮件的 useMutation hook
   const deleteMutation = useMutation({
@@ -344,43 +268,12 @@ export function Home() {
     deleteMutation.mutate(ids);
   };
 
-  // feat: 处理密码登录的函数
-  // fix: 移除登录时的 turnstile token 校验逻辑
   const handleLogin = async (password: string) => {
-    setIsLoggingIn(true);
-    try {
-      // fix: 调用更新后的 loginByPassword 函数，不再传递 token
-      const data = await loginByPassword(password);
-      // feat: 登录成功后也设置过期时间戳
-      const now = Date.now();
-      const expires = now + 24 * 60 * 60 * 1000;
-      Cookies.set("userMailbox", data.address, { expires: 1 });
-      Cookies.set("emailExpiry", expires.toString(), { expires: 1 });
-      if (data.mailboxToken) {
-        Cookies.set("mailboxToken", data.mailboxToken, { expires: 1 });
-      } else {
-        Cookies.remove("mailboxToken");
-      }
-      setAddress(data.address);
-      setMailboxToken(data.mailboxToken || "");
-      setExpiryTimestamp(expires); // 更新状态
-      setShowPasswordModal(false); // 关闭模态框
-      toast.success(t("Login successful"));
-    } catch (error: any) {
-      // fix: 使用 i18n 翻译错误信息
-      toast.error(`${t("Login failed")}: ${t(error.message)}`);
-    } finally {
-      setIsLoggingIn(false);
-    }
+    const ok = await loginWithPassword(password);
+    if (ok) setShowPasswordModal(false);
   };
 
-  // feat: 获取密码（基于当前邮箱地址和 COOKIES_SECRET 加密）
-  const getPassword = useCallback(() => {
-    if (address && config.cookiesSecret) {
-      return encrypt(address, config.cookiesSecret);
-    }
-    return null;
-  }, [address, config.cookiesSecret]);
+  // 密码由深 Hook 基于 address + cookiesSecret 派生，视图不再直接依赖 encrypt
 
   // 新增：处理邮件选择
   const handleSelectEmail = (email: Email) => {
@@ -405,7 +298,8 @@ export function Home() {
         <InfoModal
           showModal={showEmailModal}
           setShowModal={setShowEmailModal}
-          title={t("Email Detail")}>
+          title={t("Email Detail")}
+        >
           <MailDetail
             email={selectedEmail}
             onClose={() => setShowEmailModal(false)}
@@ -416,7 +310,8 @@ export function Home() {
         <InfoModal
           showModal={showPromoModal}
           setShowModal={setShowPromoModal}
-          title="🎉 Vmail & Nbility 联动福利">
+          title="🎉 Vmail & Nbility 联动福利"
+        >
           <div className="space-y-4 text-gray-200">
             {/* 主标题 */}
             <div className="text-center">
@@ -497,7 +392,8 @@ export function Home() {
                 href="https://nbility.ai/auth/register?aff=Dptp"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full text-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-bold text-white shadow-lg shadow-cyan-500/50 hover:shadow-cyan-500/70 hover:scale-[1.02] transition-all duration-200">
+                className="block w-full text-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-bold text-white shadow-lg shadow-cyan-500/50 hover:shadow-cyan-500/70 hover:scale-[1.02] transition-all duration-200"
+              >
                 🚀 立即注册领取免费额度
               </a>
               <p className="text-[10px] text-center text-gray-500 mt-2">
@@ -517,7 +413,8 @@ export function Home() {
             <button
               type="button"
               onClick={() => setShowPromoModal(true)}
-              className="mb-6 text-left text-sm text-cyan-400 hover:text-cyan-300 transition-colors underline underline-offset-4 decoration-cyan-500/60">
+              className="mb-6 text-left text-sm text-cyan-400 hover:text-cyan-300 transition-colors underline underline-offset-4 decoration-cyan-500/60"
+            >
               Vmail & Nbility 联动注册送 Claude Code、Codex 免费额度
             </button>
           )}
@@ -526,7 +423,8 @@ export function Home() {
               href="https://github.com/oiov/vmail"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center after:content-['↗'] gap-1.5 hover:text-cyan-400 transition-colors cursor-pointer">
+              className="flex items-center after:content-['↗'] gap-1.5 hover:text-cyan-400 transition-colors cursor-pointer"
+            >
               <CodeBracketIcon className="size-5 text-blue-400" />{" "}
               {t("Open Source")}
             </a>
@@ -536,7 +434,8 @@ export function Home() {
             </div>
             <Link
               to="/api-docs"
-              className="flex items-center after:content-['↗'] gap-1.5 hover:text-cyan-400 transition-colors cursor-pointer">
+              className="flex items-center after:content-['↗'] gap-1.5 hover:text-cyan-400 transition-colors cursor-pointer"
+            >
               <ApiIcon className="size-5 text-blue-400" />
               {t("Open RESTful API")}
             </Link>
@@ -566,7 +465,8 @@ export function Home() {
             )}
             <button
               onClick={handleStopAddress}
-              className="py-2.5 rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500">
+              className="py-2.5 rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500"
+            >
               {t("Stop")}
             </button>
           </div>
@@ -578,7 +478,8 @@ export function Home() {
               <select
                 value={selectedDomain}
                 onChange={(e) => setSelectedDomain(e.target.value)}
-                className="w-full p-2.5 rounded-md bg-white/10 text-white border border-cyan-50/20">
+                className="w-full p-2.5 rounded-md bg-white/10 text-white border border-cyan-50/20"
+              >
                 {config.emailDomain.map((domain) => (
                   <option key={domain} value={domain} className="text-black">
                     @{domain}
@@ -602,12 +503,14 @@ export function Home() {
             <button
               onClick={handleCreateAddress}
               disabled={config.turnstileEnabled && !turnstileToken}
-              className="py-2.5 rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500">
+              className="py-2.5 rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500"
+            >
               {t("Create temporary email")}
             </button>
             <p
               className="mt-4 text-sm text-cyan-500 cursor-pointer"
-              onClick={() => setShowPasswordModal(true)}>
+              onClick={() => setShowPasswordModal(true)}
+            >
               <PasswordIcon className="inline-block w-4 h-4 mr-2" />
               {t("Have a password? Login.")}
             </p>

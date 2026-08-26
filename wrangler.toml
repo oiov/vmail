@@ -1,6 +1,12 @@
 name = "vmail"
 main = "worker/src/index.ts"
 
+# 线上路由（zone wenxi.dev 的 Worker Route: vmail.wenxi.dev/* -> vmail）
+workers_dev = false
+routes = [
+  { pattern = "vmail.wenxi.dev/*", zone_name = "wenxi.dev" }
+]
+
 # 打包配置
 minify = true
 compatibility_flags = [ "nodejs_compat" ]

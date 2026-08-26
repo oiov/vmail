@@ -284,8 +284,10 @@ API requests are rate limited based on your API Key configuration. Default limit
       const result: ApiKeyResponse = await response.json();
       setCreatedApiKey(result.data.key);
       toast.success(t("API Key created successfully"));
-    } catch (error: any) {
-      toast.error(error.message || t("Failed to create API Key"));
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error ? error.message : t("Failed to create API Key"),
+      );
     } finally {
       setIsCreating(false);
     }
@@ -304,7 +306,8 @@ API requests are rate limited based on your API Key configuration. Default limit
         <InfoModal
           showModal={showPromoModal}
           setShowModal={setShowPromoModal}
-          title="🎉 Vmail & Nbility 联动福利">
+          title="🎉 Vmail & Nbility 联动福利"
+        >
           <div className="space-y-4 text-gray-200">
             <div className="text-center">
               <p className="text-base font-semibold text-cyan-400 mb-1">
@@ -375,7 +378,8 @@ API requests are rate limited based on your API Key configuration. Default limit
                 href="https://nbility.ai/auth/register?aff=Dptp"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full text-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-bold text-white shadow-lg shadow-cyan-500/50 hover:shadow-cyan-500/70 hover:scale-[1.02] transition-all duration-200">
+                className="block w-full text-center rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 px-5 py-3 font-bold text-white shadow-lg shadow-cyan-500/50 hover:shadow-cyan-500/70 hover:scale-[1.02] transition-all duration-200"
+              >
                 🚀 立即注册领取免费额度
               </a>
               <p className="text-[10px] text-center text-gray-500 mt-2">
@@ -400,12 +404,14 @@ API requests are rate limited based on your API Key configuration. Default limit
             <button
               type="button"
               onClick={handleCopyMarkdown}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex-shrink-0 w-fit">
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex-shrink-0 w-fit"
+            >
               <svg
                 className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
-                viewBox="0 0 24 24">
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -420,7 +426,8 @@ API requests are rate limited based on your API Key configuration. Default limit
             <button
               type="button"
               onClick={() => setShowPromoModal(true)}
-              className="mt-4 text-left text-sm text-cyan-400 hover:text-cyan-300 transition-colors underline underline-offset-4 decoration-cyan-500/60">
+              className="mt-4 text-left text-sm text-cyan-400 hover:text-cyan-300 transition-colors underline underline-offset-4 decoration-cyan-500/60"
+            >
               Vmail & Nbility 联动注册送 Claude Code、Codex 免费额度
             </button>
           )}
@@ -450,7 +457,8 @@ API requests are rate limited based on your API Key configuration. Default limit
                     <svg
                       className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0"
                       fill="currentColor"
-                      viewBox="0 0 20 20">
+                      viewBox="0 0 20 20"
+                    >
                       <path
                         fillRule="evenodd"
                         d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
@@ -482,7 +490,8 @@ API requests are rate limited based on your API Key configuration. Default limit
                 </div>
                 <button
                   onClick={handleCreateAnother}
-                  className="text-cyan-400 hover:text-cyan-300 text-sm underline">
+                  className="text-cyan-400 hover:text-cyan-300 text-sm underline"
+                >
                   {t("Create another API Key")}
                 </button>
               </div>
@@ -529,7 +538,8 @@ API requests are rate limited based on your API Key configuration. Default limit
                     disabled={
                       !config.openApiEnabled || !turnstileToken || isCreating
                     }
-                    className="px-6 py-2.5 bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-medium transition-colors">
+                    className="px-6 py-2.5 bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-medium transition-colors"
+                  >
                     {isCreating ? t("Creating...") : t("Create API Key")}
                   </button>
                 </div>

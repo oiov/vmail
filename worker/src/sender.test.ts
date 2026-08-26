@@ -8,6 +8,7 @@ import {
   getBearerToken,
   getConfiguredSendChannel,
   isAllowedMailboxAddress,
+  quoteDisplayName,
   sendRequestSchema,
   verifyMailboxToken,
   type OutgoingEmail,
@@ -140,7 +141,7 @@ test("provider payloads use the configured sender and authenticated reply-to", (
     outgoingEmail,
     "verified@example.com",
   );
-  assert.equal(resendPayload.from, "Alice via Vmail <verified@example.com>");
+  assert.equal(resendPayload.from, '"Alice via Vmail" <verified@example.com>');
   assert.equal(resendPayload.reply_to, "alice@example.com");
   assert.equal(
     resendPayload.text,
@@ -163,6 +164,21 @@ test("provider payloads use the configured sender and authenticated reply-to", (
   assert.match(cloudflareMime, /^To: <recipient@example\.net>\r?$/m);
 });
 
+test("display names are quoted and escaped against address-token injection", () => {
+  // senderName 含 <> 时不得被解析成第二个地址 token（RFC 5322 引号层防御）
+  assert.equal(quoteDisplayName("evil <a@b.c>"), '"evil <a@b.c>"');
+  // String.raw 保证期望值中的反斜杠不被二次转义
+  assert.equal(quoteDisplayName('say "hi"'), String.raw`"say \"hi\""`);
+  const payload = buildResendPayload(
+    { ...outgoingEmail, senderName: "evil <spoof@x.com>" },
+    "verified@example.com",
+  );
+  assert.equal(
+    payload.from,
+    '"evil <spoof@x.com> via Vmail" <verified@example.com>',
+  );
+});
+
 test("HTML attribution escapes user-controlled sender metadata", () => {
   const payload = buildResendPayload(
     {
@@ -180,4 +196,36 @@ test("HTML attribution escapes user-controlled sender metadata", () => {
   );
   assert.doesNotMatch(payload.html as string, /<img src=x/);
   assert.match(payload.html as string, /&lt;img src=x onerror=alert\(1\)&gt;/);
+});
+
+// 契约(2026-08-25 review-A1): quoteDisplayName 只用于 Resend 字符串插值 from;
+// MailChannels/Cloudflare 是结构化 name 字段, 由 provider 侧自行编码,
+// 共享层再包引号会被 mimetext 当普通字符二次 RFC2047 编码, 收件方看到带字面引号的显示名
+test("structured-field channels use bare display names (no double quoting)", async () => {
+  const { buildMailChannelsPayload, buildCloudflareMimeMessage } = await import(
+    "./outbound.ts"
+  );
+  const mailChannelsPayload = buildMailChannelsPayload(
+    outgoingEmail,
+    "verified@example.com",
+  ) as any;
+  // 结构化字段必须是裸名: 引号只属于 Resend 插值路径
+  assert.equal(mailChannelsPayload.from.name, "Alice via Vmail");
+
+  const cloudflareMime = buildCloudflareMimeMessage(
+    outgoingEmail,
+    "verified@example.com",
+  );
+  // mimetext 对裸名做 RFC2047 编码后不应包含字面双引号内容
+  const fromLine = cloudflareMime
+    .split(/\r?\n/)
+    .find((l) => l.startsWith("From:"))!;
+  if (/=?utf-8?B?[A-Za-z0-9+/=]+?=/.test(fromLine)) {
+    // 解出 base64 验证显示名无字面引号
+    const b64 = fromLine.match(/=\?utf-8\?B\?([A-Za-z0-9+/=]+)\?=/)![1];
+    const decoded = Buffer.from(b64, "base64").toString("utf8");
+    if (decoded.includes('"')) {
+      throw new Error("mimetext 显示名含字面引号: " + decoded);
+    }
+  }
 });

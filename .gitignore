@@ -10,3 +10,7 @@ fly.toml
 .claude
 docs/superpowers
 frontend/build
+CLAUDE.md
+CLAUDE.local.md
+.wrangler
+.agents
