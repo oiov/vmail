@@ -29,10 +29,20 @@ export function Footer() {
         <a
           href="https://like.do"
           target="_blank"
-          rel="noopener noreferrer"
           title="LikeDo"
           className="text-gray-400 hover:text-gray-500  scale-[1.2]">
           <img src="/likedo.svg" alt="LikeDo" className="w-6 h-6" />
+        </a>
+        <a
+          href="https://attachready.com"
+          target="_blank"
+          title="AttachReady"
+          className="text-gray-400 hover:text-gray-500  scale-[1.1]">
+          <img
+            src="/attachready.png"
+            alt="AttachReady"
+            className="w-6 h-6 rounded-full"
+          />
         </a>
         <a
           href="mailto:hi@oiov.dev"
