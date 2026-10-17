@@ -162,3 +162,8 @@ GNU General Public License v3.0
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=oiov/vmail&type=Date)](https://star-history.com/#oiov/vmail&Date)
+
+### 推荐项目
+- [Nbility Gen](https://gen.nbility.ai) - AI 生图/视频站
+- [AttachReady](https://attachready.com) - 支持API与MCP调用的图片、PDF转换与处理工具集
+- [KeepVideo](https://keep.video) - YouTube、Instagram 等平台桌面视频下载器
