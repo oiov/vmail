@@ -1,4 +1,6 @@
-> **v3.0 升级必读：[升级指南](docs/UPGRADE.md)**。旧匿名 API Key、旧邮箱密码及分页协议发生变化。部署前运行 pnpm setup:check，配置邮箱签名密钥、OAuth 和首个管理员。
+> **v3.2.1 升级必读：[升级指南](docs/UPGRADE.md)**。旧匿名 API Key、旧邮箱密码及分页协议发生变化。部署前运行 pnpm setup:check，配置邮箱签名密钥、OAuth 和首个管理员。
+版本变更见 [CHANGELOG](CHANGELOG.md)。
+
 
 <div align="center">
   <a href="https://trendshift.io/repositories/8681" target="_blank"><img src="https://trendshift.io/api/badge/repositories/8681" alt="yesmore%2Fvmail | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
@@ -12,7 +14,7 @@
 
 ## 控制台预览
 
-登录后可分别管理 API Key、邮箱、邮件和账户信息。管理员拥有独立的用户管理与调用日志页面。控制台默认深色，可切换浅色并记住选择；[API 文档](https://vmail.dev/api-docs) 无需登录。
+登录后可分别管理 API Key、邮箱、邮件和账户信息。管理员拥有独立的用户管理、调用日志、发件管理和部署配置页面。控制台默认深色，可切换浅色并记住选择；[API 文档](https://vmail.dev/api-docs) 无需登录。
 
 以下为本地演示账号的实际界面，不包含真实用户资料或访问密钥。
 
@@ -37,9 +39,9 @@
 
 ## 🌈 特点
 
-- 🎯 隐私友好，无需注册，开箱即用
+- 🎯 匿名创建和接收邮箱；发件与 API Key 需登录
 - ✈️ 支持邮件收发
-- ✨ 支持保存密码，找回邮箱
+- ✨ 支持保存服务端签发的邮箱凭证，恢复未过期邮箱
 - 😄 支持多域名后缀
 - 🔌 **开放 RESTful API**，支持程序化调用
 - 🚀 快速部署，纯 Cloudflare 方案，无需服务器
@@ -68,80 +70,107 @@
 
 ### 手动部署步骤
 
-1.  **克隆项目到本地**
-    ```bash
-    git clone https://github.com/oiov/vmail
-    cd vmail
-    pnpm install
-    ```
+1. 克隆仓库并安装依赖：
 
-2.  **创建 Cloudflare D1 数据库**
-    在 Cloudflare 控制台或使用 Wrangler CLI 创建一个 D1 数据库。
+   ```bash
+   git clone https://github.com/oiov/vmail
+   cd vmail
+   pnpm install --frozen-lockfile
+   cp .env.example .env
+   ```
 
-3.  **配置 `wrangler.toml`**
-    将根目录下的 `wrangler.toml` 文件中的 `${...}` 占位符替换为您的 Cloudflare 和 D1 配置信息。您也可以通过 Cloudflare Pages 的环境变量来设置这些值。
+2. 在 Cloudflare 创建 D1，将名称、ID、邮箱域名和密钥填入 `.env`。部署凭据使用 `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`（兼容 `CF_API_TOKEN` / `CF_ACCOUNT_ID`），也可先运行 `pnpm exec wrangler login`。API Token 需有部署 Worker 和迁移 D1 的权限。
+3. 根据下表配置 OAuth 回调、首个管理员和所需功能，然后执行：
 
-4.  **构建和部署**
-    ```bash
-    # 构建前端应用
-    pnpm run build
+   ```bash
+   pnpm setup:check
+   pnpm deploy
+   ```
 
-    # 部署到 Cloudflare
-    pnpm run deploy
-    ```
-    Wrangler 将会自动处理前端静态资源和 Worker 的部署，并根据配置应用数据库迁移。
-
-5.  **配置电子邮件路由**
-    在您的 Cloudflare 域名管理界面，进入 `Email` -> `Email Routing` -> `Routes`，设置一个 `Catch-all` 规则，将所有发送到您域名的邮件 `Send to a Worker`，选择您刚刚部署的 Worker。
+   脚本会校验、测试、类型检查、构建、应用 D1 迁移并部署 Worker/静态资源和 Durable Objects。保留源文件 `wrangler.toml` 的占位符；脚本生成被 Git 忽略且不含密钥的 `wrangler.deploy.toml`，密钥随部署单独上传。Cloudflare Pages 的变量不用于本 Workers 项目。
+4. 配置站点自定义域名与 `BETTER_AUTH_URL` 一致。在邮箱域名的 Email Routing 中启用 Catch-all → Send to a Worker，指向本 Worker，按向导设置 DNS。
 
 ### 环境变量
 
-通过 GitHub Actions 部署到 Cloudflare Workers 时，您需要配置以下环境变量：
+配置源为 [.env.example](.env.example) 和 [scripts/configure.mjs](scripts/configure.mjs)。手动部署使用未提交的 `.env`；GitHub Actions 使用仓库 Secrets/Variables，完整映射见[自动部署教程](docs/github-action-tutorial.md)。Cloudflare 控制台临时修改可能在下一次部署时被配置源覆盖。
 
--   `D1_DATABASE_NAME`: 您的 D1 数据库名称。
--   `D1_DATABASE_ID`: 您的 D1 数据库 ID。
--   `COOKIES_SECRET`: 用于签名 Cookie 的密钥。
--   `EMAIL_DOMAIN`: 您的邮箱域名，例如 `example.com,example.net`。
--   `TURNSTILE_KEY`: 您的 Turnstile 站点密钥，可选。
--   `TURNSTILE_SECRET`: 您的 Turnstile 密钥，可选。
--   `PASSWORD`: 站点访问密码（可选）。
--   `API_RATE_LIMIT_PER_MINUTE`: API 每分钟请求限制（可选，默认 100）。
--   `SEND_CHANNEL`: 发件渠道，可选 `resend`、`mailchannels`、`cloudflare`；不配置时隐藏发信功能。旧值 `send_email` 仍兼容，但已弃用。
--   `SENDER_EMAIL`: 固定的发件地址，必须是服务商允许或已验证的地址；临时邮箱仅作为 `Reply-To`。
--   `MAILBOX_TOKEN_SECRET`: 邮箱读取、删除、恢复和发信凭证的签名密钥，所有部署必填（至少 32 字符），升级时保留原值，并通过 Wrangler secret 配置。
--   `RESEND_API_KEY`: Resend API 密钥，仅 `SEND_CHANNEL=resend` 时需要，通过 Wrangler secret 配置。
--   `MAILCHANNELS_API_KEY`: MailChannels API 密钥，仅 `SEND_CHANNEL=mailchannels` 时需要，通过 Wrangler secret 配置。
--   `SEND_RATE_LIMIT_PER_MINUTE`: 每个邮箱每分钟最大发信数（可选，默认 3）。
--   `SEND_IP_RATE_LIMIT_PER_MINUTE`: 每个 IP 每分钟最大发信数（可选，默认 10）。
--   `SHOW_AFF`: 是否显示推广弹窗和链接（可选，设置为 `true` 开启）。
--   `ENABLE_OPENAPI`: 是否开启 OpenAPI 调用功能（可选，默认 `false`；只有显式设置为 `true` 时才允许创建 API Key 和访问 `/api/v1/*`）。
+#### 基础配置
 
-发信密钥不要写入 `wrangler.toml`，请使用：
+| 变量 | 说明 |
+| --- | --- |
+| `D1_DATABASE_NAME`/`D1_DATABASE_ID` | 必填；D1 名称和 ID，升级保留 |
+| `EMAIL_DOMAIN` | 必填；允许的邮箱域名，英文逗号分隔 |
+| `MAILBOX_TOKEN_SECRET` | 所有部署必填；独立随机密钥至少 32 字符，签名邮箱凭证，升级保留 |
+| `TURNSTILE_KEY`/`TURNSTILE_SECRET` | 可选；必须同时配置或同时留空 |
+| `PASSWORD` | 可选站点访问密码；不能替代 OAuth 或邮箱凭证 |
+| `SHOW_AFF` | 默认 false；true 显示推广弹框与链接 |
+| `ENABLE_OPENAPI` | 默认 false；true 开放 /api/v1/* 及创建 API Key；不影响公开文档，也不控制网页发件 |
+| `SUSPEND_DATABASE_ACCESS` | 默认 false；true 暂停 HTTP 数据库入口、入站邮件与清理，已排队统计可能继续写入 |
 
-```bash
-pnpm exec wrangler secret put MAILBOX_TOKEN_SECRET
-pnpm exec wrangler secret put RESEND_API_KEY       # Resend 时
-pnpm exec wrangler secret put MAILCHANNELS_API_KEY # MailChannels 时
-```
+#### OAuth 与管理员
 
-使用 Cloudflare Worker 原生发信时，将 `SEND_CHANNEL` 设置为 `cloudflare`，并配置 `SENDER_EMAIL` 和 `MAILBOX_TOKEN_SECRET`；不需要 `RESEND_API_KEY` 或 `MAILCHANNELS_API_KEY`。此外，需要在该域名上启用 Cloudflare Email Routing。`wrangler.toml` 中名为 `SEND_EMAIL` 的 `[[send_email]]` 绑定是 Cloudflare 固定配置，无需改名。
+| 变量 | 说明 |
+| --- | --- |
+| `BETTER_AUTH_URL` | HTTPS 站点 origin，例如 https://mail.example.com，不带路径；本地 .dev.vars 可用 http://localhost:8787 |
+| `BETTER_AUTH_SECRET` | 登录会话签名密钥，独立随机值至少 32 字符 |
+| `API_KEY_SECRET` | API Key 签名密钥，独立随机值至少 32 字符；轮换使已有 Key 失效 |
+| `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET` | GitHub OAuth App 凭据；Actions 中使用 GH_OAUTH_CLIENT_ID / GH_OAUTH_CLIENT_SECRET |
+| `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` | Google OAuth Web application 凭据 |
+| `ADMIN_EMAILS` | 可选；逗号分隔的 OAuth 已验证邮箱，设置首个管理员；其他注册用户默认 user |
+
+登录、API Key 和网页发件需要完整 OAuth 配置（两个 Provider 均需配置），即使暂不开放 API。`ENABLE_OPENAPI=true` 时部署检查会强制校验。匿名创建和接收邮箱无需 OAuth。
+
+| Provider | 回调地址 |
+| --- | --- |
+| GitHub | `https://mail.example.com/api/auth/callback/github` |
+| Google | `https://mail.example.com/api/auth/callback/google` |
+
+将示例域名替换为 `BETTER_AUTH_URL`。Google 的 Authorized JavaScript origins 填站点 origin；Testing 状态需添加测试用户。首个管理员将自己的已验证邮箱填入 `ADMIN_EMAILS` 后登录，进入 `/dashboard/admin/users`。不会自动把首位注册者设为管理员。
+
+#### 额度与费用控制
+
+| 变量 | 默认值 | 作用 |
+| --- | --- | --- |
+| `API_RATE_LIMIT_PER_MINUTE` | 30 | 每用户 API 请求/分钟，所有 Key 共用 |
+| `API_DAILY_LIMIT` | 1000 | 每用户 API 请求/天 |
+| `MAILBOX_DAILY_LIMIT` | 20 | 每用户通过 API 创建邮箱/天 |
+| `MAX_ACTIVE_MAILBOXES` | 20 | 每用户有效邮箱上限 |
+| `GLOBAL_API_DAILY_LIMIT` | 100000 | 全站 HTTP 数据库路径日额度，含网页与认证；16 个固定分片 |
+| `GLOBAL_INBOUND_DAILY_LIMIT` | 100000 | 全站每日入站邮件预算；16 个固定分片 |
+| `MAILBOX_INBOUND_DAILY_LIMIT` | 100 | 每邮箱每日入站邮件数 |
+| `MAX_EMAIL_BYTES` | 262144 | 单封入站邮件最大字节数（256 KiB） |
+| `SEND_USER_DAILY_LIMIT` | 10 | 每用户每日发件尝试数，跨邮箱共用 |
+| `SEND_GLOBAL_DAILY_LIMIT` | 100 | 全站每日发件尝试数，独立于入站预算 |
+| `SEND_RATE_LIMIT_PER_MINUTE` | 3 | 每用户及每邮箱每分钟发件数（运行时最高 1000） |
+| `SEND_IP_RATE_LIMIT_PER_MINUTE` | 10 | 每 IP 每分钟发件数（运行时最高 1000） |
+
+数值配置必须为正整数。每日额度在 UTC 00:00（北京时间 08:00）重置。每用户最多 **3 个有效 API Key**，Key 有效期 90 天，数量上限不是环境变量。匿名网页另外受每 IP 每天 20 次创建、3000 次请求，以及每邮箱每分钟 30 次/每天 3000 次请求约束。全站分片预算可能在繁忙分片提前耗尽；这些额度不等于 Cloudflare 账单硬封顶。
+
+#### 发件配置
+
+| 变量 | 说明 |
+| --- | --- |
+| `SEND_CHANNEL` | 留空关闭发件；resend / mailchannels / cloudflare；send_email 是旧兼容值 |
+| `SENDER_EMAIL` | 启用发件时必填；服务商允许的固定发件地址，临时邮箱作为 Reply-To |
+| `RESEND_API_KEY` | 仅 resend 渠道必填 |
+| `MAILCHANNELS_API_KEY` | 仅 mailchannels 渠道必填 |
+
+发件仅限登录且未封禁用户，需要有效邮箱凭证。服务商失败也占用额度；先在 Durable Objects 中校验额度，再写入 D1 发件记录。用户查看 `/dashboard/outbound`，管理员查看全站 `/dashboard/admin/outbound`。Cloudflare 原生发件使用 `SEND_EMAIL` 绑定，需配置 Email Routing 并满足 Cloudflare 的收件地址/发件权限要求；不保证可向任意地址发件。
+
+`COOKIES_SECRET` 是旧版前端邮箱密码机制的遗留配置，当前部署脚本不使用它，新部署无需填写。三个签名密钥不能互相替代。
 
 ## 🔨 本地运行调试
 
-1.  **复制环境变量文件**
-    ```bash
-    # 此命令会创建一个本地环境变量文件，wrangler dev 会自动加载
-    cp .env.example .env
-    ```
+使用独立测试密钥；Wrangler 本地变量放 `.dev.vars`，部署脚本变量放 `.env`，两者不要混用。
 
-2.  **填写本地环境变量**
-    在 `.env` 文件中填写必要的环境变量，特别是 `D1_DATABASE_ID` 等。您需要先在 Cloudflare 创建一个 D1 数据库用于本地开发。
+```bash
+cp .dev.vars.example .dev.vars
+# Fill local signing secrets before starting.
+pnpm exec wrangler d1 migrations apply DB --local
+pnpm dev
+```
 
-3.  **启动开发服务器**
-    ```bash
-    pnpm run dev
-    ```
-    该命令会同时启动前端 Vite 开发服务器和本地的 Wrangler Worker 环境。
+访问 `http://localhost:8787`。`pnpm dev` 会构建前端并由 Wrangler 提供静态资源，不会同时启动 Vite 热更新；需要热更新时在第二个终端运行 `pnpm frontend:dev`。OAuth/发件验证使用 8787 同源入口及匹配的本地回调。默认模拟本地 D1/DO，无需为本地模拟创建远程数据库。`pnpm setup:check` 读取部署用 `.env`；代码检查用 `pnpm test` 和 `pnpm typecheck`。
 
 ## 📖 API 文档
 
@@ -149,7 +178,7 @@ Vmail 提供完整的 RESTful API，支持通过程序化方式创建临时邮�
 
 ### 获取 API Key
 
-访问 [API 文档页面](https://vmail.dev/api-docs) 创建免费的 API Key。
+[API 文档](https://vmail.dev/api-docs) 匿名可读；使用 GitHub / Google 登录后，在[控制台](https://vmail.dev/dashboard/keys)创建免费 API Key。自部署实例需先开启 `ENABLE_OPENAPI=true`。
 
 ### API 端点
 

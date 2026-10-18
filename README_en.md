@@ -1,4 +1,6 @@
-> **Upgrading to v3.0? Read the [upgrade guide](docs/UPGRADE.en.md).** Anonymous API keys, old mailbox passwords and pagination changed. Run pnpm setup:check and configure mailbox signing, OAuth and the first administrator before deployment.
+> **Upgrading to v3.2.1? Read the [upgrade guide](docs/UPGRADE.en.md).** Anonymous API keys, old mailbox passwords and pagination changed. Run pnpm setup:check and configure mailbox signing, OAuth and the first administrator before deployment.
+See [CHANGELOG](CHANGELOG.md) for release notes.
+
 
 <div align="center">
   <h1>𝐕𝐌𝐀𝐈𝐋.𝐃𝐄𝐕</h1>
@@ -33,9 +35,9 @@ Actual screenshots from a local demo account, with no real user details or acces
 
 ## Features
 
-- 🎯 Privacy-friendly, no registration required, out-of-the-box
+- 🎯 Anonymous mailbox creation and receiving; sign-in required for sending and API keys
 - ✈️ Support email sending and receiving
-- ✨ Support saving passwords and retrieving email addresses
+- ✨ Save server-issued credentials to restore unexpired mailboxes
 - 😄 Support multiple domain name suffixes
 - 🔌 **Open RESTful API**, support programmatic access
 - 🚀 100% open source, quick deployment, pure Cloudflare solution, no server required
@@ -43,7 +45,7 @@ Actual screenshots from a local demo account, with no real user details or acces
 Principles：
 
 - Receiving emails (Cloudflare Email Worker)
-- Display email (Vite + React on Cloudflare Pages)
+- Display email (Vite + React, assets served by the Worker)
 - Mail Storage (Cloudflare D1)
 - Send email using Resend, MailChannels, or Cloudflare native email
 
@@ -101,83 +103,109 @@ This project includes a pre-configured GitHub Action workflow to help you automa
 
 For detailed steps, please refer to the [GitHub Action Auto-Deployment Tutorial](/docs/github-action-tutorial.md).
 
-### Manual Deployment Steps
+### Manual deployment
 
-1.  **Clone the project locally**
-    ```bash
-    git clone https://github.com/oiov/vmail
-    cd vmail
-    pnpm install
-    ```
+1. Clone and install:
 
-2.  **Create a Cloudflare D1 Database**
-    Create a D1 database in the Cloudflare dashboard or using the Wrangler CLI.
+   ```bash
+   git clone https://github.com/oiov/vmail
+   cd vmail
+   pnpm install --frozen-lockfile
+   cp .env.example .env
+   ```
 
-3.  **Configure `wrangler.toml`**
-    Replace the `${...}` placeholders in the `wrangler.toml` file in the root directory with your Cloudflare and D1 configuration information. You can also set these values through environment variables in Cloudflare Pages.
+2. Create a Cloudflare D1 database and fill `.env` with its name/ID, mailbox domains and secrets. Use `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` (or `CF_API_TOKEN` / `CF_ACCOUNT_ID`), or authenticate with `pnpm exec wrangler login`. The token needs Worker deployment and D1 migration permissions.
+3. Configure OAuth callbacks, bootstrap admins and optional features, then run:
 
-4.  **Build and Deploy**
-    ```bash
-    # Build the frontend application
-    pnpm run build
-    
-    # Deploy to Cloudflare
-    pnpm run deploy
-    ```
-    Wrangler will automatically handle the deployment of frontend static assets and the Worker, and apply database migrations according to the configuration.
+   ```bash
+   pnpm setup:check
+   pnpm deploy
+   ```
 
-5.  **Configure Email Routing Rules**
-    In your Cloudflare domain management interface, go to `Email` -> `Email Routing` -> `Routes`, set up a `Catch-all` rule, and set the action to `Send to a Worker`, selecting the Worker you just deployed.
+   The script validates, tests, typechecks, builds, applies D1 migrations and deploys Worker assets and Durable Objects. Keep the source `wrangler.toml` placeholders; the script generates the ignored, secret-free `wrangler.deploy.toml` and uploads secrets separately. Cloudflare Pages variables do not configure this Workers project.
+4. Match the site custom domain to `BETTER_AUTH_URL`. Enable Email Routing on mailbox domains and set Catch-all → Send to a Worker to this Worker; complete DNS setup.
+
+### Environment variables
+
+Configuration comes from [.env.example](.env.example) and [scripts/configure.mjs](scripts/configure.mjs). Manual deployments use an untracked `.env`; Actions uses repository Secrets/Variables. See the [deployment guide](docs/github-action-tutorial.md) for exact mappings. Dashboard edits may be overwritten by the next deployment.
+
+#### Core configuration
+
+| Variable | Description |
+| --- | --- |
+| `D1_DATABASE_NAME`/`D1_DATABASE_ID` | Required D1 name and ID; preserve on upgrade |
+| `EMAIL_DOMAIN` | Required allowed mailbox domains, comma-separated |
+| `MAILBOX_TOKEN_SECRET` | Required for every deployment; independent random secret of at least 32 characters; preserve to keep mailbox tokens valid |
+| `TURNSTILE_KEY`/`TURNSTILE_SECRET` | Optional; configure both or leave both empty |
+| `PASSWORD` | Optional site password; does not replace OAuth or mailbox tokens |
+| `SHOW_AFF` | Default false; true enables promotional UI |
+| `ENABLE_OPENAPI` | Default false; true enables /api/v1/* and API key creation; does not hide public docs or control web sending |
+| `SUSPEND_DATABASE_ACCESS` | Default false; true pauses HTTP database paths, inbound mail and cleanup; queued statistics may still write |
+
+#### OAuth and administrators
+
+| Variable | Description |
+| --- | --- |
+| `BETTER_AUTH_URL` | HTTPS site origin, e.g. https://mail.example.com, without a path; local .dev.vars may use http://localhost:8787 |
+| `BETTER_AUTH_SECRET` | Independent random session signing secret, at least 32 characters |
+| `API_KEY_SECRET` | Independent random API key signing secret, at least 32 characters; rotation invalidates existing keys |
+| `GITHUB_CLIENT_ID`/`GITHUB_CLIENT_SECRET` | GitHub OAuth App credentials; use GH_OAUTH_CLIENT_ID / GH_OAUTH_CLIENT_SECRET in Actions |
+| `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` | Google OAuth Web application credentials |
+| `ADMIN_EMAILS` | Optional comma-separated verified OAuth emails for bootstrap admins; other new users have role user |
+
+Sign-in, API keys and web sending require complete OAuth configuration for both providers, even when public API access stays disabled. Deployment validation requires it when `ENABLE_OPENAPI=true`. Anonymous mailbox creation and receiving do not require OAuth.
+
+| Provider | Callback URL |
+| --- | --- |
+| GitHub | `https://mail.example.com/api/auth/callback/github` |
+| Google | `https://mail.example.com/api/auth/callback/google` |
+
+Replace the example origin with `BETTER_AUTH_URL`. Set Google Authorized JavaScript origins to the site origin and add test users while in Testing mode. Set your verified email in `ADMIN_EMAILS` before signing in to `/dashboard/admin/users`; the first registered user is not automatically an admin.
+
+#### Quotas and cost controls
+
+| Variable | Default | Scope |
+| --- | --- | --- |
+| `API_RATE_LIMIT_PER_MINUTE` | 30 | API requests per user per minute, shared across keys |
+| `API_DAILY_LIMIT` | 1000 | API requests per user per day |
+| `MAILBOX_DAILY_LIMIT` | 20 | API mailbox creations per user per day |
+| `MAX_ACTIVE_MAILBOXES` | 20 | Active mailboxes per user |
+| `GLOBAL_API_DAILY_LIMIT` | 100000 | Daily HTTP database-path budget, including web and auth; 16 fixed shards |
+| `GLOBAL_INBOUND_DAILY_LIMIT` | 100000 | Daily inbound email budget across 16 fixed shards |
+| `MAILBOX_INBOUND_DAILY_LIMIT` | 100 | Inbound messages per mailbox per day |
+| `MAX_EMAIL_BYTES` | 262144 | Maximum inbound message size in bytes (256 KiB) |
+| `SEND_USER_DAILY_LIMIT` | 10 | Daily sending attempts per user, shared across mailboxes |
+| `SEND_GLOBAL_DAILY_LIMIT` | 100 | Daily sending attempts across the site, separate from inbound budget |
+| `SEND_RATE_LIMIT_PER_MINUTE` | 3 | Sending attempts per user and per mailbox per minute (runtime cap 1,000) |
+| `SEND_IP_RATE_LIMIT_PER_MINUTE` | 10 | Sending attempts per IP per minute (runtime cap 1,000) |
+
+Numeric settings must be positive integers. Daily quotas reset at 00:00 UTC. Each user can hold **3 active API keys**, valid for 90 days; the key count is not an environment variable. Anonymous web use also has 20 creations and 3,000 requests per IP daily, plus 30 requests/minute and 3,000/day per mailbox. Busy global shards may exhaust early. These limits are not a hard cap on the Cloudflare bill.
+
+#### Sending configuration
+
+| Variable | Description |
+| --- | --- |
+| `SEND_CHANNEL` | Empty disables sending; resend / mailchannels / cloudflare; send_email is a legacy alias |
+| `SENDER_EMAIL` | Required for sending; fixed provider-approved sender; temporary mailbox is Reply-To |
+| `RESEND_API_KEY` | Required only for resend |
+| `MAILCHANNELS_API_KEY` | Required only for mailchannels |
+
+Sending requires a signed-in, non-banned user and a valid mailbox token. Provider failures consume quota; Durable Objects enforce limits before D1 send-log writes. Users view `/dashboard/outbound`; admins review the site at `/dashboard/admin/outbound`. Native Cloudflare sending uses `SEND_EMAIL` and requires Email Routing and Cloudflare recipient/sender permissions; arbitrary recipients are not guaranteed.
+
+`COOKIES_SECRET` belongs to the legacy frontend mailbox-password scheme and is unused by the deployment script; new deployments do not need it. The three signing secrets serve different purposes.
 
 ## Local development
 
-1.  **Copy the environment variable file**
-    ```bash
-    # This command creates a local environment variable file that wrangler dev will load automatically
-    cp .env.example .env
-    ```
-
-2.  **Fill in local environment variables**
-    Fill in the necessary environment variables in the `.env` file, especially `D1_DATABASE_ID`, etc. You need to create a D1 database in Cloudflare for local development first.
-
-3.  **Start the development server**
-    ```bash
-    pnpm run dev
-    ```
-    This command starts both the frontend Vite development server and the local Wrangler Worker environment at the same time.
-
-
-### Environment Variables
-
-When deploying to Cloudflare Workers through GitHub Actions, configure the following environment variables:
-
--   `D1_DATABASE_NAME`: Your D1 database name.
--   `D1_DATABASE_ID`: Your D1 database ID.
--   `COOKIES_SECRET`: A secret used to sign cookies.
--   `EMAIL_DOMAIN`: Your email domain, e.g. `example.com,example.net`.
--   `TURNSTILE_KEY`: Your Turnstile site key (optional).
--   `TURNSTILE_SECRET`: Your Turnstile secret key (optional).
--   `PASSWORD`: Site access password (optional).
--   `API_RATE_LIMIT_PER_MINUTE`: API rate limit per minute (optional, default 100).
--   `SHOW_AFF`: Show promotional popup and link (optional, `true` to enable, hidden by default).
--   `SEND_CHANNEL`: Sender provider: `resend`, `mailchannels`, or `cloudflare`. Leave unset to hide sending. The old `send_email` value remains compatible but is deprecated.
--   `SENDER_EMAIL`: Fixed provider-approved sender address. The temporary mailbox is used only as `Reply-To`.
--   `MAILBOX_TOKEN_SECRET`: Secret used to sign mailbox access and recovery tokens. Required for every deployment (at least 32 characters); preserve its existing value during upgrades.
--   `RESEND_API_KEY`: Resend API key, required only for `SEND_CHANNEL=resend`.
--   `MAILCHANNELS_API_KEY`: MailChannels API key, required only for `SEND_CHANNEL=mailchannels`.
--   `SEND_RATE_LIMIT_PER_MINUTE`: Maximum sends per mailbox per minute (optional, default 3).
--   `SEND_IP_RATE_LIMIT_PER_MINUTE`: Maximum sends per IP per minute (optional, default 10).
--   `ENABLE_OPENAPI`: Whether to enable OpenAPI access (optional, defaults to `false`; only an explicit `true` enables API key creation and `/api/v1/*` access).
-
-Store sender credentials as Wrangler secrets rather than plaintext variables:
+Use independent test secrets. Wrangler reads local bindings from `.dev.vars`; the deployment script reads `.env`. Keep these separate.
 
 ```bash
-pnpm exec wrangler secret put MAILBOX_TOKEN_SECRET
-pnpm exec wrangler secret put RESEND_API_KEY       # Resend only
-pnpm exec wrangler secret put MAILCHANNELS_API_KEY # MailChannels only
+cp .dev.vars.example .dev.vars
+# Fill local signing secrets before starting.
+pnpm exec wrangler d1 migrations apply DB --local
+pnpm dev
 ```
 
-For native Cloudflare Worker email sending, set `SEND_CHANNEL=cloudflare` and configure `SENDER_EMAIL` and `MAILBOX_TOKEN_SECRET`; neither `RESEND_API_KEY` nor `MAILCHANNELS_API_KEY` is needed. Cloudflare Email Routing must also be enabled for the domain. The `[[send_email]]` binding named `SEND_EMAIL` in `wrangler.toml` is Cloudflare-defined configuration and should not be renamed.
+Open `http://localhost:8787`. `pnpm dev` builds and serves the frontend through Wrangler; it does not start Vite HMR. Run `pnpm frontend:dev` separately for HMR. Use the same-origin 8787 entry and matching callbacks for OAuth/sending. Local D1/DO are simulated; a remote database is not required. `pnpm setup:check` validates deployment `.env`; use `pnpm test` and `pnpm typecheck` for code checks.
 
 ## Community Group
 

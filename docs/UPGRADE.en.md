@@ -1,10 +1,19 @@
-# Upgrading to v3.0: authentication, quotas and administration
+# Upgrade to v3.2.1
+
+## v3.2.1: authenticated sending, mail review and UI fixes
+
+Upgrading from v3.2.0 requires **0006_outbound_logs.sql**, applied by the deployment script. Do not publish only assets or skip migration. New SEND_USER_DAILY_LIMIT (default 10) and SEND_GLOBAL_DAILY_LIMIT (default 100) use defaults when unset. Actions reads them from repository **Variables**; see the [Actions guide](github-action-tutorial.md) and [README configuration](../README_en.md#environment-variables) for all mappings, OAuth and quotas.
+
+Web sending now requires sign-in and complete configuration for both OAuth providers and signing secrets. Preserve existing API keys and signing secrets. Users get /dashboard/outbound; admins get site-wide content review at /dashboard/admin/outbound; overview includes sending statistics. Homepage height, inbox top alignment, Star/navigation controls and the dark compose dialog are fixed, including mobile scrolling.
+
+Outgoing subject, body and results are retained for 30 days and cleaned hourly in batches. Previously unsaved content cannot be backfilled. Provider acceptance is not delivery confirmation. Web sending uses /api/send; the public v1 API gains no sending endpoint.
+
 
 ## v3.2: Dedicated dashboard and themes
 
 Administrators can inspect the running version, features and environment at /dashboard/admin/settings. Secret values are never returned. Public pages now share the green palette.
 
-Upgrading from v3.1 requires no new environment variables or database migrations. Existing API settings, OAuth providers, administrators and keys remain valid.
+Only v3.1 to v3.2.0 requires no new environment variables or database migrations; v3.2.1 requires the migration above. Existing API settings, OAuth providers, administrators and keys remain valid.
 
 - Public documentation stays at /api-docs.
 - /dashboard contains separate API key, mailbox, message and account pages.
@@ -42,9 +51,9 @@ Without OAuth, leave API access disabled. Browser mailboxes still work and the d
 
 ## Administrators
 
-Set your verified OAuth email in ADMIN_EMAILS, sign in, then open /admin. No first-user auto-promotion occurs. Administrators can change other users' roles from user details, but cannot change their own role. Remove bootstrap admins from ADMIN_EMAILS before demotion. Every admin request checks the current server-side role.
+Set your verified OAuth email in ADMIN_EMAILS, sign in, then open /dashboard/admin/users (/admin redirects). No first-user auto-promotion occurs. Administrators can change other users' roles from user details, but cannot change their own role. Remove bootstrap admins from ADMIN_EMAILS before demotion. Every admin request checks the current server-side role.
 
-The dashboard paginates registered users, keys, mailboxes and the last 30 days of per-key daily usage. Metrics start after upgrade and may lag about 5 minutes. API calls count requests that pass key validation and consume user quota, including later business errors/global quota denials. Invalid-key and user-quota denials are excluded. Historical anonymous usage cannot be assigned to registered users. The dashboard does not expose full keys or message bodies.
+The dashboard paginates registered users, keys, mailboxes and the last 30 days of per-key daily usage. Metrics start after upgrade and may lag about 5 minutes. API calls count requests that pass key validation and consume user quota, including later business errors/global quota denials. Invalid-key and user-quota denials are excluded. Historical anonymous usage cannot be assigned to registered users. The dashboard never exposes full keys. v3.2.1 adds outgoing message content review in the dedicated admin mail page.
 
 ## Deploy
 
@@ -70,7 +79,7 @@ ENABLE_OPENAPI=false pauses public API and key creation. SUSPEND_DATABASE_ACCESS
 
 For local development, copy .dev.vars.example to .dev.vars, use separate localhost OAuth apps, apply migrations with pnpm exec wrangler d1 migrations apply DB --local, then run pnpm dev.
 
-GitHub Actions Secrets: use GH_OAUTH_CLIENT_ID and GH_OAUTH_CLIENT_SECRET (GitHub reserves the GITHUB_ prefix). The workflow maps these to Worker GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET.
+GitHub Actions OAuth secrets use GH_OAUTH_CLIENT_ID / GH_OAUTH_CLIENT_SECRET, mapped to Worker GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET.
 
 ## v3.1 moderation and request logs
 
@@ -79,7 +88,7 @@ Migration 0005_admin_moderation_logs.sql adds /admin request logs and account mo
 Disabling all keys revokes current credentials without resetting quotas or preventing new key creation. Banning also revokes sessions and blocks new sign-ins, account-owned mailbox access and incoming mail. Unbanning does not restore keys. Administrators cannot ban themselves or another current administrator; remove the target's role first. Requests already authorized may finish. Anonymous access remains subject to IP quotas, so account bans do not prevent anonymous use after signing out.
 
 
-## Sending authorization, quotas and audit
+## Sending quota and audit details
 
 After upgrading, /api/send requires a signed-in session, valid mailbox token and same-site Origin. Anonymous mailbox holders must sign in first. Banned accounts and mailboxes owned by another account are rejected.
 

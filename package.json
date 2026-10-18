@@ -1,6 +1,6 @@
 {
   "name": "vmail",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@9.1.0",

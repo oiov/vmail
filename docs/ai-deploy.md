@@ -1,128 +1,44 @@
-# 1. 目标与部署产物
+# AI 辅助部署 Vmail v3.2.1
 
-本文档用于让 AI 助手直接读取并执行部署Github项目：https://github.com/oiov/vmail 。目标是将 vmail 部署到 Cloudflare Workers + D1，并启用以下能力：
+本文供部署执行者阅读，以当前仓库代码为准。项目为 Cloudflare Workers + D1 + SQLite Durable Objects，前端由 Worker 提供静态资源。
 
-- 站点统计增长率（today vs yesterday）
-- Turnstile 可选（未配置密钥时自动 bypass）
-- 站点密码访问控制（`PASSWORD` 可选）
-- API Key 每分钟限速（环境变量可配置，默认 `100`）
+## 配置来源
 
-部署后关键接口合同：
+- [README 环境变量](../README.md#环境变量)：完整必填项、OAuth 回调与额度默认值。
+- [.env.example](../.env.example)：手动部署配置模板。
+- [.dev.vars.example](../.dev.vars.example)：本地模拟模板；不要注入生产凭据。
+- [Actions 教程](github-action-tutorial.md)：GitHub Secrets/Variables 的准确映射。
+- [升级指南](UPGRADE.md)：旧 Key、邮箱凭证、数据库迁移与版本差异。
 
-- `GET /config` 返回：`turnstileEnabled`、`sitePasswordEnabled`、`apiRateLimitPerMinute`、`openApiEnabled`
-- `GET /api/stats` 返回：`totals`、`today`、`yesterday`
-- `POST /auth/unlock`、`GET /auth/status`、`POST /auth/logout`
+不要向用户请求已提供的配置，不要输出密钥值。缺失的部署配置无法从占位符推导；先准备可验证的配置清单，再由部署者填入。此文档不授予发送真实邮件、删除数据或改动无关资源的权限。
 
-# 2. 前置条件与账号准备
+## 执行顺序
 
-在开始前确认：
+1. 检查 Node.js >=22、pnpm 和仓库中的 Wrangler。使用已有 D1 时保留名称和 ID；新部署创建数据库。确认账户计划支持 SQLite Durable Objects。
+2. 复制 .env.example 到未提交的 .env，配置 D1、EMAIL_DOMAIN、MAILBOX_TOKEN_SECRET（至少 32 字符）。选择是否开启登录/API/发件，按 README 补齐两种 OAuth 和独立签名密钥。将 ADMIN_EMAILS 设为首个管理员的已验证邮箱。
+3. Cloudflare 授权使用 CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID（兼容 CF_API_TOKEN / CF_ACCOUNT_ID），或已有 Wrangler 登录。不要把凭据写入命令输出或提交文件。
+4. 执行 pnpm install --frozen-lockfile、pnpm setup:check、pnpm deploy。部署脚本生成 wrangler.deploy.toml，执行测试、类型检查、构建与所有未应用的 D1 迁移，再部署。不要绕过迁移直接发布 Worker。
+5. 设置自定义域名与 OAuth origin 一致；邮箱域名启用 Email Routing，Catch-all → Send to a Worker。
 
-- 已安装 Node.js 18+ 与 pnpm
-- 已安装 Wrangler CLI（`npx wrangler --version` 可运行）
-- 已登录 Cloudflare（`npx wrangler login`）
-- 已在 Cloudflare 创建 D1 数据库并拿到：
-  - `D1_DATABASE_NAME`
-  - `D1_DATABASE_ID`
-- 准备好站点域名配置 `EMAIL_DOMAIN`（支持逗号分隔多域名）
+## 当前访问合同
 
-推荐在仓库根目录执行全部命令。
+- /api-docs 始终公开可读。登录后在 /dashboard/keys 创建 Key；每人最多 3 个有效 Key，分钟/日额度按用户共享，默认 30/分钟、1000/天。
+- /api/api-keys 已退役，不签发匿名 Key，返回 401。ENABLE_OPENAPI=false 时 /api/v1/* 返回 403，创建新 Key 也关闭。
+- 网页可匿名创建/接收邮件，但读写需要邮箱签名凭证，并受 IP/邮箱限额约束。旧前端密码不是新版授权。
+- /api/send 需要同源 Origin、登录会话及有效邮箱凭证，用户不得被封禁，不得使用其他用户拥有的邮箱。发件不使用 API Key；现有公开 v1 API 不含发件接口。
+- 发件默认每用户每天 10 次、全站每天 100 次；每用户/邮箱每分钟 3 次、IP 每分钟 10 次。服务商失败也占额度，UTC 零点重置。管理页保留 30 天邮件内容和结果。
+- 限额与 Key 授权在 SQLite Durable Objects 中执行，不能用旧 api_rate_limits D1 表判断当前限流是否生效。数据与统计保存在 D1。
+- Turnstile 两个配置必须同时存在或同时为空，部署脚本拒绝半配置。站点 PASSWORD 不能替代 OAuth/邮箱授权。
 
-# 3. 必填与可选环境变量
+## 验收
 
-需要在部署环境中提供以下变量（与 `wrangler.toml` 对齐）：
+1. GET /config：检查 openApiEnabled、authEnabled、turnstileEnabled、sendChannel；不得含密钥。
+2. 首页创建邮箱、恢复有效凭证、读取收件箱；/api-docs 匿名可读。
+3. GitHub 和 Google 登录回到本站。普通用户无管理员权限，ADMIN_EMAILS 用户可打开 /dashboard/admin/settings 查看版本和实际额度。
+4. Key 创建、撤销、邮箱 API 操作；额度隔离/并发边界使用 pnpm test 的本地测试，不持续请求生产数据库。
+5. 开启发件时，检查匿名拒绝、额度显示、用户发件记录和管理员正文预览。真实发件需部署者明确安排测试收件人；否则使用本地模拟服务商测试。
+6. 检查 Actions 成功、域名响应、关键页面无异常，并报告配置与运行验证的范围。
 
-- `EMAIL_DOMAIN`（必填）
-- `COOKIES_SECRET`（必填，建议高强度随机字符串）
-- `TURNSTILE_KEY`（可选）
-- `TURNSTILE_SECRET`（可选）
-- `PASSWORD`（可选；为空时站点默认公开）
-- `API_RATE_LIMIT_PER_MINUTE`（可选；非法值或缺省回退到 `100`）
-- `ENABLE_OPENAPI`（可选；默认关闭，只有显式设置为 `true` 时才允许创建 API Key 和访问 `/api/v1/*`）
+## 升级与恢复
 
-行为说明：
-
-- 当 `TURNSTILE_KEY` 和 `TURNSTILE_SECRET` 任一缺失时，前后端都进入“无需人机验证”模式。
-- 当 `PASSWORD` 为空时，前端不会出现站点解锁门禁；有值时需要先解锁站点。
-- `API_RATE_LIMIT_PER_MINUTE` 作用于 v1 API Key 中间件，按“每个 API Key、每分钟固定窗口”限流。
-- 当 `ENABLE_OPENAPI` 未配置或不是 `true` 时，`/api/api-keys` 与 `/api/v1/*` 会统一返回 `403 OPENAPI_DISABLED`，`/api-docs` 页面仅展示提示。
-
-# 4. 数据库迁移与基础初始化
-
-项目 D1 迁移目录为：`worker/drizzle`。
-
-建议顺序：
-
-1. 确保 `wrangler.toml` 的 D1 绑定配置正确。
-2. 执行迁移到远端 D1（根据你的 Cloudflare 环境选择对应命令）。
-3. 确认新增表存在：
-   - `daily_stats`
-   - `api_rate_limits`
-
-`api_rate_limits` 采用复合主键：
-
-- `api_key_id`
-- `window_start_epoch_sec`
-
-该设计用于支持原子 UPSERT 计数，避免并发下限流计数漂移。
-
-# 5. 构建与部署步骤
-
-按以下顺序执行：
-
-1. 安装依赖：`pnpm install`
-2. 本地构建：`pnpm build`
-3. 部署 Worker（按你的环境执行 wrangler deploy）
-4. 如有自定义域名或路由，完成 Cloudflare 路由绑定
-
-构建成功标准：
-
-- `frontend` 构建完成
-- `worker` 打包无阻断错误
-- 允许存在体积告警（chunk size warning）但不应有构建失败
-
-# 6. 部署后验收清单（可直接给 AI 执行）
-
-最小验收用例：
-
-1. 配置合同：
-   - 请求 `GET /config`
-   - 断言返回字段包含：
-     - `turnstileEnabled`
-     - `sitePasswordEnabled`
-     - `apiRateLimitPerMinute`
-     - `openApiEnabled`
-2. 统计合同：
-   - 请求 `GET /api/stats`
-   - 断言返回结构含 `totals/today/yesterday`
-3. 站点密码：
-   - `PASSWORD` 为空时：页面可直接访问
-   - `PASSWORD` 有值时：
-     - 未解锁访问页面受限
-     - `POST /auth/unlock` 成功后可访问
-     - `GET /auth/status` 返回 `unlocked: true`
-4. Turnstile 可选：
-   - 未配置密钥时，创建邮箱地址流程可直接通过
-   - 配置密钥后，需有效 token
-5. API 限速：
-   - 使用同一 API Key 连续请求 v1 API
-   - 超过阈值返回 `429`
-   - 响应头包含：`X-RateLimit-Limit`、`X-RateLimit-Remaining`、`Retry-After`
-   - 若 `ENABLE_OPENAPI` 未配置或不是 `true`：`/api/api-keys` 与 `/api/v1/*` 返回 `403`
-6. 前端展示：
-   - 首页 SiteStats 卡片显示增长率（today vs yesterday）
-   - `/api-docs` 在 `openApiEnabled=false` 时展示禁用提示
-
-# 7. 常见问题与回滚策略
-
-常见问题：
-
-- 迁移失败：优先检查 D1 绑定、数据库 ID、迁移目录是否正确。
-- 站点一直锁定：检查 `PASSWORD` 是否设置、浏览器是否保存了解锁 cookie。
-- 限速不生效：确认请求走的是 v1 API，并携带 API Key。
-- Turnstile 状态异常：确认前后端读取的是同一组环境变量。
-
-回滚策略：
-
-1. 先回滚 Worker 版本（代码回滚）。
-2. 若需要回滚数据结构，按 D1 迁移策略执行逆向迁移或恢复备份。
-3. 回滚后重复执行“部署后验收清单”中的 1~3 项，确保服务可用。
+先保存 D1 恢复点，保留签名密钥与原数据库。v3.2.1 需应用 0006_outbound_logs.sql。遇到问题优先暂停受影响功能；ENABLE_OPENAPI=false 只暂停公开 API，SUSPEND_DATABASE_ACCESS=true 暂停数据路径。不要自动执行逆向迁移、删除 DO class 或用旧代码覆盖新授权状态。回滚需同时评估 D1 与 DO 一致性。

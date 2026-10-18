@@ -1,10 +1,19 @@
-# 升级到 v3.0：登录、API 配额和管理员后台
+# 升级到 v3.2.1
+
+## v3.2.1：发件权限、管理页与界面修复
+
+从 v3.2.0 升级需要应用 **0006_outbound_logs.sql**，自动部署脚本会处理；不要仅上传前端或跳过迁移。新增 SEND_USER_DAILY_LIMIT（默认 10）和 SEND_GLOBAL_DAILY_LIMIT（默认 100），未配置时使用默认值。GitHub Actions 将这两项读取自 Repository **Variables**；其他变量映射见 [Actions 教程](github-action-tutorial.md)，完整 OAuth/额度说明见 [README](../README.md#环境变量)。
+
+网页发件现在必须登录；两个 OAuth Provider 和签名配置都需齐全。已有 API Key、登录密钥、邮箱签名密钥保持原值即可。新增用户发件记录 /dashboard/outbound、管理员全站发件管理 /dashboard/admin/outbound，并将发件纳入概览统计。首页高度、收件箱顶部对齐、导航 Star/菜单箭头和发件弹框已修复；深色表单支持手机滚动。
+
+发送记录含主题、正文和结果，保留 30 天，每小时分批清理；升级前未存储的发送内容不会补录。服务商已接收不等于最终送达。网页发件通过 /api/send，公开 v1 API 不新增发件端点。
+
 
 ## v3.2：独立控制台与双主题
 
 管理员可在 /dashboard/admin/settings 查看当前版本、功能与环境变量；敏感项仅显示是否配置。首页与文档统一为绿色主题。
 
-从 v3.1 升级不需要新增环境变量或数据库迁移。API 开关、OAuth、管理员配置和现有 Key 保持有效。
+仅 v3.1 → v3.2.0 不需要新增环境变量或迁移；升级到 v3.2.1 需按上节执行。API 开关、OAuth、管理员配置和现有 Key 保持有效。
 
 - 公开文档继续位于 /api-docs，匿名可访问。
 - 登录后进入 /dashboard；Key、邮箱、邮件、账户分别位于独立页面。
@@ -50,11 +59,11 @@ OAuth 可以暂不配置：保留 ENABLE_OPENAPI=false，网页邮箱仍可使�
 
 ## 2. 设置管理员
 
-第一次将自己的已验证 OAuth 邮箱写入 ADMIN_EMAILS（Worker Secret 或部署环境变量），然后登录。顶部会出现“管理”入口，后台路径 /admin。首次注册用户不会自动成为管理员。
+第一次将自己的已验证 OAuth 邮箱写入 ADMIN_EMAILS（Worker Secret 或部署环境变量），然后登录。进入控制台后可见管理菜单，用户管理路径 /dashboard/admin/users（旧 /admin 自动跳转）。首次注册用户不会自动成为管理员。
 
 已有管理员可在用户详情中授予或取消其他用户的管理员角色。不能修改自己的角色；ADMIN_EMAILS 指定的管理员需先从该配置移除才能撤销。后台授权逐次读取角色，不能通过修改浏览器数据或登录请求中的 role 提权。
 
-管理员可分页浏览所有注册用户、用户的 Key、邮箱及最近 30 天每日调用/创建/收件统计。历史匿名流量不能归属到新用户，统计从升级后开始。API 调用表示通过 Key 校验并消耗用户额度的请求，包含随后发生的业务错误或全站额度拒绝。无效 Key 或用户额度拦截的请求不计入该数。统计约 5 分钟延迟；后台不显示完整 Key 或邮件正文。
+管理员可分页浏览所有注册用户、用户的 Key、邮箱及最近 30 天每日调用/创建/收件统计。历史匿名流量不能归属到新用户，统计从升级后开始。API 调用表示通过 Key 校验并消耗用户额度的请求，包含随后发生的业务错误或全站额度拒绝。无效 Key 或用户额度拦截的请求不计入该数。统计约 5 分钟延迟；后台不显示完整 Key；发件正文可在 v3.2.1 新增的发件管理页查看。
 
 ## 3. 部署
 
@@ -84,7 +93,7 @@ ENABLE_OPENAPI=false 仅暂停公开 API 和创建 Key。SUSPEND_DATABASE_ACCESS
 
 本地开发：复制 .dev.vars.example 为 .dev.vars，使用独立的测试密钥和 localhost OAuth 应用。运行 pnpm exec wrangler d1 migrations apply DB --local 后 pnpm dev。禁止把生产凭据注入测试代码。
 
-GitHub Actions Secrets: use GH_OAUTH_CLIENT_ID and GH_OAUTH_CLIENT_SECRET (GitHub reserves the GITHUB_ prefix). The workflow maps these to Worker GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET.
+GitHub Actions 的 OAuth Secrets 使用 GH_OAUTH_CLIENT_ID / GH_OAUTH_CLIENT_SECRET，工作流映射为 Worker 的 GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET。
 
 ## v3.1 管理员操作与调用日志
 
@@ -93,7 +102,7 @@ GitHub Actions Secrets: use GH_OAUTH_CLIENT_ID and GH_OAUTH_CLIENT_SECRET (GitHu
 “禁用全部 Key”使现有 Key 立即失效，用户仍可创建新 Key，账号额度不重置。“封禁用户”同时禁用 Key、撤销登录会话、拒绝新登录和账号所属邮箱的读写与收件；解封不恢复旧 Key。不能封禁自己或现有管理员，需先撤销目标管理员角色；ADMIN_EMAILS 管理员需先调整配置。已通过鉴权的在途请求可能完成。匿名网页继续按 IP 限制使用，账号封禁不等于封禁这个人的全部匿名访问。
 
 
-## 发件权限、额度与审计
+## 发件额度与审计细则
 
 升级后 /api/send 必须同时携带登录会话、有效邮箱凭证和本站 Origin；匿名邮箱持有人须先登录。被封禁用户不能发件，也不能使用其他用户绑定的邮箱。
 
