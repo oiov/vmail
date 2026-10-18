@@ -192,3 +192,67 @@
     gap: 8px;
   }
 }
+
+.resources-chevron {
+  display: block;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+.public-resources[open] .resources-chevron {
+  transform: rotate(180deg);
+}
+.public-github-star {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #536b5d;
+  border-radius: 8px;
+  color: #dfece1;
+  font-size: 12px;
+  font-weight: 550;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.public-github-star:hover {
+  background: #2c3c31;
+  border-color: #80a88e;
+}
+.public-github-star img {
+  display: block;
+  flex-shrink: 0;
+}
+@media (max-width: 520px) {
+  .public-github-star {
+    width: 32px;
+    height: 32px;
+    padding: 6px;
+  }
+  .public-github-star span {
+    display: none;
+  }
+  .public-header-inner {
+    gap: 12px;
+  }
+  .public-nav {
+    gap: 10px;
+  }
+}
+@media (max-width: 360px) {
+  .public-header-inner {
+    gap: 8px;
+    padding: 0 10px;
+  }
+  .public-actions {
+    gap: 6px;
+  }
+  .public-actions select {
+    width: 35px;
+  }
+  .public-account-button {
+    padding: 7px 8px;
+  }
+}
+@media(max-width:360px){.public-brand>span{width:30px;height:30px}.public-header-inner{gap:6px;padding:0 8px}.public-actions{gap:4px}.public-account-button{gap:4px;padding:7px 6px}}

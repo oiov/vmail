@@ -50,7 +50,20 @@ export function Header() {
             <details className="public-resources">
               <summary>
                 {zh ? "资源" : "Resources"}
-                <span>⌄</span>
+                <svg
+                  className="resources-chevron"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
               </summary>
               <div>
                 <button onClick={() => setAbout(true)}>{t("About")}</button>
@@ -83,6 +96,19 @@ export function Header() {
               ))}
             </select>
             <AccountButton />
+            <a
+              className="public-github-star"
+              href="https://github.com/oiov/vmail"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={
+                zh ? "在 GitHub 上为 Vmail 点 Star" : "Star Vmail on GitHub"
+              }
+              title="Star on GitHub"
+            >
+              <img src="/brand/github.svg" width="18" height="18" alt="" />
+              <span>Star</span>
+            </a>
           </div>
         </div>
       </header>
