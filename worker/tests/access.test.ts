@@ -37,7 +37,7 @@ async function seedUser(role = "user") {
     token = crypto.randomUUID(),
     now = Date.now();
   await bindings.DB.prepare(
-    "INSERT INTO auth_user VALUES (?, ?, ?, ?, 1, NULL, ?, ?)",
+    "INSERT INTO auth_user (role,id,name,email,email_verified,image,created_at,updated_at) VALUES (?, ?, ?, ?, 1, NULL, ?, ?)",
   )
     .bind(role, id, "Test User", id + "@example.com", now, now)
     .run();
@@ -68,6 +68,272 @@ async function seedUser(role = "user") {
   };
 }
 describe("cost and authorization boundaries", () => {
+  it("disables all keys atomically, blocks in-flight issuance, and retains quotas", async () => {
+    const admin = await seedUser("admin"),
+      user = await seedUser();
+    const headers = {
+      Cookie: user.cookie,
+      Origin: "http://localhost:8787",
+      "Content-Type": "application/json",
+    };
+    const keys = await Promise.all(
+      [1, 2, 3].map(
+        async () =>
+          (
+            await (
+              await request("/api/account/keys", {
+                method: "POST",
+                headers,
+                body: "{}",
+              })
+            ).json<{ key: string }>()
+          ).key,
+      ),
+    );
+    const ledger = bindings.ACCESS.getByName("user:" + user.id);
+    const state = await ledger.accessState();
+    const first = await request("/api/v1/mailboxes", {
+      method: "POST",
+      headers: { "X-API-Key": keys[0] },
+      body: "{}",
+    });
+    expect(first.status).toBe(201);
+    const disabled = await request(
+      "/api/account/admin/users/" + user.id + "/disable-keys",
+      {
+        method: "POST",
+        headers: { ...headers, Cookie: admin.cookie },
+        body: "{}",
+      },
+    );
+    expect(disabled.status).toBe(200);
+    for (const key of keys)
+      expect(
+        (
+          await request("/api/v1/mailboxes", {
+            method: "POST",
+            headers: { "X-API-Key": key },
+            body: "{}",
+          })
+        ).status,
+      ).toBe(401);
+    expect(
+      await ledger.registerKey(
+        { id: "racing", digest: "racing", expiresAt: Date.now() + 60000 },
+        state.epoch,
+      ),
+    ).toBe(false);
+    const replacement = await request("/api/account/keys", {
+      method: "POST",
+      headers,
+      body: "{}",
+    });
+    expect(replacement.status).toBe(201);
+    const key = (await replacement.json<{ key: string }>()).key;
+    expect(
+      (
+        await request(
+          "/api/v1/mailboxes",
+          { method: "POST", headers: { "X-API-Key": key }, body: "{}" },
+          { API_DAILY_LIMIT: "1" },
+        )
+      ).status,
+    ).toBe(429);
+  });
+  it("bans API, sessions and owned browser mailboxes, and does not restore keys on unban", async () => {
+    const admin = await seedUser("admin"),
+      user = await seedUser();
+    const headers = {
+      Cookie: user.cookie,
+      Origin: "http://localhost:8787",
+      "Content-Type": "application/json",
+    };
+    const key = (
+      await (
+        await request("/api/account/keys", {
+          method: "POST",
+          headers,
+          body: "{}",
+        })
+      ).json<{ key: string }>()
+    ).key;
+    const box = await (
+      await request("/api/verify", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ domain: "example.test" }),
+      })
+    ).json<{ mailbox: string; mailboxToken: string }>();
+    const path = "/api/account/admin/users/" + user.id + "/ban";
+    expect(
+      (
+        await request(path, {
+          method: "PATCH",
+          headers,
+          body: '{"banned":true}',
+        })
+      ).status,
+    ).toBe(403);
+    const adminHeaders = { ...headers, Cookie: admin.cookie };
+    expect(
+      (
+        await request(path, {
+          method: "PATCH",
+          headers: adminHeaders,
+          body: '{"banned":true}',
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await request("/api/account/keys", {
+          method: "POST",
+          headers,
+          body: "{}",
+        })
+      ).status,
+    ).not.toBe(201);
+    expect(
+      (
+        await request("/api/v1/mailboxes", {
+          method: "POST",
+          headers: { "X-API-Key": key },
+          body: "{}",
+        })
+      ).status,
+    ).toBe(401);
+    expect(
+      (
+        await request("/api/emails", {
+          method: "POST",
+          headers: { Authorization: "Bearer " + box.mailboxToken },
+          body: JSON.stringify({ address: box.mailbox }),
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request("/api/verify", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ domain: "example.test" }),
+        })
+      ).status,
+    ).not.toBe(200);
+    const context = await createAuth(bindings).$context;
+    await expect(
+      context.internalAdapter.createSession(user.id),
+    ).rejects.toThrow("Account is banned");
+    expect(
+      (
+        await request("/api/account/admin/users/" + admin.id + "/ban", {
+          method: "PATCH",
+          headers: adminHeaders,
+          body: '{"banned":true}',
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (
+        await request(path, {
+          method: "PATCH",
+          headers: adminHeaders,
+          body: '{"banned":false}',
+        })
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await request("/api/v1/mailboxes", {
+          method: "POST",
+          headers: { "X-API-Key": key },
+          body: "{}",
+        })
+      ).status,
+    ).toBe(401);
+    expect(await context.internalAdapter.createSession(user.id)).toBeTruthy();
+  });
+  it("records actual request outcomes without secrets and paginates logs without duplicates", async () => {
+    const admin = await seedUser("admin"),
+      user = await seedUser();
+    const headers = {
+      Cookie: user.cookie,
+      Origin: "http://localhost:8787",
+      "Content-Type": "application/json",
+    };
+    const key = (
+      await (
+        await request("/api/account/keys", {
+          method: "POST",
+          headers,
+          body: "{}",
+        })
+      ).json<{ key: string }>()
+    ).key;
+    const res = await request(
+      "/api/v1/mailboxes/private-address/messages?secret=hidden",
+      { headers: { "X-API-Key": key } },
+    );
+    expect(res.status).toBe(404);
+    const ledger = bindings.ACCESS.getByName("user:" + user.id);
+    await runDurableObjectAlarm(ledger);
+    await runInDurableObject(ledger, (instance) => instance.alarm());
+    const rows = await bindings.DB.prepare(
+      "SELECT * FROM api_request_logs WHERE user_id=?",
+    )
+      .bind(user.id)
+      .all();
+    expect(rows.results).toHaveLength(1);
+    expect(rows.results[0].status).toBe(404);
+    expect(rows.results[0].route).toBe("/api/v1/mailboxes/:id/messages");
+    expect(JSON.stringify(rows.results)).not.toContain(key);
+    expect(JSON.stringify(rows.results)).not.toContain("private-address");
+    const now = Date.now();
+    for (let i = 0; i < 55; i++)
+      await ledger.appendLog({
+        id: crypto.randomUUID(),
+        created_at: now,
+        user_id: user.id,
+        key_id: "test",
+        method: "GET",
+        route: "/api/v1/mailboxes/:id",
+        status: 200,
+        duration_ms: 1,
+      });
+    await runDurableObjectAlarm(ledger);
+    expect((await request("/api/account/admin/logs", { headers })).status).toBe(
+      403,
+    );
+    const adminHeaders = { Cookie: admin.cookie };
+    const first = await (
+      await request("/api/account/admin/logs?userId=" + user.id, {
+        headers: adminHeaders,
+      })
+    ).json<{ logs: { id: string }[]; nextCursor: string }>();
+    expect(first.logs).toHaveLength(50);
+    const second = await (
+      await request(
+        "/api/account/admin/logs?userId=" +
+          user.id +
+          "&cursor=" +
+          encodeURIComponent(first.nextCursor),
+        { headers: adminHeaders },
+      )
+    ).json<{ logs: { id: string }[]; nextCursor: string | null }>();
+    expect(second.logs).toHaveLength(6);
+    expect(
+      new Set([...first.logs, ...second.logs].map((log) => log.id)).size,
+    ).toBe(56);
+    expect(second.nextCursor).toBeNull();
+    expect(
+      (
+        await request("/api/account/admin/logs?cursor=bad", {
+          headers: adminHeaders,
+        })
+      ).status,
+    ).toBe(400);
+  });
+
   it("rejects tampered keys before resolving an owner", async () => {
     const key = await generateUserKey("owner", bindings.API_KEY_SECRET!);
     expect(await getKeyOwner(key, bindings.API_KEY_SECRET!)).toBe("owner");

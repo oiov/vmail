@@ -58,3 +58,9 @@ ENABLE_OPENAPI=false pauses public API and key creation. SUSPEND_DATABASE_ACCESS
 For local development, copy .dev.vars.example to .dev.vars, use separate localhost OAuth apps, apply migrations with pnpm exec wrangler d1 migrations apply DB --local, then run pnpm dev.
 
 GitHub Actions Secrets: use GH_OAUTH_CLIENT_ID and GH_OAUTH_CLIENT_SECRET (GitHub reserves the GITHUB_ prefix). The workflow maps these to Worker GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET.
+
+## v3.1 moderation and request logs
+
+Migration 0005_admin_moderation_logs.sql adds /admin request logs and account moderation. No new environment variables are required. Logs cover requests that pass key and quota checks, including business errors, with route templates, HTTP status and handler duration. Credentials, query parameters, IPs and email bodies are excluded. Logs typically appear within a minute; queries cover the last 7 days. Hourly cleanup deletes up to 5,000 expired records per run, so physical deletion can lag. Each user's pending buffer holds at most 2,000 records; prolonged backlogs can drop new logs. D1 still charges for rows written, even in batches.
+
+Disabling all keys revokes current credentials without resetting quotas or preventing new key creation. Banning also revokes sessions and blocks new sign-ins, account-owned mailbox access and incoming mail. Unbanning does not restore keys. Administrators cannot ban themselves or another current administrator; remove the target's role first. Requests already authorized may finish. Anonymous access remains subject to IP quotas, so account bans do not prevent anonymous use after signing out.

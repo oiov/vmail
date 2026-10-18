@@ -50,5 +50,42 @@ export const apiKeyAuth = async (
   if (budget) return budget;
   c.set("apiKey", { id: decision.id, userId: owner, rateLimit });
   c.header("X-RateLimit-Remaining", String(decision.remaining));
+  const started = Date.now();
   await next();
+  // Quota/identity failures above are deliberately not persisted as individual logs.
+  const route = c.req.path
+    .replace(
+      /^\/api\/v1\/mailboxes\/[^/]+\/messages\/[^/]+\/?$/,
+      "/api/v1/mailboxes/:id/messages/:messageId",
+    )
+    .replace(
+      /^\/api\/v1\/mailboxes\/[^/]+\/messages\/?$/,
+      "/api/v1/mailboxes/:id/messages",
+    )
+    .replace(/^\/api\/v1\/mailboxes\/[^/]+\/?$/, "/api/v1/mailboxes/:id");
+  const knownRoute =
+    /^\/api\/v1\/mailboxes(?:\/?|\/:id(?:\/messages(?:\/:messageId)?)?)$/.test(
+      route,
+    )
+      ? route
+      : "unknown";
+  c.executionCtx.waitUntil(
+    c.env.ACCESS.getByName("user:" + owner)
+      .appendLog({
+        id: crypto.randomUUID(),
+        created_at: started,
+        user_id: owner,
+        key_id: decision.id,
+        method: c.req.method.slice(0, 16),
+        route: knownRoute,
+        status: c.res.status,
+        duration_ms: Date.now() - started,
+      })
+      .catch((error) =>
+        console.error(
+          "API logging failed",
+          error instanceof Error ? error.message : "unknown",
+        ),
+      ),
+  );
 };

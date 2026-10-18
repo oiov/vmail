@@ -42,6 +42,11 @@ routes.use("*", async (c, next) => {
     headers: c.req.raw.headers,
   });
   if (!session) return failure("UNAUTHORIZED", "Sign in to continue", 401);
+  if (
+    (await c.env.ACCESS.getByName("user:" + session.user.id).accessState())
+      .banned
+  )
+    return failure("ACCOUNT_BANNED", "Account is banned", 403);
   const row = await c.env.DB.prepare(
     "SELECT id, name, email, role FROM auth_user WHERE id = ?",
   )
@@ -85,6 +90,15 @@ routes.post("/keys", async (c) => {
     return failure("OPENAPI_DISABLED", "API access is disabled", 403);
   const user = c.get("account");
   const ledger = c.env.ACCESS.getByName("user:" + user.id);
+  const issuance = await ledger.accessState();
+  if (issuance.keysPaused)
+    return failure(
+      "MODERATION_PENDING",
+      "Key management is temporarily locked",
+      409,
+    );
+  if (issuance.banned)
+    return failure("ACCOUNT_BANNED", "Account is banned", 403);
   const limit = await ledger.consume([
     { key: "key-create", seconds: 86400, max: 10 },
   ]);
@@ -126,11 +140,14 @@ routes.post("/keys", async (c) => {
     // If registration fails, remove the unusable key. Never expose it before registration.
     try {
       if (
-        !(await ledger.registerKey({
-          id: key.id,
-          digest: await hashToken(key.key),
-          expiresAt: new Date(key.expiresAt!).getTime(),
-        }))
+        !(await ledger.registerKey(
+          {
+            id: key.id,
+            digest: await hashToken(key.key),
+            expiresAt: new Date(key.expiresAt!).getTime(),
+          },
+          issuance.epoch,
+        ))
       )
         throw new Error("API_KEY_LIMIT");
     } catch (error) {
@@ -202,10 +219,135 @@ routes.patch("/admin/users/:id/role", async (c) => {
     .run();
   return c.json({ success: true });
 });
+
+routes.post("/admin/users/:id/disable-keys", async (c) => {
+  const id = c.req.param("id");
+  if (
+    !(await c.env.DB.prepare("SELECT id FROM auth_user WHERE id = ?")
+      .bind(id)
+      .first())
+  )
+    return failure("NOT_FOUND", "User not found", 404);
+  const ledger = c.env.ACCESS.getByName("user:" + id);
+  const epoch = await ledger.beginModeration();
+  if (epoch === null)
+    return failure(
+      "MODERATION_PENDING",
+      "Another moderation action is in progress",
+      409,
+    );
+  await c.env.DB.prepare(
+    "UPDATE auth_apikey SET enabled=0, updated_at=? WHERE reference_id=?",
+  )
+    .bind(Date.now(), id)
+    .run();
+  await ledger.finishModeration(epoch);
+  return c.json({ success: true });
+});
+routes.patch("/admin/users/:id/ban", async (c) => {
+  const id = c.req.param("id");
+  const body = await c.req.json<{ banned?: boolean }>();
+  if (typeof body.banned !== "boolean")
+    return failure("VALIDATION_ERROR", "banned must be boolean", 400);
+  const target = await c.env.DB.prepare(
+    "SELECT email, role, email_verified FROM auth_user WHERE id=?",
+  )
+    .bind(id)
+    .first<{ email: string; role: string; email_verified: number }>();
+  if (!target) return failure("NOT_FOUND", "User not found", 404);
+  if (
+    id === c.get("account").id ||
+    effectiveUser(target, c.env).role === "admin"
+  )
+    return failure(
+      "FORBIDDEN",
+      "Remove the administrator role before banning this account; you cannot ban yourself",
+      403,
+    );
+  const ledger = c.env.ACCESS.getByName("user:" + id);
+  // Fail closed: block at the authoritative ledger before updating D1.
+  const epoch = await ledger.beginModeration(body.banned ? true : undefined);
+  if (epoch === null)
+    return failure(
+      "MODERATION_PENDING",
+      "Another moderation action is in progress",
+      409,
+    );
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      "UPDATE auth_user SET banned=?, updated_at=? WHERE id=?",
+    ).bind(Number(body.banned), Date.now(), id),
+    c.env.DB.prepare(
+      "UPDATE auth_apikey SET enabled=0, updated_at=? WHERE reference_id=?",
+    ).bind(Date.now(), id),
+    c.env.DB.prepare("DELETE FROM auth_session WHERE user_id=?").bind(id),
+  ]);
+  await ledger.finishModeration(epoch, !body.banned);
+  return c.json({ success: true });
+});
+routes.get("/admin/logs", async (c) => {
+  const owner = c.req.query("userId") ?? "";
+  if (owner.length > 128)
+    return failure("VALIDATION_ERROR", "Invalid user", 400);
+  let before = Date.now() + 1,
+    id = "";
+  const cursor = c.req.query("cursor");
+  if (cursor) {
+    try {
+      if (cursor.length > 512) throw new Error();
+      const decoded = JSON.parse(atob(cursor));
+      if (
+        !Number.isSafeInteger(decoded.time) ||
+        typeof decoded.id !== "string" ||
+        decoded.id.length > 64
+      )
+        throw new Error();
+      before = decoded.time;
+      id = decoded.id;
+    } catch {
+      return failure("VALIDATION_ERROR", "Invalid cursor", 400);
+    }
+  }
+  const conditions = owner ? "user_id = ? AND " : "";
+  const args: (string | number)[] = owner ? [owner] : [];
+  args.push(Date.now() - 7 * 86400_000, before, id);
+  const result = await c.env.DB.prepare(
+    "SELECT * FROM api_request_logs WHERE " +
+      conditions +
+      "created_at >= ? AND (created_at, id) < (?, ?) ORDER BY created_at DESC, id DESC LIMIT 51",
+  )
+    .bind(...args)
+    .all<{ id: string; created_at: number; user_id: string }>();
+  const logs = result.results.slice(0, 50);
+  const ids = [...new Set(logs.map((row) => row.user_id))];
+  const users = ids.length
+    ? await c.env.DB.prepare(
+        "SELECT id,name,email FROM auth_user WHERE id IN (" +
+          ids.map(() => "?").join(",") +
+          ")",
+      )
+        .bind(...ids)
+        .all<{ id: string; name: string; email: string }>()
+    : { results: [] };
+  const last = logs.at(-1);
+  return c.json({
+    logs: logs.map((row) => ({
+      ...row,
+      user: users.results.find((user) => user.id === row.user_id) ?? null,
+    })),
+    nextCursor:
+      result.results.length > 50 && last
+        ? btoa(JSON.stringify({ time: last.created_at, id: last.id }))
+        : null,
+    retentionDays: 7,
+    delaySeconds: 60,
+  });
+});
+
 routes.get("/admin/users", async (c) => {
   const cursor = c.req.query("cursor") ?? "";
   const result = await c.env.DB.prepare(
-    "SELECT id, name, email, image, role, email_verified, created_at FROM auth_user WHERE id > ? ORDER BY id LIMIT 51",
+    "SELECT id, name, email, image, role, banned, email_verified, created_at FROM auth_user WHERE id > ? ORDER BY id LIMIT 51",
   )
     .bind(cursor)
     .all<{
@@ -231,7 +373,7 @@ routes.get("/admin/users/:id", async (c) => {
   const cursor = c.req.query("cursor") ?? "";
   const results = await c.env.DB.batch<Record<string, unknown>>([
     c.env.DB.prepare(
-      "SELECT id, name, email, role, email_verified, created_at FROM auth_user WHERE id = ?",
+      "SELECT id, name, email, role, banned, email_verified, created_at FROM auth_user WHERE id = ?",
     ).bind(id),
     c.env.DB.prepare(
       "SELECT id, name, start, enabled, created_at, expires_at FROM auth_apikey WHERE reference_id = ? ORDER BY created_at DESC LIMIT 100",

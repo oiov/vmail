@@ -1,3 +1,4 @@
+import { AdminApiLogs } from "../components/AdminApiLogs";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
@@ -7,6 +8,7 @@ type User = {
   name: string;
   email: string;
   role: string;
+  banned: number;
   created_at: number;
 };
 type Usage = {
@@ -81,6 +83,28 @@ export function Admin() {
       setRoleBusy(false);
     }
   };
+  const moderate = async (action: "disable-keys" | "ban") => {
+    if (!details.data) return;
+    setRoleBusy(true);
+    setRoleError("");
+    try {
+      await accountRequest(
+        "/admin/users/" + encodeURIComponent(selected) + "/" + action,
+        {
+          method: action === "ban" ? "PATCH" : "POST",
+          body: JSON.stringify(
+            action === "ban" ? { banned: !details.data.user.banned } : {},
+          ),
+        },
+      );
+      await client.invalidateQueries({ queryKey: ["admin"] });
+      await client.invalidateQueries({ queryKey: ["api-keys"] });
+    } catch (e) {
+      setRoleError(e instanceof Error ? e.message : "Action failed");
+    } finally {
+      setRoleBusy(false);
+    }
+  };
   const totals = details.data?.usage.reduce(
     (sum, row) => ({
       calls: sum.calls + row.api_calls,
@@ -139,7 +163,13 @@ export function Admin() {
                   <p className="truncate text-sm">
                     {user.name}{" "}
                     <span className="text-xs text-cyan-300">
-                      {user.role === "admin" ? "Admin" : ""}
+                      {user.banned
+                        ? zh
+                          ? "已封禁"
+                          : "Banned"
+                        : user.role === "admin"
+                          ? "Admin"
+                          : ""}
                     </span>
                   </p>
                   <p className="mt-1 truncate text-xs text-zinc-400">
@@ -207,6 +237,42 @@ export function Admin() {
                         : "Make administrator"}
                   </button>
                 )}
+                <div className="mb-5 space-y-3">
+                  <p className="text-sm text-zinc-400">
+                    {details.data.user?.banned
+                      ? zh
+                        ? "账号已封禁。解封不会恢复旧 Key。"
+                        : "Account banned. Unbanning does not restore old keys."
+                      : zh
+                        ? "禁用全部 Key 后用户可重新申请；封禁会同时阻止账号继续使用服务。"
+                        : "Disabling keys allows new key creation. Banning also blocks further account access."}
+                  </p>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      disabled={roleBusy}
+                      onClick={() => void moderate("disable-keys")}
+                      className="rounded-lg border border-amber-700 px-4 py-2 text-sm text-amber-300 disabled:opacity-40"
+                    >
+                      {zh ? "禁用全部 Key" : "Disable all keys"}
+                    </button>
+                    {details.data.user?.id !== account.id &&
+                      details.data.user?.role !== "admin" && (
+                        <button
+                          disabled={roleBusy}
+                          onClick={() => void moderate("ban")}
+                          className="rounded-lg border border-red-800 px-4 py-2 text-sm text-red-300 disabled:opacity-40"
+                        >
+                          {details.data.user?.banned
+                            ? zh
+                              ? "解除封禁"
+                              : "Unban user"
+                            : zh
+                              ? "封禁用户"
+                              : "Ban user"}
+                        </button>
+                      )}
+                  </div>
+                </div>
                 {roleError && (
                   <p role="alert" className="mb-4 text-sm text-red-300">
                     {roleError}
@@ -220,7 +286,12 @@ export function Admin() {
                       className="flex justify-between gap-3 rounded-lg bg-zinc-800/60 p-3 text-sm"
                     >
                       <div>
-                        <p>{key.name}</p>
+                        <p>
+                          {key.name}{" "}
+                          <span className="text-xs text-zinc-500">
+                            {!key.enabled ? (zh ? "已禁用" : "Disabled") : ""}
+                          </span>
+                        </p>
                         <p className="text-xs text-zinc-500">{key.start}…</p>
                       </div>
                       <span className="text-cyan-300">
@@ -325,6 +396,16 @@ export function Admin() {
         <p role="alert" className="mt-5 text-sm text-red-300">
           {users.error?.message || details.error?.message}
         </p>
+      )}
+      {account?.role === "admin" && (
+        <AdminApiLogs
+          zh={zh}
+          selected={selected}
+          onSelect={(id) => {
+            setSelected(id);
+            setMailCursor("");
+          }}
+        />
       )}
       <LoginDialog open={login} onClose={() => setLogin(false)} />
     </main>

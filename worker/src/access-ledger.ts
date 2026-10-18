@@ -2,6 +2,16 @@ import { DurableObject } from "cloudflare:workers";
 import type { Env } from "./index";
 import type { Rule, Decision } from "./limits";
 import { MAX_API_KEYS } from "./limits";
+export type ApiLog = {
+  id: string;
+  created_at: number;
+  user_id: string;
+  key_id: string;
+  method: string;
+  route: string;
+  status: number;
+  duration_ms: number;
+};
 type KeyRecord = { id: string; digest: string; expiresAt: number };
 /** One object per user, mailbox, or global-budget shard. No D1 on this path. */
 export class AccessLedger extends DurableObject<Env> {
@@ -13,6 +23,97 @@ export class AccessLedger extends DurableObject<Env> {
     this.ctx.storage.sql.exec(
       "CREATE TABLE IF NOT EXISTS counters (key TEXT PRIMARY KEY, window INTEGER NOT NULL, count INTEGER NOT NULL)",
     );
+  }
+  accessState() {
+    return {
+      banned: this.ctx.storage.kv.get<boolean>("banned") ?? false,
+      epoch: this.ctx.storage.kv.get<number>("keyEpoch") ?? 0,
+      keysPaused:
+        (this.ctx.storage.kv.get<number>("moderatingUntil") ?? 0) > Date.now(),
+    };
+  }
+  beginModeration(banned?: boolean): number | null {
+    if (this.accessState().keysPaused) return null;
+    this.ctx.storage.kv.put("moderatingUntil", Date.now() + 60_000);
+    this.disableAllKeys(banned);
+    return this.accessState().epoch;
+  }
+  finishModeration(epoch: number, unban = false) {
+    if (this.accessState().epoch !== epoch) return;
+    if (unban) this.ctx.storage.kv.put("banned", false);
+    this.ctx.storage.kv.delete("moderatingUntil");
+  }
+  disableAllKeys(banned?: boolean) {
+    this.ctx.storage.transactionSync(() => {
+      this.ctx.storage.kv.put("keys", []);
+      this.ctx.storage.kv.put("keyEpoch", this.accessState().epoch + 1);
+      if (banned !== undefined) this.ctx.storage.kv.put("banned", banned);
+    });
+  }
+  async appendLog(log: ApiLog) {
+    // A bounded spool survives restarts. Logs contain route templates only, never credentials or bodies.
+    this.ctx.storage.sql.exec(
+      "CREATE TABLE IF NOT EXISTS pending_logs (id TEXT PRIMARY KEY, created_at INTEGER NOT NULL, payload TEXT NOT NULL)",
+    );
+    this.ctx.storage.sql.exec(
+      "DELETE FROM pending_logs WHERE created_at < ?",
+      Date.now() - 7 * 86400_000,
+    );
+    const count = this.ctx.storage.sql
+      .exec<{ n: number }>("SELECT COUNT(*) AS n FROM pending_logs")
+      .one().n;
+    if (count >= 2000) {
+      this.ctx.storage.kv.put(
+        "droppedLogs",
+        (this.ctx.storage.kv.get<number>("droppedLogs") ?? 0) + 1,
+      );
+      console.warn("API log buffer full");
+      return;
+    }
+    this.ctx.storage.sql.exec(
+      "INSERT OR IGNORE INTO pending_logs VALUES (?, ?, ?)",
+      log.id,
+      log.created_at,
+      JSON.stringify(log),
+    );
+    const alarm = await this.ctx.storage.getAlarm();
+    if (alarm === null || alarm > Date.now() + 60_000)
+      await this.ctx.storage.setAlarm(Date.now() + 60_000);
+  }
+  async flushLogs() {
+    this.ctx.storage.sql.exec(
+      "CREATE TABLE IF NOT EXISTS pending_logs (id TEXT PRIMARY KEY, created_at INTEGER NOT NULL, payload TEXT NOT NULL)",
+    );
+    this.ctx.storage.sql.exec(
+      "DELETE FROM pending_logs WHERE created_at < ?",
+      Date.now() - 7 * 86400_000,
+    );
+    const rows = this.ctx.storage.sql
+      .exec<{
+        id: string;
+        payload: string;
+      }>("SELECT id, payload FROM pending_logs ORDER BY created_at LIMIT 500")
+      .toArray();
+    for (let i = 0; i < rows.length; i += 100) {
+      const batch = rows.slice(i, i + 100);
+      await this.env.DB.prepare(
+        "INSERT OR IGNORE INTO api_request_logs SELECT json_extract(value,'$.id'), json_extract(value,'$.created_at'), json_extract(value,'$.user_id'), json_extract(value,'$.key_id'), json_extract(value,'$.method'), json_extract(value,'$.route'), json_extract(value,'$.status'), json_extract(value,'$.duration_ms') FROM json_each(?)",
+      )
+        .bind("[" + batch.map((row) => row.payload).join(",") + "]")
+        .run();
+      this.ctx.storage.transactionSync(() => {
+        for (const row of batch)
+          this.ctx.storage.sql.exec(
+            "DELETE FROM pending_logs WHERE id = ?",
+            row.id,
+          );
+      });
+    }
+    if (
+      this.ctx.storage.sql.exec("SELECT id FROM pending_logs LIMIT 1").toArray()
+        .length
+    )
+      await this.ctx.storage.setAlarm(Date.now() + 60_000);
   }
   consume(rules: Rule[]): Decision {
     return this.ctx.storage.transactionSync(() => {
@@ -47,7 +148,14 @@ export class AccessLedger extends DurableObject<Env> {
       return { allowed: true, remaining, retryAfter: 0 };
     });
   }
-  registerKey(record: KeyRecord): boolean {
+  registerKey(record: KeyRecord, epoch?: number): boolean {
+    const state = this.accessState();
+    if (
+      state.banned ||
+      state.keysPaused ||
+      (epoch !== undefined && epoch !== state.epoch)
+    )
+      return false;
     return this.ctx.storage.transactionSync(() => {
       const keys = (this.ctx.storage.kv.get<KeyRecord[]>("keys") ?? []).filter(
         (k) => k.expiresAt > Date.now(),
@@ -67,9 +175,9 @@ export class AccessLedger extends DurableObject<Env> {
   }
   async authorize(digest: string, rules: Rule[], owner: string) {
     const keys = this.ctx.storage.kv.get<KeyRecord[]>("keys") ?? [];
-    const key = keys.find(
-      (k) => k.digest === digest && k.expiresAt > Date.now(),
-    );
+    const key = this.accessState().banned
+      ? undefined
+      : keys.find((k) => k.digest === digest && k.expiresAt > Date.now());
     if (!key)
       return {
         valid: false,
@@ -153,6 +261,7 @@ export class AccessLedger extends DurableObject<Env> {
       await this.ctx.storage.setAlarm(Date.now() + 300_000);
   }
   async alarm() {
+    await this.flushLogs();
     const owner = this.ctx.storage.kv.get<string>("usageOwner");
     if (!owner) return;
     const version = this.ctx.storage.kv.get<number>("usageVersion") ?? 0;

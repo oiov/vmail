@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { emails, mailboxes } from './database/schema';
+import { getSessionCookie } from 'better-auth/cookies';
 import { authReady, createAuth } from './auth';
 import accountRoutes from './account-routes';
 import { edgeGuard, reserveGlobal, failure, globalBudget } from './guard';
@@ -200,6 +201,8 @@ const mailboxAuth: import('hono').MiddlewareHandler<{ Bindings: Env; Variables: 
   const token = getBearerToken(c.req.header('Authorization'));
   const mailbox = token && c.env.MAILBOX_TOKEN_SECRET ? await verifyMailboxToken(token, c.env.MAILBOX_TOKEN_SECRET) : null;
   if (!mailbox || !isAllowedMailboxAddress(mailbox, c.env.EMAIL_DOMAIN) || !await c.env.ACCESS.getByName('mailbox:' + mailbox).mailboxActive()) return failure('UNAUTHORIZED', 'Mailbox authorization is invalid or expired', 401);
+  const owner = await c.env.ACCESS.getByName('mailbox:' + mailbox).mailboxOwner();
+  if (owner && (await c.env.ACCESS.getByName('user:' + owner).accessState()).banned) return failure('ACCOUNT_BANNED', 'Account is banned', 403);
   const decision = await c.env.ACCESS.getByName('mailbox:' + mailbox).consume([{ key: 'web-minute', max: 30, seconds: 60 }, { key: 'web-day', max: 3000, seconds: 86400 }]);
   if (!decision.allowed) return failure('QUOTA_EXCEEDED', 'Mailbox request limit reached', 429, decision.retryAfter);
   c.set('mailbox', mailbox);
@@ -225,7 +228,9 @@ api.post('/verify', turnstile, async (c) => {
   if (!allowed.allowed) return failure('QUOTA_EXCEEDED', 'Mailbox creation limit reached', 429, allowed.retryAfter);
   // If signed in, attribute browser mailbox activity to the same account.
   const account = authReady(c.env) ? await createAuth(c.env).api.getSession({ headers: c.req.raw.headers }) : null;
+  if (!account && getSessionCookie(c.req.raw)) return failure('UNAUTHORIZED', 'Session expired or revoked; sign in again', 401);
   const owner = account?.user.id ?? '';
+  if (owner && (await c.env.ACCESS.getByName('user:' + owner).accessState()).banned) return failure('ACCOUNT_BANNED', 'Account is banned', 403);
   if (owner) {
     const userLedger = c.env.ACCESS.getByName('user:' + owner);
     const createQuota = await userLedger.consume([{ key: 'create-day', seconds: 86400, max: positive(c.env.MAILBOX_DAILY_LIMIT, 20) }]);
@@ -374,6 +379,8 @@ api.post('/login', async c => {
   const body = await c.req.json<{password?: string}>();
   const address = body.password && c.env.MAILBOX_TOKEN_SECRET ? await verifyMailboxToken(body.password, c.env.MAILBOX_TOKEN_SECRET) : null;
   if (!address || !await c.env.ACCESS.getByName('mailbox:' + address).mailboxActive()) return failure('UNAUTHORIZED', 'Invalid or expired mailbox access token', 401);
+  const owner = await c.env.ACCESS.getByName('mailbox:' + address).mailboxOwner();
+  if (owner && (await c.env.ACCESS.getByName('user:' + owner).accessState()).banned) return failure('ACCOUNT_BANNED', 'Account is banned', 403);
   return c.json({ address, mailboxToken: body.password });
 });
 
@@ -495,6 +502,7 @@ export default {
       if (!await ledger.acceptMail(positive(env.MAILBOX_INBOUND_DAILY_LIMIT, 100))) { message.setReject('Mailbox expired or receiving limit reached'); return; }
       if (!(await globalBudget(env, message.to.toLowerCase(), 'inbound')).allowed) { message.setReject('Daily receiving capacity reached'); return; }
       const owner = await ledger.mailboxOwner();
+      if (owner && (await env.ACCESS.getByName('user:' + owner).accessState()).banned) { message.setReject('Mailbox unavailable'); return; }
       const db = getD1DB(env.DB);
       // 将原始邮件流转换为文本
       const raw = await new Response(message.raw).text();
@@ -578,6 +586,7 @@ export default {
   async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext) {
       const db = getD1DB(env.DB);
       if (env.SUSPEND_DATABASE_ACCESS === 'true') return;
+      await env.DB.prepare('DELETE FROM api_request_logs WHERE id IN (SELECT id FROM api_request_logs WHERE created_at < ? ORDER BY created_at LIMIT 5000)').bind(Date.now() - 7 * 86400_000).run();
       // 修复：将清理时间从1小时修改为24小时（1天）
       const oneDayAgo = new Date(Date.now() - 1000 * 60 * 60 * 24);
       await deleteExpiredEmails(db, oneDayAgo);

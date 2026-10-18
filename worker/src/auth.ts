@@ -1,3 +1,4 @@
+import { APIError } from "better-auth/api";
 import { betterAuth } from "better-auth";
 import { apiKey } from "@better-auth/api-key";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
@@ -22,6 +23,22 @@ export function createAuth(env: Env, creatingFor?: string) {
     basePath: "/api/auth",
     secret: env.BETTER_AUTH_SECRET,
     database: drizzleAdapter(drizzle(env.DB), { provider: "sqlite", schema }),
+    databaseHooks: {
+      session: {
+        create: {
+          before: async (session) => {
+            if (
+              (
+                await env.ACCESS.getByName(
+                  "user:" + session.userId,
+                ).accessState()
+              ).banned
+            )
+              throw new APIError("FORBIDDEN", { message: "Account is banned" });
+          },
+        },
+      },
+    },
     socialProviders: {
       github: {
         clientId: env.GITHUB_CLIENT_ID ?? "",

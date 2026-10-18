@@ -72,3 +72,9 @@ ENABLE_OPENAPI=false 仅暂停公开 API 和创建 Key。SUSPEND_DATABASE_ACCESS
 本地开发：复制 .dev.vars.example 为 .dev.vars，使用独立的测试密钥和 localhost OAuth 应用。运行 pnpm exec wrangler d1 migrations apply DB --local 后 pnpm dev。禁止把生产凭据注入测试代码。
 
 GitHub Actions Secrets: use GH_OAUTH_CLIENT_ID and GH_OAUTH_CLIENT_SECRET (GitHub reserves the GITHUB_ prefix). The workflow maps these to Worker GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET.
+
+## v3.1 管理员操作与调用日志
+
+应用 0005_admin_moderation_logs.sql 后，/admin 新增全站 API 调用日志、按用户筛选及游标分页；不需要新增环境变量。日志只记录通过 Key 和额度校验后的请求（包含业务错误），记录接口模板、HTTP 状态和业务处理耗时，不保存完整 Key、请求参数、IP 或邮件正文。日志通常延迟约 1 分钟，管理员只可查询最近 7 天，过期记录每小时分批清理（每批最多 5,000 条，积压时物理删除会延后）。每用户待写缓存最多 2,000 条，异常积压时可能丢弃新日志。批量写入仍按 D1 写入行计费，日志不是零成本或完整审计保证。
+
+“禁用全部 Key”使现有 Key 立即失效，用户仍可创建新 Key，账号额度不重置。“封禁用户”同时禁用 Key、撤销登录会话、拒绝新登录和账号所属邮箱的读写与收件；解封不恢复旧 Key。不能封禁自己或现有管理员，需先撤销目标管理员角色；ADMIN_EMAILS 管理员需先调整配置。已通过鉴权的在途请求可能完成。匿名网页继续按 IP 限制使用，账号封禁不等于封禁这个人的全部匿名访问。
