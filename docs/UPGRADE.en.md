@@ -39,7 +39,7 @@ Run:
 
     pnpm install --frozen-lockfile
     pnpm setup:check
-    pnpm deploy
+    pnpm run deploy
 
 Deployment validates settings, runs checks/build, applies D1 migrations, uploads Secrets, and deploys the Worker and DO migration. Generated wrangler.deploy.toml contains no secrets and is Git-ignored. Use CLOUDFLARE_API_TOKEN/CLOUDFLARE_ACCOUNT_ID (legacy CF names supported).
 

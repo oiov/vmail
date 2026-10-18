@@ -49,7 +49,7 @@ OAuth 可以暂不配置：保留 ENABLE_OPENAPI=false，网页邮箱仍可使�
 
     pnpm install --frozen-lockfile
     pnpm setup:check
-    pnpm deploy
+    pnpm run deploy
 
 部署脚本校验配置、执行测试/类型检查/构建、应用 D1 迁移、上传 Secrets，最后部署 Worker 和 Durable Object migration。生成的 wrangler.deploy.toml 不含 Secrets，被 Git 忽略。Cloudflare 授权使用 CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID，兼容原 CF_API_TOKEN / CF_ACCOUNT_ID。
 
