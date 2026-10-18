@@ -35,12 +35,12 @@ interface StatCardProps {
 
 function StatCard({ icon, label, value, color }: StatCardProps) {
   return (
-    <div className="flex flex-col items-center p-4 rounded-lg bg-zinc-800/50 border border-zinc-700/50 hover:border-zinc-600 transition-colors">
+    <div className="site-stat-card">
       <div className={`p-2 rounded-full mb-2 ${color}`}>{icon}</div>
-      <span className="text-2xl font-bold text-white mb-1">
+      <span className="site-stat-value">
         {formatNumber(value)}
       </span>
-      <span className="text-xs text-zinc-400 text-center">{label}</span>
+      <span className="site-stat-label">{label}</span>
     </div>
   );
 }
@@ -89,10 +89,10 @@ export function SiteStats() {
 
   if (loading) {
     return (
-      <div className="w-full flex flex-col items-center py-4 px-2">
-        <div className="animate-pulse grid grid-cols-2 gap-3 w-full max-w-sm">
+      <div className="site-stats">
+        <div className="site-stats-grid animate-pulse">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-24 bg-zinc-700/50 rounded-lg"></div>
+            <div key={i} className="h-20 bg-zinc-700/50 rounded-lg"></div>
           ))}
         </div>
       </div>
@@ -104,8 +104,8 @@ export function SiteStats() {
   }
 
   return (
-    <div className="w-full flex flex-col items-center py-4 px-2">
-      <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+    <div className="site-stats">
+      <div className="site-stats-grid">
         <StatCard
           icon={<UserCircleIcon className="w-5 h-5 text-cyan-400" />}
           label={t("Addresses Created")}
@@ -113,27 +113,25 @@ export function SiteStats() {
           color="bg-cyan-500/10"
         />
         <StatCard
-          icon={<MailIcon className="w-5 h-5 text-green-400" />}
+          icon={<MailIcon className="w-5 h-5 text-cyan-400" />}
           label={t("Emails Received")}
           value={stats.totals.totalEmailsReceived}
-          color="bg-green-500/10"
+          color="bg-cyan-500/10"
         />
         <StatCard
-          icon={<ApiIcon className="w-5 h-5 text-purple-400" />}
+          icon={<ApiIcon className="w-5 h-5 text-cyan-400" />}
           label={t("API Keys Created")}
           value={stats.totals.totalApiKeysCreated}
-          color="bg-purple-500/10"
+          color="bg-cyan-500/10"
         />
         <StatCard
-          icon={<ServerIcon className="w-5 h-5 text-orange-400" />}
+          icon={<ServerIcon className="w-5 h-5 text-cyan-400" />}
           label={t("API Calls")}
           value={stats.totals.totalApiCalls}
-          color="bg-orange-500/10"
+          color="bg-cyan-500/10"
         />
       </div>
-      <p className="text-zinc-500 text-xs mt-4 text-center">
-        {t("Please create a temporary email address first")}
-      </p>
+
     </div>
   );
 }

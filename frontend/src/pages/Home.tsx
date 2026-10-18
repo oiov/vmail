@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 // feat: 导入全局 toast
 import { toast } from "react-hot-toast";
 
+import { SiteStats } from "../components/SiteStats";
 import { MailList } from "../components/MailList.tsx";
 import { CopyButton } from "../components/CopyButton.tsx";
 // feat: 导入 loginByPassword
@@ -645,6 +646,7 @@ export function Home() {
           canSendEmails={canSendEmails}
           onOpenSender={() => setShowSenderModal(true)} // 打开发件弹窗
         />
+        <SiteStats />
       </div>
     </div>
   );

@@ -15,7 +15,6 @@ import PasswordIcon from "./icons/Password.tsx"; // feat: 导入密码图标
 import { MailDetail } from "../pages/MailDetail.tsx";
 import ArrowUturnLeft from "./icons/ArrowUturnLeft.tsx";
 import Expand from "./icons/Expand.tsx"; // feat: 导入 Expand 图标
-import { SiteStats } from "./SiteStats.tsx"; // feat: 导入 SiteStats 组件
 import SendIcon from "./icons/SendIcon.tsx";
 
 // 语言到 date-fns locale 的映射
@@ -103,7 +102,8 @@ export function MailList({
     if (!isAddressCreated) {
       return (
         <div className="w-full items-center h-full flex-col justify-center flex">
-          <SiteStats />
+          <Loader />
+          <p className="text-zinc-400 mt-6">{t("Please create a temporary email address first")}</p>
         </div>
       );
     }
