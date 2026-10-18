@@ -1,5 +1,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 if (fs.existsSync(".env")) process.loadEnvFile(".env");
 const env = {
   ...process.env,
@@ -14,7 +16,8 @@ function run(args, options = {}) {
     env,
     ...options,
   });
-  if (result.status !== 0) process.exit(result.status ?? 1);
+  if (result.status !== 0)
+    throw new Error(args[0] + " failed with exit code " + result.status);
   return result;
 }
 run(["node", "scripts/configure.mjs"]);
@@ -36,16 +39,21 @@ run([
 const secretData = run(["node", "scripts/configure.mjs", "--secrets-json"], {
   stdio: ["ignore", "pipe", "inherit"],
 }).stdout;
-run(
-  [
+// Upload secrets with the new version: old plaintext bindings are replaced atomically.
+const directory = fs.mkdtempSync(path.join(os.tmpdir(), "vmail-deploy-"));
+const secretFile = path.join(directory, "secrets.json");
+try {
+  fs.writeFileSync(secretFile, secretData, { mode: 0o600 });
+  run([
     "pnpm",
     "exec",
     "wrangler",
-    "secret",
-    "bulk",
+    "deploy",
     "--config",
     "wrangler.deploy.toml",
-  ],
-  { input: secretData, stdio: ["pipe", "inherit", "inherit"] },
-);
-run(["pnpm", "exec", "wrangler", "deploy", "--config", "wrangler.deploy.toml"]);
+    "--secrets-file",
+    secretFile,
+  ]);
+} finally {
+  fs.rmSync(directory, { recursive: true, force: true });
+}
