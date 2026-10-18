@@ -4,6 +4,7 @@ import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useConfig } from "../hooks/useConfig";
+import { ApiReference } from "../components/ApiReference";
 import { CopyButton } from "../components/CopyButton";
 import { LoginDialog, useAccount, accountRequest } from "../components/Account";
 type Key = {
@@ -104,12 +105,12 @@ export function ApiDocs() {
           VMAIL / DEVELOPERS
         </p>
         <h1 className="text-4xl font-semibold">
-          {zh ? "邮件，为你的应用而来" : "Email for your applications"}
+          {zh ? "API 文档" : "API documentation"}
         </h1>
         <p className="mt-4 max-w-2xl leading-7 text-zinc-400">
           {zh
-            ? "通过简单的 REST API 创建临时邮箱、读取和管理邮件。登录后免费创建 API Key，即可开始使用。"
-            : "Create temporary mailboxes, read and manage messages with a simple REST API. Sign in to create your free API keys."}
+            ? "通过 REST API 创建临时邮箱、查询邮件列表、读取和删除邮件。登录后可免费创建 API Key。"
+            : "Create temporary mailboxes, list messages, and read or delete email through the REST API. Sign in to create a free API key."}
         </p>
       </div>
       <section
@@ -304,6 +305,19 @@ export function ApiDocs() {
         )}
       </section>
       <section className="space-y-6">
+        <div className="rounded-xl border border-zinc-700 p-5 text-sm leading-7 text-zinc-400">
+          <p>
+            Base URL:{" "}
+            <code className="break-all text-cyan-200">
+              {window.location.origin}/api/v1
+            </code>
+          </p>
+          <p>
+            {zh ? "可用邮箱域名：" : "Available email domains: "}
+            {config.emailDomain?.join(", ")}
+          </p>
+          <p>Content-Type: application/json</p>
+        </div>
         <h2 className="text-2xl font-semibold">
           {zh ? "快速开始" : "Quick start"}
         </h2>
@@ -356,6 +370,7 @@ export function ApiDocs() {
             : "Respect Retry-After on 429 and back off on 503. Start polling every 60 seconds and slow down when idle. Failed requests may consume quota. Service pauses when global daily capacity is reached. Each mailbox accepts up to 100 messages per day, at most 256 KiB each."}
         </div>
       </section>
+      <ApiReference zh={zh} domain={config.emailDomain?.[0] || "example.com"} />
       <LoginDialog open={login} onClose={() => setLogin(false)} />
     </main>
   );
