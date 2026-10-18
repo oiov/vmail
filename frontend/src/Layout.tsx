@@ -11,7 +11,7 @@ import { Toaster } from 'react-hot-toast';
 export function Layout() {
   return (
     // 使用与原始Remix应用相同的背景和布局结构
-    <div className="mx-auto min-h-screen flex flex-col bg-[#1f2023]">
+    <div className="public-app mx-auto min-h-screen flex flex-col bg-[#1d2120]">
       <Header />
       {/* Outlet 用于渲染当前路由匹配的子组件 */}
       <Outlet />

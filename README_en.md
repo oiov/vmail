@@ -12,6 +12,8 @@ Manage API keys, mailboxes, messages and account information on separate pages. 
 
 Actual screenshots from a local demo account, with no real user details or access secrets.
 
+![Home](docs/images/home.png)
+
 ![Dark dashboard](docs/images/dashboard-dark.png)
 
 <details>
@@ -20,6 +22,8 @@ Actual screenshots from a local demo account, with no real user details or acces
 ![Light dashboard](docs/images/dashboard-light.png)
 
 <img src="docs/images/dashboard-mobile.png" alt="Mobile API key management" width="390" />
+
+![Administrator deployment settings](docs/images/deployment-settings.png)
 
 </details>
 

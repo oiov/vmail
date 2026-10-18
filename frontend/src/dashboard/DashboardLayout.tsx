@@ -48,6 +48,7 @@ export function DashboardLayout() {
   const admin = [
     ["/dashboard/admin/users", "users", "用户管理", "Users"],
     ["/dashboard/admin/logs", "log", "调用日志", "Request logs"],
+    ["/dashboard/admin/settings", "settings", "部署配置", "Deployment"],
   ];
   const active =
     [...workspace, ...admin].find((x) => x[0] === location.pathname)?.[

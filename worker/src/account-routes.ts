@@ -1,3 +1,4 @@
+import { deploymentSettings } from "./deployment-settings";
 import { Hono } from "hono";
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
@@ -263,6 +264,10 @@ routes.use("/admin/*", async (c, next) => {
   if (c.get("account").role !== "admin")
     return failure("FORBIDDEN", "Administrator access required", 403);
   await next();
+});
+routes.get("/admin/settings", (c) => {
+  c.header("Cache-Control", "no-store");
+  return c.json(deploymentSettings(c.env));
 });
 routes.patch("/admin/users/:id/role", async (c) => {
   const id = c.req.param("id");

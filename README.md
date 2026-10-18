@@ -16,6 +16,8 @@
 
 以下为本地演示账号的实际界面，不包含真实用户资料或访问密钥。
 
+![首页](docs/images/home.png)
+
 ![深色控制台](docs/images/dashboard-dark.png)
 
 <details>
@@ -24,6 +26,8 @@
 ![浅色控制台](docs/images/dashboard-light.png)
 
 <img src="docs/images/dashboard-mobile.png" alt="移动端 API Key 管理" width="390" />
+
+![管理员部署配置](docs/images/deployment-settings.png)
 
 </details>
 

@@ -39,7 +39,7 @@
   --btn-animation-duration: 1.2s;
   --btn-shadow-color: rgba(0, 0, 0, 0.137);
   --btn-shadow: 0 2px 10px 0 var(--btn-shadow-color);
-  --hover-btn-color: #0a9ec4;
+  --hover-btn-color: #8fc4a0;
   --default-btn-color: #fff;
   --font-size: 18px;
   --font-weight: 800;
@@ -298,3 +298,10 @@
     opacity: 0;
   }
 }
+.public-app {color-scheme:dark;background:#1d2120}
+.public-app [class*="bg-neutral-800"],.public-app [class*="bg-zinc-800"]{background-color:#29312c}
+.public-app [class*="bg-zinc-900"]{background-color:#1e2621}
+.public-app [class*="border-zinc-700"],.public-app [class*="border-zinc-800"]{border-color:#38453c}
+.public-app [class*="text-zinc-400"]{color:#9eaea3}
+.public-app [class*="bg-cyan-400"]{color:#203d2d}
+.public-app [class*="bg-cyan-600"]{background-color:#438461}

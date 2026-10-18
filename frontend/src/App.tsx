@@ -23,6 +23,11 @@ const MessagesPage = lazy(() =>
 const MessagePage = lazy(() =>
   import("./dashboard/Pages").then((m) => ({ default: m.MessagePage })),
 );
+const AdminSettingsPage = lazy(() =>
+  import("./dashboard/AdminSettingsPage").then((m) => ({
+    default: m.AdminSettingsPage,
+  })),
+);
 const AdminLogsPage = lazy(() =>
   import("./dashboard/AdminLogsPage").then((m) => ({
     default: m.AdminLogsPage,
@@ -170,6 +175,7 @@ function App() {
                 <Route path="admin/users" element={<Admin />} />
                 <Route path="admin/users/:id" element={<Admin />} />
                 <Route path="admin/logs" element={<AdminLogsPage />} />
+                <Route path="admin/settings" element={<AdminSettingsPage />} />
               </Route>
             </Routes>
           </Suspense>

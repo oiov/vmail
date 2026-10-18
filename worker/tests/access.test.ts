@@ -68,6 +68,56 @@ async function seedUser(role = "user") {
   };
 }
 describe("cost and authorization boundaries", () => {
+  it("restricts deployment configuration to administrators and never returns secret values", async () => {
+    const admin = await seedUser("admin"),
+      user = await seedUser();
+    expect((await request("/api/account/admin/settings")).status).toBe(401);
+    expect(
+      (
+        await request("/api/account/admin/settings", {
+          headers: { Cookie: user.cookie },
+        })
+      ).status,
+    ).toBe(403);
+    const result = await request(
+      "/api/account/admin/settings",
+      { headers: { Cookie: admin.cookie } },
+      {
+        TURNSTILE_SECRET: "private-turnstile-value",
+        RESEND_API_KEY: "private-resend-value",
+        API_DAILY_LIMIT: "",
+      },
+    );
+    expect(result.status).toBe(200);
+    expect(result.headers.get("Cache-Control")).toBe("no-store");
+    const body = await result.json<{
+      version: string;
+      features: { name: string; enabled: boolean }[];
+      variables: {
+        name: string;
+        value: string | null;
+        configured: boolean;
+        effective: number | null;
+      }[];
+    }>();
+    expect(body.version).toMatch(/^3\./);
+    const serialized = JSON.stringify(body);
+    for (const secret of [
+      bindings.BETTER_AUTH_SECRET!,
+      bindings.API_KEY_SECRET!,
+      "private-turnstile-value",
+      "private-resend-value",
+    ])
+      expect(serialized).not.toContain(secret);
+    expect(
+      body.variables.find((v) => v.name === "RESEND_API_KEY"),
+    ).toMatchObject({ value: null, configured: true });
+    expect(
+      body.variables.find((v) => v.name === "API_DAILY_LIMIT")?.effective,
+    ).toBe(1000);
+    expect(body.features.find((f) => f.name === "openApi")?.enabled).toBe(true);
+  });
+
   it("isolates dashboard mailbox listing, messages, deletion and account statistics by owner", async () => {
     const owner = await seedUser(),
       other = await seedUser();

@@ -2,6 +2,8 @@
 
 ## v3.2: Dedicated dashboard and themes
 
+Administrators can inspect the running version, features and environment at /dashboard/admin/settings. Secret values are never returned. Public pages now share the green palette.
+
 Upgrading from v3.1 requires no new environment variables or database migrations. Existing API settings, OAuth providers, administrators and keys remain valid.
 
 - Public documentation stays at /api-docs.
