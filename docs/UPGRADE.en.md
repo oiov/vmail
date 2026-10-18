@@ -77,3 +77,12 @@ GitHub Actions Secrets: use GH_OAUTH_CLIENT_ID and GH_OAUTH_CLIENT_SECRET (GitHu
 Migration 0005_admin_moderation_logs.sql adds /admin request logs and account moderation. No new environment variables are required. Logs cover requests that pass key and quota checks, including business errors, with route templates, HTTP status and handler duration. Credentials, query parameters, IPs and email bodies are excluded. Logs typically appear within a minute; queries cover the last 7 days. Hourly cleanup deletes up to 5,000 expired records per run, so physical deletion can lag. Each user's pending buffer holds at most 2,000 records; prolonged backlogs can drop new logs. D1 still charges for rows written, even in batches.
 
 Disabling all keys revokes current credentials without resetting quotas or preventing new key creation. Banning also revokes sessions and blocks new sign-ins, account-owned mailbox access and incoming mail. Unbanning does not restore keys. Administrators cannot ban themselves or another current administrator; remove the target's role first. Requests already authorized may finish. Anonymous access remains subject to IP quotas, so account bans do not prevent anonymous use after signing out.
+
+
+## Sending authorization, quotas and audit
+
+After upgrading, /api/send requires a signed-in session, valid mailbox token and same-site Origin. Anonymous mailbox holders must sign in first. Banned accounts and mailboxes owned by another account are rejected.
+
+New settings: SEND_USER_DAILY_LIMIT=10 and SEND_GLOBAL_DAILY_LIMIT=100. Attempts, including provider failures, consume quota. User quotas span mailboxes and reset at 00:00 UTC. Existing mailbox/IP minute limits remain; the mailbox minute limit also applies per user. Durable Objects atomically reserve quota before provider dispatch.
+
+Apply 0006_outbound_logs.sql before deployment (the deployment script does this). Users view their own mail at /dashboard/outbound; admins review all content and filter by user at /dashboard/admin/outbound. Subject, body, addresses and result are retained for 30 days, with hourly cleanup. HTML is sandboxed and remote resources are blocked. Success means provider acceptance, not delivery; pending may mean an unconfirmed result, so do not automatically retry.

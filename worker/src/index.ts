@@ -45,6 +45,8 @@ export interface Env extends Omit<CloudflareBindings, 'RESEND_API_KEY' | 'MAILCH
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   ADMIN_EMAILS?: string;
+  SEND_USER_DAILY_LIMIT?: string;
+  SEND_GLOBAL_DAILY_LIMIT?: string;
 
   RESEND_API_KEY?: string;
   MAILCHANNELS_API_KEY?: string;
@@ -53,7 +55,7 @@ export interface Env extends Omit<CloudflareBindings, 'RESEND_API_KEY' | 'MAILCH
 }
 
 // 初始化 Hono 应用
-type AppVariables = { parsedBody: any; mailbox: string; apiKey: { id: string; userId: string; rateLimit: number } };
+type AppVariables = { parsedBody: any; mailbox: string; senderId: string; apiKey: { id: string; userId: string; rateLimit: number } };
 const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 app.onError((error, c) => { console.error('Request failed', error.message); return failure('SERVICE_UNAVAILABLE', 'Service temporarily unavailable', 503); });
 app.use('/api/*', bodyLimit({ maxSize: 131072 }));
@@ -277,19 +279,24 @@ api.post('/mailbox-token/refresh', mailboxAuth, async (c) => {
 });
 
 // Unified, authenticated email sending endpoint.
-api.post('/send', mailboxAuth, async (c) => {
+api.post('/send', async (c, next) => {
+  if (!authReady(c.env)) return failure('LOGIN_REQUIRED', 'Sign in to send email', 401);
+  if (c.req.header('Origin') !== new URL(c.env.BETTER_AUTH_URL).origin) return failure('FORBIDDEN', 'Invalid request origin', 403);
+  const session = await createAuth(c.env).api.getSession({ headers: c.req.raw.headers });
+  if (!session) return failure('LOGIN_REQUIRED', 'Sign in to send email', 401);
+  if ((await c.env.ACCESS.getByName('user:' + session.user.id).accessState()).banned) return failure('ACCOUNT_BANNED', 'Account is banned', 403);
+  c.set('senderId', session.user.id);
+  await next();
+}, mailboxAuth, async (c) => {
   const sendChannel = getConfiguredSendChannel(c.env);
   if (!sendChannel || !c.env.MAILBOX_TOKEN_SECRET || !c.env.SENDER_EMAIL) {
     return c.json({ code: 'SEND_UNAVAILABLE', message: 'Email sending is unavailable' }, 503);
   }
 
-  const token = getBearerToken(c.req.header('Authorization'));
-  const mailbox = token
-    ? await verifyMailboxToken(token, c.env.MAILBOX_TOKEN_SECRET)
-    : null;
-  if (!mailbox || !isAllowedMailboxAddress(mailbox, c.env.EMAIL_DOMAIN)) {
-    return c.json({ code: 'SEND_UNAUTHORIZED', message: 'Mailbox authorization is invalid or expired' }, 401);
-  }
+  const mailbox = c.get('mailbox');
+  const userId = c.get('senderId');
+  const owner = await c.env.ACCESS.getByName('mailbox:' + mailbox).mailboxOwner();
+  if (owner && owner !== userId) return failure('FORBIDDEN', 'Mailbox belongs to another account', 403);
 
   let requestBody: unknown;
   try {
@@ -306,8 +313,21 @@ api.post('/send', mailboxAuth, async (c) => {
   const mailboxLimit = parsePositiveLimit(c.env.SEND_RATE_LIMIT_PER_MINUTE, 3);
   const ipLimit = parsePositiveLimit(c.env.SEND_IP_RATE_LIMIT_PER_MINUTE, 10);
   const first = await c.env.ACCESS.getByName('mailbox:' + mailbox).consume([{ key: 'send', max: mailboxLimit, seconds: 60 }]);
+  if (!first.allowed) return failure('SEND_RATE_LIMITED', 'Sending limit reached', 429, first.retryAfter);
   const second = await c.env.ACCESS.getByName('web-ip:' + (c.req.header('CF-Connecting-IP') ?? 'local')).consume([{ key: 'send', max: ipLimit, seconds: 60 }]);
-  if (!first.allowed || !second.allowed) return failure('SEND_RATE_LIMITED', 'Sending limit reached');
+  if (!second.allowed) return failure('SEND_RATE_LIMITED', 'Sending limit reached', 429, second.retryAfter);
+  const userQuota = await c.env.ACCESS.getByName('user:' + userId).consume([
+    { key: 'send-minute', max: mailboxLimit, seconds: 60 },
+    { key: 'send-day', max: positive(c.env.SEND_USER_DAILY_LIMIT, 10), seconds: 86400 },
+  ]);
+  if (!userQuota.allowed) return failure('SEND_QUOTA_EXCEEDED', 'Your sending quota is exhausted', 429, userQuota.retryAfter);
+  const globalQuota = await c.env.ACCESS.getByName('global:outbound').consume([{ key: 'send-day', max: positive(c.env.SEND_GLOBAL_DAILY_LIMIT, 100), seconds: 86400 }]);
+  if (!globalQuota.allowed) return failure('SEND_GLOBAL_QUOTA_EXCEEDED', 'Daily sending capacity reached', 429, globalQuota.retryAfter);
+  // Persist before dispatch so every provider attempt has an audit record.
+  const logId = crypto.randomUUID();
+  await c.env.DB.prepare('INSERT INTO outbound_logs (id,created_at,user_id,mailbox,recipient,channel,status,sender_name,subject,content,content_type) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+    .bind(logId, Date.now(), userId, mailbox, parsedRequest.data.receiverEmail, sendChannel, 'pending', parsedRequest.data.senderName, parsedRequest.data.subject, parsedRequest.data.content, parsedRequest.data.type).run();
+  const recordResult = (status: string) => c.env.DB.prepare('UPDATE outbound_logs SET status=? WHERE id=?').bind(status, logId).run();
   const outgoingEmail = {
     ...parsedRequest.data,
     replyTo: mailbox,
@@ -325,6 +345,7 @@ api.post('/send', mailboxAuth, async (c) => {
       });
       if (!response.ok) {
         console.error('Resend send failed:', response.status, await response.text());
+        await recordResult('failed');
         return c.json({ code: 'SEND_PROVIDER_ERROR', message: 'Email provider rejected the message' }, 502);
       }
     } else if (sendChannel === 'mailchannels') {
@@ -338,6 +359,7 @@ api.post('/send', mailboxAuth, async (c) => {
       });
       if (!response.ok) {
         console.error('MailChannels send failed:', response.status, await response.text());
+        await recordResult('failed');
         return c.json({ code: 'SEND_PROVIDER_ERROR', message: 'Email provider rejected the message' }, 502);
       }
     } else {
@@ -349,11 +371,13 @@ api.post('/send', mailboxAuth, async (c) => {
       await c.env.SEND_EMAIL!.send(emailMessage);
     }
 
-    return c.json({ success: true, channel: sendChannel });
   } catch (error) {
     console.error('Email send failed:', error);
+    await recordResult('failed');
     return c.json({ code: 'SEND_PROVIDER_ERROR', message: 'Email provider is unavailable' }, 502);
   }
+  try { await recordResult('sent'); } catch { console.error('Unable to persist successful send result', logId); }
+  return c.json({ success: true, channel: sendChannel });
 });
 
 // Old anonymous key issuance is intentionally retired.
@@ -586,6 +610,7 @@ export default {
   async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext) {
       const db = getD1DB(env.DB);
       if (env.SUSPEND_DATABASE_ACCESS === 'true') return;
+      await env.DB.prepare('DELETE FROM outbound_logs WHERE id IN (SELECT id FROM outbound_logs WHERE created_at < ? ORDER BY created_at LIMIT 5000)').bind(Date.now() - 30 * 86400_000).run();
       await env.DB.prepare('DELETE FROM api_request_logs WHERE id IN (SELECT id FROM api_request_logs WHERE created_at < ? ORDER BY created_at LIMIT 5000)').bind(Date.now() - 7 * 86400_000).run();
       // 修复：将清理时间从1小时修改为24小时（1天）
       const oneDayAgo = new Date(Date.now() - 1000 * 60 * 60 * 24);

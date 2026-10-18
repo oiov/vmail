@@ -8,6 +8,7 @@ import {
 import worker from "../src/index";
 import type { Env } from "../src/index";
 import { generateUserKey, getKeyOwner, hashToken } from "../src/key-token";
+import { createMailboxToken } from "../src/sender";
 import { createAuth } from "../src/auth";
 import {
   createExecutionContext,
@@ -853,5 +854,192 @@ describe("cost and authorization boundaries", () => {
         )
       ).status,
     ).toBe(503);
+  });
+});
+
+describe("authenticated outgoing mail", () => {
+  async function mailbox(owner = "") {
+    const address = crypto.randomUUID() + "@example.test";
+    await bindings.ACCESS.getByName("mailbox:" + address).activateMailbox(
+      Date.now() + 86400000,
+      false,
+      owner,
+    );
+    return {
+      address,
+      token: await createMailboxToken(address, bindings.MAILBOX_TOKEN_SECRET!),
+    };
+  }
+  const payload = {
+    receiverEmail: "recipient@example.com",
+    subject: "Quota test",
+    content: "Private test body",
+    type: "text/plain",
+  };
+  async function send(
+    cookie: string,
+    token: string,
+    overrides: Partial<Env> = {},
+  ) {
+    return request(
+      "/api/send",
+      {
+        method: "POST",
+        headers: {
+          Origin: "http://localhost:8787",
+          Cookie: cookie,
+          Authorization: "Bearer " + token,
+          "Content-Type": "application/json",
+          "CF-Connecting-IP": crypto.randomUUID(),
+        },
+        body: JSON.stringify(payload),
+      },
+      {
+        SEND_CHANNEL: "cloudflare",
+        SENDER_EMAIL: "no-reply@example.test",
+        SEND_EMAIL: { send: async () => {} } as Env["SEND_EMAIL"],
+        SEND_RATE_LIMIT_PER_MINUTE: "100",
+        SEND_IP_RATE_LIMIT_PER_MINUTE: "100",
+        ...overrides,
+      },
+    );
+  }
+  it("rejects anonymous, banned users, and another user's mailbox before sending", async () => {
+    const u = await seedUser(),
+      other = await seedUser(),
+      b = await mailbox(u.id);
+    let calls = 0;
+    const provider = {
+      SEND_EMAIL: {
+        send: async () => {
+          calls++;
+        },
+      } as Env["SEND_EMAIL"],
+    };
+    expect((await send("", b.token, provider)).status).toBe(401);
+    expect((await send(other.cookie, b.token, provider)).status).toBe(403);
+    await bindings.ACCESS.getByName("user:" + u.id).disableAllKeys(true);
+    expect((await send(u.cookie, b.token, provider)).status).toBe(403);
+    expect(calls).toBe(0);
+  });
+  it("limits a user's total across mailboxes and retains attempts including failures", async () => {
+    const u = await seedUser(),
+      b = await mailbox(),
+      second = await mailbox();
+    const failed = await send(u.cookie, b.token, {
+      SEND_USER_DAILY_LIMIT: "1",
+      SEND_EMAIL: {
+        send: async () => {
+          throw new Error("test rejection");
+        },
+      } as Env["SEND_EMAIL"],
+    });
+    expect(failed.status).toBe(502);
+    expect(
+      (await send(u.cookie, second.token, { SEND_USER_DAILY_LIMIT: "1" }))
+        .status,
+    ).toBe(429);
+    const quota = await request(
+      "/api/account/sending",
+      { headers: { Cookie: u.cookie } },
+      { SEND_USER_DAILY_LIMIT: "1" },
+    );
+    expect(await quota.json()).toMatchObject({
+      remaining: 0,
+      used: 1,
+      limit: 1,
+    });
+    const history = await request("/api/account/outbound", {
+      headers: { Cookie: u.cookie },
+    });
+    const data = await history.json<{
+      logs: { id: string; status: string; content?: string }[];
+      stats: { status: string; count: number }[];
+    }>();
+    expect(data.logs).toHaveLength(1);
+    expect(data.logs[0].status).toBe("failed");
+    expect(data.logs[0].content).toBeUndefined();
+    expect(data.stats).toContainEqual({ status: "failed", count: 1 });
+  });
+  it("allows only owners and admins to inspect stored content, and enforces the global cap", async () => {
+    const u = await seedUser(),
+      other = await seedUser(),
+      admin = await seedUser("admin"),
+      b = await mailbox(u.id);
+    const global = bindings.ACCESS.getByName("global:outbound");
+    const used = (
+      await global.quota({ key: "send-day", max: 100, seconds: 86400 })
+    ).used;
+    let calls = 0;
+    const limits = {
+      SEND_GLOBAL_DAILY_LIMIT: String(used + 1),
+      SEND_EMAIL: {
+        send: async () => {
+          calls++;
+        },
+      } as Env["SEND_EMAIL"],
+    };
+    expect((await send(u.cookie, b.token, limits)).status).toBe(200);
+    expect(
+      (await send(other.cookie, (await mailbox()).token, limits)).status,
+    ).toBe(429);
+    expect(calls).toBe(1);
+    const own = await (
+      await request("/api/account/outbound", { headers: { Cookie: u.cookie } })
+    ).json<{ logs: { id: string }[] }>();
+    const id = own.logs[0].id;
+    expect(
+      (
+        await request("/api/account/outbound/" + id, {
+          headers: { Cookie: other.cookie },
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await request("/api/account/admin/outbound/" + id, {
+          headers: { Cookie: other.cookie },
+        })
+      ).status,
+    ).toBe(403);
+    for (const [path, cookie] of [
+      ["/api/account/outbound/", u.cookie],
+      ["/api/account/admin/outbound/", admin.cookie],
+    ]) {
+      const detail = await request(path + id, { headers: { Cookie: cookie } });
+      expect(
+        (await detail.json<{ message: { content: string; status: string } }>())
+          .message,
+      ).toMatchObject({ content: payload.content, status: "sent" });
+    }
+    const all = await request("/api/account/admin/outbound?userId=" + u.id, {
+      headers: { Cookie: admin.cookie },
+    });
+    expect(
+      (await all.json<{ logs: { user_id: string }[] }>()).logs.every(
+        (x) => x.user_id === u.id,
+      ),
+    ).toBe(true);
+    expect(
+      (
+        await request("/api/account/outbound?cursor=invalid", {
+          headers: { Cookie: u.cookie },
+        })
+      ).status,
+    ).toBe(400);
+  });
+  it("atomically reserves a quota under concurrent requests", async () => {
+    const ledger = bindings.ACCESS.getByName(
+      "send-test:" + crypto.randomUUID(),
+    );
+    const results = await Promise.all(
+      Array.from({ length: 12 }, () =>
+        ledger.consume([{ key: "send-day", seconds: 86400, max: 3 }]),
+      ),
+    );
+    expect(results.filter((x) => x.allowed)).toHaveLength(3);
+    expect(
+      await ledger.quota({ key: "send-day", seconds: 86400, max: 3 }),
+    ).toMatchObject({ remaining: 0, used: 3 });
   });
 });

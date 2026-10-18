@@ -69,6 +69,8 @@ jobs:
           ENABLE_OPENAPI: ${{ secrets.ENABLE_OPENAPI }}
           SEND_CHANNEL: ${{ secrets.SEND_CHANNEL }}
           SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          SEND_USER_DAILY_LIMIT: ${{ vars.SEND_USER_DAILY_LIMIT }}
+          SEND_GLOBAL_DAILY_LIMIT: ${{ vars.SEND_GLOBAL_DAILY_LIMIT }}
           SEND_RATE_LIMIT_PER_MINUTE: ${{ secrets.SEND_RATE_LIMIT_PER_MINUTE }}
           SEND_IP_RATE_LIMIT_PER_MINUTE: ${{ secrets.SEND_IP_RATE_LIMIT_PER_MINUTE }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}

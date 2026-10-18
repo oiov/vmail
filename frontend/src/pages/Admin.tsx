@@ -311,6 +311,15 @@ export function Admin() {
                     >
                       {zh ? "查看此用户调用日志 →" : "View request logs →"}
                     </Link>
+                    <Link
+                      className="text-action mb-5 ml-5 inline-block"
+                      to={
+                        "/dashboard/admin/outbound?userId=" +
+                        encodeURIComponent(selected)
+                      }
+                    >
+                      {zh ? "查看此用户发送的邮件 →" : "View outgoing mail →"}
+                    </Link>
                     <h3 className="mb-3 font-medium">API Keys</h3>
                     <div className="mb-7 space-y-2">
                       {details.data.keys.map((key) => (

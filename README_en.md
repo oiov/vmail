@@ -16,6 +16,10 @@ Actual screenshots from a local demo account, with no real user details or acces
 
 ![Dark dashboard](docs/images/dashboard-dark.png)
 
+![Compose email](docs/images/sender.png)
+
+![Outgoing mail administration](docs/images/outbound-admin.png)
+
 <details>
 <summary>Light theme and mobile view</summary>
 
@@ -186,3 +190,12 @@ GNU General Public License v3.0
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=oiov/vmail&type=Date)](https://star-history.com/#oiov/vmail&Date)
+
+
+## Sending authorization, quotas and audit
+
+After upgrading, /api/send requires a signed-in session, valid mailbox token and same-site Origin. Anonymous mailbox holders must sign in first. Banned accounts and mailboxes owned by another account are rejected.
+
+New settings: SEND_USER_DAILY_LIMIT=10 and SEND_GLOBAL_DAILY_LIMIT=100. Attempts, including provider failures, consume quota. User quotas span mailboxes and reset at 00:00 UTC. Existing mailbox/IP minute limits remain; the mailbox minute limit also applies per user. Durable Objects atomically reserve quota before provider dispatch.
+
+Apply 0006_outbound_logs.sql before deployment (the deployment script does this). Users view their own mail at /dashboard/outbound; admins review all content and filter by user at /dashboard/admin/outbound. Subject, body, addresses and result are retained for 30 days, with hourly cleanup. HTML is sandboxed and remote resources are blocked. Success means provider acceptance, not delivery; pending may mean an unconfirmed result, so do not automatically retry.

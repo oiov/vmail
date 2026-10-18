@@ -12,7 +12,7 @@ import {
   findMailboxMessage,
   deleteMailboxMessage,
 } from "./database/dao";
-import { MAX_API_KEYS } from "./limits";
+import { MAX_API_KEYS, positive } from "./limits";
 function effectiveUser<
   T extends { email: string; role: string; email_verified?: number },
 >(row: T, env: Env): T {
@@ -68,12 +68,23 @@ routes.use("*", async (c, next) => {
   if (session.user.emailVerified && admins.includes(row.email.toLowerCase()))
     row.role = "admin";
   c.set("account", row);
+  c.header("Cache-Control", "no-store");
   await next();
 });
 routes.get("/me", (c) =>
   c.json({ user: c.get("account"), maxKeys: MAX_API_KEYS }),
 );
 
+routes.get("/sending", async (c) => {
+  const quota = await c.env.ACCESS.getByName(
+    "user:" + c.get("account").id,
+  ).quota({
+    key: "send-day",
+    max: positive(c.env.SEND_USER_DAILY_LIMIT, 10),
+    seconds: 86400,
+  });
+  return c.json(quota);
+});
 routes.get("/overview", async (c) => {
   const id = c.get("account").id;
   const day = new Date().toISOString().slice(0, 10);
@@ -85,10 +96,14 @@ routes.get("/overview", async (c) => {
       "SELECT provider_id FROM auth_account WHERE user_id=? LIMIT 5",
     ).bind(id),
     c.env.DB.prepare("SELECT created_at FROM auth_user WHERE id=?").bind(id),
+    c.env.DB.prepare(
+      "SELECT COUNT(*) AS attempts, SUM(status='sent') AS sent FROM outbound_logs WHERE user_id=? AND created_at>=?",
+    ).bind(id, Date.parse(day + "T00:00:00Z")),
   ]);
   return c.json({
     days: results[0].results,
     today: day,
+    sending: results[3].results[0],
     providers: results[1].results,
     createdAt: (results[2].results[0] as { created_at?: number } | undefined)
       ?.created_at,
@@ -265,6 +280,15 @@ routes.use("/admin/*", async (c, next) => {
     return failure("FORBIDDEN", "Administrator access required", 403);
   await next();
 });
+routes.get("/admin/sending", async (c) =>
+  c.json(
+    await c.env.ACCESS.getByName("global:outbound").quota({
+      key: "send-day",
+      max: positive(c.env.SEND_GLOBAL_DAILY_LIMIT, 100),
+      seconds: 86400,
+    }),
+  ),
+);
 routes.get("/admin/settings", (c) => {
   c.header("Cache-Control", "no-store");
   return c.json(deploymentSettings(c.env));
@@ -371,6 +395,83 @@ routes.patch("/admin/users/:id/ban", async (c) => {
   await ledger.finishModeration(epoch, !body.banned);
   return c.json({ success: true });
 });
+
+async function outboundHistory(env: Env, owner: string, cursor: string) {
+  if (owner.length > 128 || cursor.length > 512)
+    return failure("VALIDATION_ERROR", "Invalid filter", 400);
+  let time = Date.now() + 1,
+    id = "";
+  if (cursor) {
+    try {
+      const decoded = JSON.parse(atob(cursor));
+      if (
+        !Number.isSafeInteger(decoded.time) ||
+        typeof decoded.id !== "string" ||
+        decoded.id.length > 64
+      )
+        throw new Error();
+      time = decoded.time;
+      id = decoded.id;
+    } catch {
+      return failure("VALIDATION_ERROR", "Invalid cursor", 400);
+    }
+  }
+  const since = Date.now() - 30 * 86400_000;
+  const condition = owner ? "user_id=? AND " : "";
+  const prefix: (string | number)[] = owner ? [owner] : [];
+  const [rows, stats] = await env.DB.batch([
+    env.DB.prepare(
+      "SELECT id,created_at,user_id,mailbox,recipient,channel,status,subject FROM outbound_logs WHERE " +
+        condition +
+        "created_at>=? AND (created_at,id)<(?,?) ORDER BY created_at DESC,id DESC LIMIT 51",
+    ).bind(...prefix, since, time, id),
+    env.DB.prepare(
+      "SELECT status,COUNT(*) AS count FROM outbound_logs WHERE " +
+        condition +
+        "created_at>=? GROUP BY status",
+    ).bind(...prefix, since),
+  ]);
+  const logs = rows.results.slice(0, 50),
+    last = logs.at(-1) as { created_at: number; id: string } | undefined;
+  return Response.json({
+    logs,
+    stats: stats.results,
+    retentionDays: 30,
+    nextCursor:
+      rows.results.length > 50 && last
+        ? btoa(JSON.stringify({ time: last.created_at, id: last.id }))
+        : null,
+  });
+}
+async function outboundDetail(env: Env, id: string, owner?: string) {
+  if (id.length > 64)
+    return failure("VALIDATION_ERROR", "Invalid message", 400);
+  const row = await env.DB.prepare(
+    "SELECT * FROM outbound_logs WHERE id=? AND created_at>=?" +
+      (owner ? " AND user_id=?" : ""),
+  )
+    .bind(id, Date.now() - 30 * 86400_000, ...(owner ? [owner] : []))
+    .first();
+  return row
+    ? Response.json({ message: row })
+    : failure("NOT_FOUND", "Message not found", 404);
+}
+routes.get("/outbound/:id", (c) =>
+  outboundDetail(c.env, c.req.param("id"), c.get("account").id),
+);
+routes.get("/admin/outbound/:id", (c) =>
+  outboundDetail(c.env, c.req.param("id")),
+);
+routes.get("/outbound", (c) =>
+  outboundHistory(c.env, c.get("account").id, c.req.query("cursor") ?? ""),
+);
+routes.get("/admin/outbound", (c) =>
+  outboundHistory(
+    c.env,
+    c.req.query("userId") ?? "",
+    c.req.query("cursor") ?? "",
+  ),
+);
 routes.get("/admin/logs", async (c) => {
   const owner = c.req.query("userId") ?? "";
   if (owner.length > 128)

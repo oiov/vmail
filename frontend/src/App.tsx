@@ -28,6 +28,9 @@ const AdminSettingsPage = lazy(() =>
     default: m.AdminSettingsPage,
   })),
 );
+const OutboundPage = lazy(() =>
+  import("./dashboard/OutboundPage").then((m) => ({ default: m.OutboundPage })),
+);
 const AdminLogsPage = lazy(() =>
   import("./dashboard/AdminLogsPage").then((m) => ({
     default: m.AdminLogsPage,
@@ -168,6 +171,13 @@ function App() {
                 <Route path="account" element={<AccountPage />} />
                 <Route path="mailboxes" element={<MailboxesPage />} />
                 <Route path="messages" element={<MessagesPage />} />
+                <Route path="outbound" element={<OutboundPage />} />
+                <Route path="outbound/:id" element={<OutboundPage />} />
+                <Route path="admin/outbound" element={<OutboundPage admin />} />
+                <Route
+                  path="admin/outbound/:id"
+                  element={<OutboundPage admin />}
+                />
                 <Route
                   path="messages/:mailboxId/:messageId"
                   element={<MessagePage />}

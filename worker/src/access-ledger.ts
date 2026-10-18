@@ -115,6 +115,23 @@ export class AccessLedger extends DurableObject<Env> {
     )
       await this.ctx.storage.setAlarm(Date.now() + 60_000);
   }
+  quota(rule: Rule) {
+    const now = Math.floor(Date.now() / 1000);
+    const window = Math.floor(now / rule.seconds) * rule.seconds;
+    const row = this.ctx.storage.sql
+      .exec<{
+        window: number;
+        count: number;
+      }>("SELECT window,count FROM counters WHERE key=?", rule.key)
+      .toArray()[0];
+    const used = row?.window === window ? row.count : 0;
+    return {
+      limit: rule.max,
+      used,
+      remaining: Math.max(0, rule.max - used),
+      resetsAt: (window + rule.seconds) * 1000,
+    };
+  }
   consume(rules: Rule[]): Decision {
     return this.ctx.storage.transactionSync(() => {
       const now = Math.floor(Date.now() / 1000);

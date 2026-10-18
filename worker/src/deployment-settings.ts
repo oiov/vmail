@@ -28,6 +28,8 @@ export function deploymentSettings(env: Env) {
     GLOBAL_INBOUND_DAILY_LIMIT: 100000,
     MAILBOX_INBOUND_DAILY_LIMIT: 100,
     MAX_EMAIL_BYTES: 262144,
+    SEND_USER_DAILY_LIMIT: 10,
+    SEND_GLOBAL_DAILY_LIMIT: 100,
   };
   const secretNames = [
     "BETTER_AUTH_SECRET",

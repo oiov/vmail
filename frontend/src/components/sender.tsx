@@ -5,9 +5,13 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
+import { accountRequest, LoginDialog, useAccount } from "./Account";
 import { Modal } from "./modal";
 import { useTranslation } from "react-i18next";
 import Close from "./icons/Close";
+import SendIcon from "./icons/SendIcon";
 import toast from "react-hot-toast";
 import { useConfig } from "../hooks/useConfig";
 
@@ -25,6 +29,22 @@ export default function SenderModal({
   const { t } = useTranslation();
   const config = useConfig();
   const [isSending, setIsSending] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const { data: account, isLoading: accountLoading } = useAccount();
+  const client = useQueryClient();
+  const quota = useQuery({
+    queryKey: ["sending-quota", account?.id],
+    queryFn: () =>
+      accountRequest<{
+        limit: number;
+        remaining: number;
+        used: number;
+        resetsAt: number;
+      }>("/sending"),
+    enabled: showSenderModal && !!account,
+    retry: false,
+    staleTime: 0,
+  });
 
   const hasSender = Boolean(
     config.sendChannel && config.senderEmail && mailboxToken,
@@ -32,6 +52,7 @@ export default function SenderModal({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isSending || !account || !quota.data?.remaining) return;
     setIsSending(true);
     const form = e.currentTarget;
 
@@ -56,12 +77,15 @@ export default function SenderModal({
 
       const data = (await res.json().catch(() => ({}))) as {
         code?: string;
+        error?: { code?: string };
         message?: string;
       };
 
       if (!res.ok) {
         throw new Error(
-          data.code ? t(data.code) : data.message || t("Failed to send email"),
+          data.code || data.error?.code
+            ? t((data.code || data.error?.code)!)
+            : data.message || t("Failed to send email"),
         );
       }
 
@@ -87,102 +111,170 @@ export default function SenderModal({
       );
     } finally {
       setIsSending(false);
+      void client.invalidateQueries({ queryKey: ["sending-quota"] });
+      void client.invalidateQueries({ queryKey: ["outbound"] });
     }
   };
 
-  return (
-    <Modal showModal={showSenderModal} setShowModal={setShowSenderModal}>
-      <div className="w-full overflow-hidden bg-white/95 backdrop-blur-xl shadow-xl p-4 md:max-w-3xl md:rounded-2xl md:border md:border-gray-200">
-        <Close
-          className="absolute top-4 right-4 h-6 w-6 text-gray-500 hover:text-gray-700 cursor-pointer"
-          onClick={() => setShowSenderModal(false)}
-        />
-
-        <div className="flex flex-col items-center justify-center space-y-3 border-b border-gray-200 px-4 py-5 text-center md:px-16">
-          <h3 className="font-display text-2xl font-bold">Vmail Sender</h3>
-          <p className="text-gray-500">{t("Forward only, no storage")}</p>
-        </div>
-        <form
-          onSubmit={handleSubmit}
-          className="flex flex-col mt-4 space-y-4 px-4"
+  if (showSenderModal && !account && !accountLoading)
+    return (
+      <>
+        <Modal
+          showModal={!loginOpen}
+          setShowModal={setShowSenderModal}
+          theme="dark"
         >
-          <div className="w-full flex flex-col gap-4 md:flex-row">
-            <input
-              value={config.senderEmail}
-              type="email"
-              name="fromEmail"
-              placeholder={t("Sending email *")}
-              required
-              readOnly
-              title={`${t("Reply-To:")} ${senderEmail}`}
-              className="rounded-md border border-slate-200 px-3 py-2 shadow-inner w-full bg-gray-100 cursor-not-allowed"
-            />
-            <input
-              type="text"
-              name="senderName"
-              placeholder={t("Sending name")}
-              className="rounded-md border border-slate-200 px-3 py-2 shadow-inner w-full"
-            />
+          <section
+            className="sender-dialog sender-login"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="sender-login-title"
+          >
+            <button
+              className="sender-close"
+              onClick={() => setShowSenderModal(false)}
+              aria-label={t("Close")}
+            >
+              <Close />
+            </button>
+            <span className="sender-icon">
+              <SendIcon />
+            </span>
+            <h2 id="sender-login-title">{t("Sign in to send email")}</h2>
+            <p>
+              {t("Sending requires an account and is subject to daily quotas.")}
+            </p>
+            <button
+              className="sender-submit"
+              onClick={() => setLoginOpen(true)}
+            >
+              {t("Sign in")}
+            </button>
+          </section>
+        </Modal>
+        <LoginDialog open={loginOpen} onClose={() => setLoginOpen(false)} />
+      </>
+    );
+  return (
+    <Modal
+      showModal={showSenderModal}
+      setShowModal={setShowSenderModal}
+      theme="dark"
+    >
+      <section
+        className="sender-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="sender-title"
+      >
+        <header className="sender-header">
+          <span className="sender-icon">
+            <SendIcon aria-hidden="true" />
+          </span>
+          <div>
+            <h2 id="sender-title">{t("Compose email")}</h2>
+            <p>{t("Send from this mailbox. Replies arrive in your inbox.")}</p>
           </div>
-
-          <div className="w-full flex flex-col gap-4 md:flex-row">
-            <input
-              type="email"
-              name="receiverEmail"
-              placeholder={t("Recipient email *")}
-              required
-              className="rounded-md border border-slate-200 px-3 py-2 shadow-inner w-full"
-            />
+          <button
+            type="button"
+            className="sender-close"
+            aria-label={t("Close")}
+            onClick={() => setShowSenderModal(false)}
+          >
+            <Close aria-hidden="true" />
+          </button>
+        </header>
+        <form onSubmit={handleSubmit} className="sender-form">
+          <div className="sender-address">
+            <span>{t("From")}</span>
+            <strong>{config.senderEmail}</strong>
+            <span>{t("Reply-To:")}</span>
+            <span>{senderEmail}</span>
+          </div>
+          <div className="sender-fields">
+            <label>
+              {t("Sending name")}
+              <input
+                type="text"
+                name="senderName"
+                maxLength={100}
+                placeholder={t("Optional")}
+                autoComplete="nickname"
+              />
+            </label>
+            <label>
+              {t("Recipient email *")}
+              <input
+                type="email"
+                name="receiverEmail"
+                required
+                maxLength={254}
+                placeholder="name@example.com"
+                autoComplete="off"
+              />
+            </label>
+          </div>
+          <label>
+            {t("Email subject *")}
             <input
               type="text"
               name="subject"
-              placeholder={t("Email subject *")}
               required
-              className="rounded-md border border-slate-200 px-3 py-2 shadow-inner w-full"
+              maxLength={200}
+              placeholder={t("Email subject *")}
             />
-          </div>
-
-          <div className="w-full">
-            <select
-              name="type"
-              className="rounded-md border border-slate-200 px-3 py-2 shadow-inner w-full"
-            >
-              <option value="text/plain">Plain</option>
+          </label>
+          <label className="sender-format">
+            {t("Message format")}
+            <select name="type">
+              <option value="text/plain">{t("Plain text")}</option>
               <option value="text/html">HTML</option>
             </select>
-          </div>
-          <div className="w-full">
+          </label>
+          <label>
+            {t("Email content *")}
             <textarea
               name="content"
-              placeholder={t("Email content *")}
               required
-              className="min-h-24 p-2 border border-slate-200 shadow-inner rounded-md w-full"
-            ></textarea>
+              maxLength={100000}
+              placeholder={t("Write your message…")}
+              rows={5}
+            />
+          </label>
+          <div className="sender-quota" role="status">
+            {quota.data
+              ? t("Today: {{remaining}} / {{limit}} sends remaining", {
+                  remaining: quota.data.remaining,
+                  limit: quota.data.limit,
+                })
+              : t("Loading sending quota…")}
+            <span>
+              {t("Resets at 00:00 UTC. Failed attempts count toward quota.")}
+            </span>
           </div>
-
-          {hasSender && (
-            <button
-              type="submit"
-              disabled={isSending}
-              className="py-2.5 text-white rounded-md w-full bg-cyan-600 hover:opacity-90 disabled:cursor-not-allowed disabled:bg-zinc-500"
-            >
-              {isSending ? t("Sending...") : t("Send")}
-            </button>
-          )}
-          {!hasSender && (
-            <p className="py-2.5 text-center text-sm text-gray-400 rounded-md w-full border border-dashed border-gray-300">
-              {t("No sending service configured")}
+          {quota.error && (
+            <p className="sender-note" role="alert">
+              {t("Unable to load sending quota")}
             </p>
           )}
-          <p className="text-sm text-gray-500 mt-4">
-            🚫
-            {t(
-              "Please do not send illegal content such as politics, pornography, etc",
-            )}
-            .
+          <p className="sender-note">
+            <Link to="/dashboard/outbound">{t("Sending history")}</Link>
           </p>
+          <button
+            type="submit"
+            disabled={
+              isSending || !hasSender || !account || !quota.data?.remaining
+            }
+            className="sender-submit"
+          >
+            <SendIcon aria-hidden="true" />
+            {isSending ? t("Sending...") : t("Send")}
+          </button>
+          {!hasSender && (
+            <p className="sender-note">{t("No sending service configured")}</p>
+          )}
         </form>
-      </div>
+      </section>
     </Modal>
   );
 }

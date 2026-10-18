@@ -18,6 +18,7 @@ type Box = {
   expires_at: number;
 };
 type Overview = {
+  sending: { attempts: number; sent: number };
   days: {
     date: string;
     api_calls: number;
@@ -244,6 +245,21 @@ export function OverviewPage() {
           </section>
         ))}
       </div>
+      <section className="dash-panel outbound-overview">
+        <div>
+          <strong>
+            {zh ? "今日发件" : "Outgoing today"}:{" "}
+            {q.data?.sending.attempts ?? 0}
+          </strong>
+          <p className="metric-note">
+            {zh ? "服务商已接收" : "Accepted by provider"}:{" "}
+            {q.data?.sending.sent ?? 0}
+          </p>
+        </div>
+        <Link className="dash-secondary" to="/dashboard/outbound">
+          {zh ? "查看发件记录与额度" : "View history and quota"}
+        </Link>
+      </section>
       <div className="overview-grid">
         <section className="dash-panel">
           <div className="panel-heading">

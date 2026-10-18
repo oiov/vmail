@@ -43,11 +43,13 @@ export function DashboardLayout() {
     ["/dashboard/keys", "key", "API Key", "API keys"],
     ["/dashboard/mailboxes", "inbox", "我的邮箱", "Mailboxes"],
     ["/dashboard/messages", "mail", "邮件", "Messages"],
+    ["/dashboard/outbound", "mail", "发件记录", "Sent mail"],
     ["/dashboard/account", "user", "账户信息", "Account"],
   ];
   const admin = [
     ["/dashboard/admin/users", "users", "用户管理", "Users"],
     ["/dashboard/admin/logs", "log", "调用日志", "Request logs"],
+    ["/dashboard/admin/outbound", "mail", "发件管理", "Outgoing mail"],
     ["/dashboard/admin/settings", "settings", "部署配置", "Deployment"],
   ];
   const active =
