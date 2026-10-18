@@ -22,7 +22,7 @@ export function AdminApiLogs({
   onSelect: (id: string) => void;
 }) {
   const [cursor, setCursor] = useState(""),
-    [owner, setOwner] = useState("");
+    [owner, setOwner] = useState(selected);
   const logs = useQuery({
     queryKey: ["admin", "logs", owner, cursor],
     retry: false,

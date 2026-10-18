@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useConfig } from "../hooks/useConfig";
@@ -63,7 +63,9 @@ export function LoginDialog({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           provider,
-          callbackURL: "/api-docs",
+          callbackURL: window.location.pathname.startsWith("/dashboard")
+            ? window.location.pathname + window.location.search
+            : "/dashboard/keys",
           errorCallbackURL: "/api-docs?login=failed",
         }),
       });
@@ -108,7 +110,7 @@ export function LoginDialog({
         </h2>
         <p className="mb-7 mt-3 text-sm leading-6 text-zinc-400">
           {zh
-            ? "免费创建 API Key，让邮件接入你的应用。每个账号最多 3 个 Key，共享使用额度。"
+            ? "管理 API Key、邮箱和账户信息。每个账号最多 3 个免费 Key，共享使用额度。"
             : "Create free API keys and connect email to your app. Up to 3 keys per account, with shared usage limits."}
         </p>
         <div className="space-y-3">
@@ -163,58 +165,25 @@ export function LoginDialog({
 }
 export function AccountButton() {
   const { data: account } = useAccount(),
-    client = useQueryClient();
-  const [open, setOpen] = useState(false),
-    [error, setError] = useState("");
-  const { i18n } = useTranslation(),
+    [open, setOpen] = useState(false),
+    { i18n } = useTranslation(),
     zh = i18n.language.startsWith("zh");
-  const signOut = async () => {
-    const res = await fetch("/api/auth/sign-out", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: "{}",
-    });
-    if (res.ok) {
-      client.setQueryData(["account"], null);
-      client.removeQueries({ queryKey: ["api-keys"] });
-      client.removeQueries({ queryKey: ["admin"] });
-    } else setError(zh ? "退出失败，请重试" : "Unable to sign out");
-  };
   return (
     <>
-      <div className="ml-3 flex items-center gap-3 text-sm">
-        {account ? (
-          <>
-            <Link
-              to="/api-docs"
-              className="hidden max-w-28 truncate text-zinc-300 sm:block"
-            >
-              {account.name}
-            </Link>
-            {account.role === "admin" && (
-              <Link to="/admin" className="text-cyan-300">
-                {zh ? "管理" : "Admin"}
-              </Link>
-            )}
-            <button
-              type="button"
-              onClick={() => void signOut()}
-              className="text-zinc-400 hover:text-white"
-            >
-              {zh ? "退出" : "Sign out"}
-            </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            className="rounded-lg border border-zinc-600 px-3 py-2 hover:border-cyan-400"
-          >
-            {zh ? "登录" : "Sign in"}
-          </button>
-        )}
-      </div>
-      {error && <span role="alert">{error}</span>}
+      {account ? (
+        <Link className="public-account-button" to="/dashboard">
+          <span className="public-avatar">
+            {account.name.slice(0, 1).toUpperCase()}
+          </span>
+          {zh ? "控制台" : "Dashboard"}
+          <span>↗</span>
+        </Link>
+      ) : (
+        <button className="public-account-button" onClick={() => setOpen(true)}>
+          {zh ? "登录 / 注册" : "Sign in"}
+          <span>→</span>
+        </button>
+      )}
       <LoginDialog open={open} onClose={() => setOpen(false)} />
     </>
   );

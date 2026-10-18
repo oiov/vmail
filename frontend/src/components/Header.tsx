@@ -1,14 +1,13 @@
 import { AccountButton } from "./Account";
-import { Link } from "react-router-dom";
-import { VmailLogo } from "./icons/vmail.tsx";
+import { Link, NavLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import GithubPlat from "./icons/GitHubPlat.tsx";
-import { useState, useRef, useEffect } from "react";
-import { InfoModal } from "./InfoModal.tsx";
-import { About } from "../pages/About.tsx";
-import { Privacy } from "../pages/Privacy.tsx";
-import { Terms } from "../pages/Terms.tsx";
-
+import { useState } from "react";
+import { InfoModal } from "./InfoModal";
+import { About } from "../pages/About";
+import { Privacy } from "../pages/Privacy";
+import { Terms } from "../pages/Terms";
+import { Icon } from "../dashboard/Icon";
+import "./header.css";
 // 支持的语言列表
 const languages = [
   { code: "zh", name: "简体中文", flag: "🇨🇳" },
@@ -25,139 +24,79 @@ const languages = [
 ];
 
 export function Header() {
-  const { t, i18n } = useTranslation();
-  const [showAboutModal, setShowAboutModal] = useState(false);
-  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-  const [showTermsModal, setShowTermsModal] = useState(false);
-  const [showLangDropdown, setShowLangDropdown] = useState(false);
-  const langDropdownRef = useRef<HTMLDivElement>(null);
-
-  // 获取当前语言信息（处理可能的语言代码变体，如 zh-CN -> zh）
-  const getCurrentLang = () => {
-    const lang = i18n.language;
-    // 精确匹配
-    const exact = languages.find((l) => l.code === lang);
-    if (exact) return exact;
-    // 前缀匹配（如 zh-CN 匹配 zh，但 zh-TW 优先精确匹配）
-    const prefix = languages.find((l) => lang.startsWith(l.code + "-") || l.code.startsWith(lang + "-"));
-    if (prefix) return prefix;
-    // 基础语言匹配（如 zh-CN -> zh）
-    const baseLang = lang.split("-")[0];
-    const base = languages.find((l) => l.code === baseLang);
-    return base || languages[0];
-  };
-  const currentLang = getCurrentLang();
-
-  // 切换语言
-  const handleLanguageChange = (langCode: string) => {
-    i18n.changeLanguage(langCode);
-    setShowLangDropdown(false);
-  };
-
-  // 点击外部关闭下拉菜单
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (langDropdownRef.current && !langDropdownRef.current.contains(event.target as Node)) {
-        setShowLangDropdown(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
+  const { t, i18n } = useTranslation(),
+    zh = i18n.language.startsWith("zh"),
+    [about, setAbout] = useState(false),
+    [privacy, setPrivacy] = useState(false),
+    [terms, setTerms] = useState(false);
   return (
     <>
-      <header className="fixed top-0 z-20 h-20 w-full px-5 backdrop-blur-xl md:px-10 text-white flex items-center justify-between shadow-sm">
-        <Link
-          to="/"
-          className="font-bold flex items-center justify-center gap-3">
-          <VmailLogo />
-          <button className="cool-btn">
-            <span>VMAIL.DEV</span>
-          </button>
-        </Link>
-        <nav className="flex items-center">
-          {/* 导航链接 */}
-          <a
-            className="ml-3 md:ml-8"
-            target="_blank"
-            rel="noopener noreferrer"
-            href="/api-docs">
-            API
-          </a>
-          <button
-            onClick={() => setShowAboutModal(true)}
-            className="ml-3 md:ml-8 text-sm md:text-base hidden md:block hover:text-cyan-400">
-            {t("About")}
-          </button>
-          <button
-            onClick={() => setShowPrivacyModal(true)}
-            className="ml-3 md:ml-8 text-sm md:text-base hidden md:block hover:text-cyan-400">
-            {t("Privacy")}
-          </button>
-          <button
-            onClick={() => setShowTermsModal(true)}
-            className="ml-3 md:ml-8 text-sm md:text-base hidden md:block hover:text-cyan-400">
-            {t("Terms")}
-          </button>
-          {/* 语言切换下拉菜单 */}
-          <div className="relative ml-3 md:ml-8" ref={langDropdownRef}>
-            <button
-              onClick={() => setShowLangDropdown(!showLangDropdown)}
-              className="flex items-center gap-1 text-sm hover:text-cyan-400 px-2 py-1 rounded border border-transparent hover:border-cyan-400/30">
-              <span>{currentLang.flag}</span>
-              <span className="hidden md:inline">{currentLang.name}</span>
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {showLangDropdown && (
-              <div className="absolute right-0 mt-2 w-40 bg-zinc-800 border border-zinc-700 rounded-lg shadow-lg py-1 z-50">
-                {languages.map((lang) => (
-                  <button
-                    key={lang.code}
-                    onClick={() => handleLanguageChange(lang.code)}
-                    className={`w-full text-left px-3 py-2 text-sm hover:bg-zinc-700 flex items-center gap-2 ${
-                      lang.code === i18n.language ? "text-cyan-400" : "text-white"
-                    }`}>
-                    <span>{lang.flag}</span>
-                    <span>{lang.name}</span>
-                  </button>
-                ))}
+      <header className="public-header">
+        <div className="public-header-inner">
+          <Link to="/" className="public-brand">
+            <span>
+              <Icon name="mail" size={20} />
+            </span>
+            Vmail
+          </Link>
+          <nav
+            className="public-nav"
+            aria-label={zh ? "主导航" : "Main navigation"}
+          >
+            <NavLink to="/" end>
+              {zh ? "临时邮箱" : "Inbox"}
+            </NavLink>
+            <NavLink to="/api-docs">{zh ? "API 文档" : "API docs"}</NavLink>
+            <details className="public-resources">
+              <summary>
+                {zh ? "资源" : "Resources"}
+                <span>⌄</span>
+              </summary>
+              <div>
+                <button onClick={() => setAbout(true)}>{t("About")}</button>
+                <button onClick={() => setPrivacy(true)}>{t("Privacy")}</button>
+                <button onClick={() => setTerms(true)}>{t("Terms")}</button>
+                <a
+                  href="https://github.com/oiov/vmail"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  GitHub ↗
+                </a>
               </div>
-            )}
+            </details>
+          </nav>
+          <div className="public-actions">
+            <select
+              aria-label={zh ? "选择语言" : "Language"}
+              value={
+                languages.some((l) => l.code === i18n.language)
+                  ? i18n.language
+                  : i18n.language.split("-")[0]
+              }
+              onChange={(e) => void i18n.changeLanguage(e.target.value)}
+            >
+              {languages.map((l) => (
+                <option value={l.code} key={l.code}>
+                  {l.name}
+                </option>
+              ))}
+            </select>
+            <AccountButton />
           </div>
-          <AccountButton />
-          {/* GitHub 链接按钮 */}
-          <a
-            className="ml-3 md:ml-8"
-            target="_blank"
-            rel="noopener noreferrer"
-            href="https://github.com/oiov/vmail">
-            <button className="whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-transparent hover:bg-accent hover:text-accent-foreground text-md flex h-[32px] w-[85px] cursor-pointer items-center justify-center rounded-md border-2 p-2 font-semibold hover:opacity-50">
-              <GithubPlat />
-              <div className="ml-1.5 text-sm">Star</div>
-            </button>
-          </a>
-        </nav>
+        </div>
       </header>
-
-      <InfoModal
-        showModal={showAboutModal}
-        setShowModal={setShowAboutModal}
-        title={t("About")}>
+      <InfoModal showModal={about} setShowModal={setAbout} title={t("About")}>
         <About />
       </InfoModal>
       <InfoModal
-        showModal={showPrivacyModal}
-        setShowModal={setShowPrivacyModal}
-        title={t("Privacy")}>
+        showModal={privacy}
+        setShowModal={setPrivacy}
+        title={t("Privacy")}
+      >
         <Privacy />
       </InfoModal>
-      <InfoModal
-        showModal={showTermsModal}
-        setShowModal={setShowTermsModal}
-        title={t("Terms")}>
+      <InfoModal showModal={terms} setShowModal={setTerms} title={t("Terms")}>
         <Terms />
       </InfoModal>
     </>

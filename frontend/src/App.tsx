@@ -1,9 +1,39 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import axios from "axios";
-import { useEffect, useState } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { useEffect, useState, lazy, Suspense } from "react";
+import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Home } from "./pages/Home.tsx";
-import { Admin } from "./pages/Admin";
+const DashboardLayout = lazy(() =>
+  import("./dashboard/DashboardLayout").then((m) => ({
+    default: m.DashboardLayout,
+  })),
+);
+const OverviewPage = lazy(() =>
+  import("./dashboard/Pages").then((m) => ({ default: m.OverviewPage })),
+);
+const AccountPage = lazy(() =>
+  import("./dashboard/Pages").then((m) => ({ default: m.AccountPage })),
+);
+const MailboxesPage = lazy(() =>
+  import("./dashboard/Pages").then((m) => ({ default: m.MailboxesPage })),
+);
+const MessagesPage = lazy(() =>
+  import("./dashboard/Pages").then((m) => ({ default: m.MessagesPage })),
+);
+const MessagePage = lazy(() =>
+  import("./dashboard/Pages").then((m) => ({ default: m.MessagePage })),
+);
+const AdminLogsPage = lazy(() =>
+  import("./dashboard/AdminLogsPage").then((m) => ({
+    default: m.AdminLogsPage,
+  })),
+);
+const ApiKeys = lazy(() =>
+  import("./pages/ApiKeys").then((m) => ({ default: m.ApiKeys })),
+);
+const Admin = lazy(() =>
+  import("./pages/Admin").then((m) => ({ default: m.Admin })),
+);
 import { ApiDocs } from "./pages/ApiDocs.tsx";
 // MailDetail 组件不再作为独立页面，因此移除其路由
 // import { MailDetail } from './pages/MailDetail.tsx';
@@ -74,7 +104,25 @@ function App() {
   }
 
   if (config.setupRequired) {
-    return <div className="flex min-h-screen items-center justify-center bg-zinc-900 p-6 text-white"><div className="max-w-lg rounded-xl border border-amber-700/50 p-8"><h1 className="mb-4 text-xl font-semibold">Vmail setup required / 需要完成升级配置</h1><p className="mb-3 text-sm leading-7 text-zinc-300">The site operator needs to configure MAILBOX_TOKEN_SECRET. 站点管理员需要配置邮箱签名密钥才能启用邮箱服务。</p><a className="text-sm text-cyan-300 underline" href="https://github.com/oiov/vmail/blob/main/docs/UPGRADE.md">Upgrade instructions / 升级指南</a></div></div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-900 p-6 text-white">
+        <div className="max-w-lg rounded-xl border border-amber-700/50 p-8">
+          <h1 className="mb-4 text-xl font-semibold">
+            Vmail setup required / 需要完成升级配置
+          </h1>
+          <p className="mb-3 text-sm leading-7 text-zinc-300">
+            The site operator needs to configure MAILBOX_TOKEN_SECRET.
+            站点管理员需要配置邮箱签名密钥才能启用邮箱服务。
+          </p>
+          <a
+            className="text-sm text-cyan-300 underline"
+            href="https://github.com/oiov/vmail/blob/main/docs/UPGRADE.md"
+          >
+            Upgrade instructions / 升级指南
+          </a>
+        </div>
+      </div>
+    );
   }
   if (!isUnlocked) {
     return (
@@ -91,15 +139,40 @@ function App() {
       {/* 使用 QueryClientProvider 为应用提供 React Query 功能 */}
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <Routes>
-            {/* 使用 Layout 组件作为所有页面的布局框架 */}
-            <Route element={<Layout />}>
-              <Route path="/" element={<Home />} />
-              <Route path="/api-docs" element={<ApiDocs />} />
-              <Route path="/admin" element={<Admin />} />
-              {/* 移除 /mails/:id, /about, /privacy, /terms 路由 */}
-            </Route>
-          </Routes>
+          <Suspense
+            fallback={
+              <div className="min-h-screen bg-[#1d2120] p-10 text-zinc-300">
+                Loading…
+              </div>
+            }
+          >
+            <Routes>
+              {/* 使用 Layout 组件作为所有页面的布局框架 */}
+              <Route element={<Layout />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/api-docs" element={<ApiDocs />} />
+                <Route
+                  path="/admin"
+                  element={<Navigate to="/dashboard/admin/users" replace />}
+                />
+                {/* 移除 /mails/:id, /about, /privacy, /terms 路由 */}
+              </Route>
+              <Route path="/dashboard" element={<DashboardLayout />}>
+                <Route index element={<OverviewPage />} />
+                <Route path="keys" element={<ApiKeys />} />
+                <Route path="account" element={<AccountPage />} />
+                <Route path="mailboxes" element={<MailboxesPage />} />
+                <Route path="messages" element={<MessagesPage />} />
+                <Route
+                  path="messages/:mailboxId/:messageId"
+                  element={<MessagePage />}
+                />
+                <Route path="admin/users" element={<Admin />} />
+                <Route path="admin/users/:id" element={<Admin />} />
+                <Route path="admin/logs" element={<AdminLogsPage />} />
+              </Route>
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </QueryClientProvider>
     </ConfigContext.Provider>

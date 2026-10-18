@@ -6,6 +6,11 @@ import { apikey } from "./auth-schema";
 import type { Env } from "./index";
 import { failure, reserveGlobal } from "./guard";
 import { hashToken } from "./key-token";
+import {
+  getMailboxMessages,
+  findMailboxMessage,
+  deleteMailboxMessage,
+} from "./database/dao";
 import { MAX_API_KEYS } from "./limits";
 function effectiveUser<
   T extends { email: string; role: string; email_verified?: number },
@@ -22,6 +27,7 @@ function effectiveUser<
 const routes = new Hono<{
   Bindings: Env;
   Variables: {
+    ownedAddress: string;
     account: { id: string; name: string; email: string; role: string };
   };
 }>();
@@ -66,6 +72,81 @@ routes.use("*", async (c, next) => {
 routes.get("/me", (c) =>
   c.json({ user: c.get("account"), maxKeys: MAX_API_KEYS }),
 );
+
+routes.get("/overview", async (c) => {
+  const id = c.get("account").id;
+  const day = new Date().toISOString().slice(0, 10);
+  const results = await c.env.DB.batch([
+    c.env.DB.prepare(
+      "SELECT date, SUM(api_calls) AS api_calls, SUM(mailboxes_created) AS mailboxes_created, SUM(emails_received) AS emails_received FROM usage_daily WHERE owner_id=? AND date>=? GROUP BY date ORDER BY date DESC LIMIT 7",
+    ).bind(id, new Date(Date.now() - 6 * 86400_000).toISOString().slice(0, 10)),
+    c.env.DB.prepare(
+      "SELECT provider_id FROM auth_account WHERE user_id=? LIMIT 5",
+    ).bind(id),
+    c.env.DB.prepare("SELECT created_at FROM auth_user WHERE id=?").bind(id),
+  ]);
+  return c.json({
+    days: results[0].results,
+    today: day,
+    providers: results[1].results,
+    createdAt: (results[2].results[0] as { created_at?: number } | undefined)
+      ?.created_at,
+  });
+});
+routes.get("/mailboxes", async (c) => {
+  const cursor = c.req.query("cursor") ?? "";
+  if (cursor.length > 128)
+    return failure("VALIDATION_ERROR", "Invalid cursor", 400);
+  const result = await c.env.DB.prepare(
+    "SELECT id,address,created_at,expires_at FROM mailboxes WHERE user_id=? AND id>? ORDER BY id LIMIT 51",
+  )
+    .bind(c.get("account").id, cursor)
+    .all<{ id: string }>();
+  return c.json({
+    mailboxes: result.results.slice(0, 50),
+    nextCursor: result.results.length > 50 ? result.results[49].id : null,
+  });
+});
+routes.use("/mailboxes/:id/*", async (c, next) => {
+  const box = await c.env.DB.prepare(
+    "SELECT address FROM mailboxes WHERE id=? AND user_id=? AND expires_at>?",
+  )
+    .bind(c.req.param("id"), c.get("account").id, Math.floor(Date.now() / 1000))
+    .first<{ address: string }>();
+  if (!box) return failure("NOT_FOUND", "Mailbox not found or expired", 404);
+  c.set("ownedAddress", box.address);
+  await next();
+});
+routes.get("/mailboxes/:id/messages", async (c) => {
+  try {
+    return c.json(
+      await getMailboxMessages(drizzle(c.env.DB), c.get("ownedAddress"), {
+        limit: 20,
+        cursor: c.req.query("cursor"),
+      }),
+    );
+  } catch {
+    return failure("VALIDATION_ERROR", "Invalid cursor", 400);
+  }
+});
+routes.get("/mailboxes/:id/messages/:messageId", async (c) => {
+  const message = await findMailboxMessage(
+    drizzle(c.env.DB),
+    c.get("ownedAddress"),
+    c.req.param("messageId"),
+  );
+  return message
+    ? c.json({ data: message })
+    : failure("NOT_FOUND", "Message not found", 404);
+});
+routes.delete("/mailboxes/:id/messages/:messageId", async (c) => {
+  const deleted = await deleteMailboxMessage(
+    drizzle(c.env.DB),
+    c.get("ownedAddress"),
+    c.req.param("messageId"),
+  );
+  return c.json({ success: deleted });
+});
 routes.get("/keys", async (c) => {
   const keys = await drizzle(c.env.DB)
     .select({

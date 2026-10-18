@@ -6,6 +6,23 @@
   <p>Temporary email service build with email worker.</p>
   </div>
 
+## Dashboard preview
+
+Manage API keys, mailboxes, messages and account information on separate pages. Administrators have dedicated user management and request log pages. The dashboard defaults to dark mode with a persistent light-mode switch. [API documentation](https://vmail.dev/api-docs) is public.
+
+Actual screenshots from a local demo account, with no real user details or access secrets.
+
+![Dark dashboard](docs/images/dashboard-dark.png)
+
+<details>
+<summary>Light theme and mobile view</summary>
+
+![Light dashboard](docs/images/dashboard-light.png)
+
+<img src="docs/images/dashboard-mobile.png" alt="Mobile API key management" width="390" />
+
+</details>
+
 ## Features
 
 - 🎯 Privacy-friendly, no registration required, out-of-the-box
@@ -28,7 +45,7 @@ Vmail provides a complete RESTful API for programmatic access to create temporar
 
 ### Get API Key
 
-Visit the [API Documentation Page](https://vmail.dev/api-docs) to create a free API Key.
+Sign in to the [API key dashboard](https://vmail.dev/dashboard/keys) to create a free API key. The [API documentation](https://vmail.dev/api-docs) remains public.
 
 ### API Endpoints
 

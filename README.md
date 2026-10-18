@@ -10,6 +10,23 @@
 
 > 🌟 推荐 **Claude Code** 稳定 API 渠道：[Nbility AI Gateway](https://nbility.ai/auth/register?aff=Dptp) ，支持 Claude Fable 5、GPT 5.6 等主流 AI Coding 大模型
 
+## 控制台预览
+
+登录后可分别管理 API Key、邮箱、邮件和账户信息。管理员拥有独立的用户管理与调用日志页面。控制台默认深色，可切换浅色并记住选择；[API 文档](https://vmail.dev/api-docs) 无需登录。
+
+以下为本地演示账号的实际界面，不包含真实用户资料或访问密钥。
+
+![深色控制台](docs/images/dashboard-dark.png)
+
+<details>
+<summary>查看浅色主题与移动端</summary>
+
+![浅色控制台](docs/images/dashboard-light.png)
+
+<img src="docs/images/dashboard-mobile.png" alt="移动端 API Key 管理" width="390" />
+
+</details>
+
 ## 🌈 特点
 
 - 🎯 隐私友好，无需注册，开箱即用

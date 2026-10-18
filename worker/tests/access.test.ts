@@ -68,6 +68,105 @@ async function seedUser(role = "user") {
   };
 }
 describe("cost and authorization boundaries", () => {
+  it("isolates dashboard mailbox listing, messages, deletion and account statistics by owner", async () => {
+    const owner = await seedUser(),
+      other = await seedUser();
+    const headers = {
+      Cookie: owner.cookie,
+      Origin: "http://localhost:8787",
+      "Content-Type": "application/json",
+    };
+    const boxResult = await request("/api/verify", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ domain: "example.test" }),
+    });
+    expect(boxResult.status).toBe(200);
+    const list = await (
+      await request("/api/account/mailboxes", { headers })
+    ).json<{ mailboxes: { id: string; address: string }[] }>();
+    expect(list.mailboxes).toHaveLength(1);
+    const box = list.mailboxes[0],
+      now = Math.floor(Date.now() / 1000),
+      messageId = crypto.randomUUID();
+    await bindings.DB.prepare(
+      'INSERT INTO emails (id,message_from,message_to,headers,"from",subject,message_id,text,html,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+    )
+      .bind(
+        messageId,
+        "sender@example.com",
+        box.address,
+        "[]",
+        JSON.stringify({ address: "sender@example.com", name: "Sender" }),
+        "Owner-only message",
+        messageId,
+        "Private content",
+        "<p>Private content</p>",
+        now,
+        now,
+      )
+      .run();
+    const path = "/api/account/mailboxes/" + box.id + "/messages";
+    expect((await request(path)).status).toBe(401);
+    expect(
+      (
+        await (
+          await request("/api/account/mailboxes", {
+            headers: { Cookie: other.cookie },
+          })
+        ).json<{ mailboxes: unknown[] }>()
+      ).mailboxes,
+    ).toHaveLength(0);
+    for (const suffix of ["", "/" + messageId])
+      expect(
+        (await request(path + suffix, { headers: { Cookie: other.cookie } }))
+          .status,
+      ).toBe(404);
+    expect(
+      (
+        await request(path + "/" + messageId, {
+          method: "DELETE",
+          headers: { ...headers, Cookie: other.cookie },
+        })
+      ).status,
+    ).toBe(404);
+    const own = await request(path, { headers });
+    expect(own.status).toBe(200);
+    expect((await own.json<{ data: { id: string }[] }>()).data[0].id).toBe(
+      messageId,
+    );
+    expect((await request(path + "/" + messageId, { headers })).status).toBe(
+      200,
+    );
+    const date = new Date().toISOString().slice(0, 10);
+    await bindings.DB.prepare(
+      "INSERT INTO usage_daily (date,owner_id,key_id,api_calls,mailboxes_created,emails_received,updated_at) VALUES (?,?,?,9,1,1,0)",
+    )
+      .bind(date, owner.id, "test-key")
+      .run();
+    const stats = await (
+      await request("/api/account/overview", { headers })
+    ).json<{ days: { api_calls: number }[] }>();
+    expect(stats.days[0].api_calls).toBe(9);
+    const others = await (
+      await request("/api/account/overview", {
+        headers: { Cookie: other.cookie },
+      })
+    ).json<{ days: unknown[] }>();
+    expect(others.days).toHaveLength(0);
+    expect(
+      (await request(path + "/" + messageId, { method: "DELETE", headers }))
+        .status,
+    ).toBe(200);
+    expect((await request(path + "/" + messageId, { headers })).status).toBe(
+      404,
+    );
+    await bindings.DB.prepare("UPDATE mailboxes SET expires_at=? WHERE id=?")
+      .bind(now - 1, box.id)
+      .run();
+    expect((await request(path, { headers })).status).toBe(404);
+  });
+
   it("disables all keys atomically, blocks in-flight issuance, and retains quotas", async () => {
     const admin = await seedUser("admin"),
       user = await seedUser();

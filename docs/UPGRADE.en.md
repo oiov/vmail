@@ -1,5 +1,16 @@
 # Upgrading to v3.0: authentication, quotas and administration
 
+## v3.2: Dedicated dashboard and themes
+
+Upgrading from v3.1 requires no new environment variables or database migrations. Existing API settings, OAuth providers, administrators and keys remain valid.
+
+- Public documentation stays at /api-docs.
+- /dashboard contains separate API key, mailbox, message and account pages.
+- Admin pages are /dashboard/admin/users and /dashboard/admin/logs; /admin redirects automatically.
+- Dark mode is the default. The header theme switch stores the preference in the current browser.
+- Only account-owned mailboxes appear; existing anonymous mailboxes are not automatically linked.
+
+
 This release changes credentials. Test a separate deployment and save a D1 export/Time Travel recovery point before production migration.
 
 ## Breaking changes
