@@ -1,4 +1,4 @@
-import { count, desc, asc, eq, and, inArray, lt, sql } from "drizzle-orm";
+import { count, desc, asc, eq, and, inArray, lt, sql, or } from "drizzle-orm";
 // fix: 将数据库类型从 LibSQLDatabase 更改为 DrizzleD1Database，以匹配 Cloudflare D1
 import { DrizzleD1Database } from "drizzle-orm/d1";
 // refactor: 更新 schema 的导入路径
@@ -8,7 +8,7 @@ export async function insertEmail(db: DrizzleD1Database, email: InsertEmail) {
   try {
     await db.insert(emails).values(email).execute();
   } catch (e) {
-    console.error(e);
+    throw e;
   }
 }
 
@@ -64,36 +64,9 @@ export async function getEmailsByMessageTo(
   }
 }
 
-export async function getMailboxMetaByAddress(
-  db: DrizzleD1Database,
-  address: string,
-): Promise<{ count: number; latestEmailCreatedAt: string | null }> {
-  try {
-    const [countResult, latestResult] = await Promise.all([
-      db
-        .select({ count: count() })
-        .from(emails)
-        .where(eq(emails.messageTo, address))
-        .execute(),
-      db
-        .select({ createdAt: emails.createdAt })
-        .from(emails)
-        .where(eq(emails.messageTo, address))
-        .orderBy(desc(emails.createdAt))
-        .limit(1)
-        .execute(),
-    ]);
-
-    return {
-      count: countResult[0]?.count ?? 0,
-      latestEmailCreatedAt: latestResult[0]?.createdAt
-        ? latestResult[0].createdAt.toISOString()
-        : null,
-    };
-  } catch (e) {
-    console.error('getMailboxMetaByAddress error:', e);
-    return { count: 0, latestEmailCreatedAt: null };
-  }
+export async function getMailboxMetaByAddress(db: DrizzleD1Database, address: string) {
+  const rows = await db.select({id: emails.id, createdAt: emails.createdAt}).from(emails).where(eq(emails.messageTo, address)).orderBy(desc(emails.createdAt), desc(emails.id)).limit(1);
+  return { latestEmailId: rows[0]?.id ?? null, latestEmailCreatedAt: rows[0]?.createdAt.toISOString() ?? null };
 }
 
 export async function getEmailsCount(db: DrizzleD1Database) {
@@ -112,7 +85,7 @@ export async function deleteEmails(db: DrizzleD1Database, ids: string[]) {
     }
     try {
         const result = await db.delete(emails).where(inArray(emails.id, ids));
-        return { count: result.rowsAffected };
+        return { count: result.meta.changes };
     } catch (e) {
         console.error(e);
         return { count: 0 };
@@ -130,7 +103,7 @@ export async function deleteExpiredEmails(db: DrizzleD1Database, expirationTime:
         // 使用Drizzle的lt（小于）操作符来比较createdAt字段和expirationTime
         const result = await db.delete(emails).where(lt(emails.createdAt, expirationTime)).execute();
         // 返回受影响的行数，即已删除的邮件数量
-        return { count: result.rowsAffected };
+        return { count: result.meta.changes };
     } catch (e) {
         // 如果在删除过程中发生错误，则在控制台打印错误信息
         console.error('清理过期邮件失败:', e);
@@ -238,42 +211,19 @@ export async function findMailboxByAddress(db: DrizzleD1Database, address: strin
 /**
  * 获取邮箱的邮件列表（带分页）
  */
-export async function getMailboxMessages(
-  db: DrizzleD1Database,
-  address: string,
-  options: { page: number; limit: number; sort: 'asc' | 'desc' }
-) {
-  try {
-    const offset = (options.page - 1) * options.limit;
-    const orderFn = options.sort === 'asc' ? asc : desc;
-
-    const [messages, countResult] = await Promise.all([
-      db
-        .select()
-        .from(emails)
-        .where(eq(emails.messageTo, address))
-        .orderBy(orderFn(emails.createdAt))
-        .limit(options.limit)
-        .offset(offset)
-        .execute(),
-      db
-        .select({ count: count() })
-        .from(emails)
-        .where(eq(emails.messageTo, address))
-        .execute(),
-    ]);
-
-    const total = countResult[0]?.count || 0;
-
-    return {
-      messages,
-      total,
-      totalPages: Math.ceil(total / options.limit),
-    };
-  } catch (e) {
-    console.error('getMailboxMessages error:', e);
-    return { messages: [], total: 0, totalPages: 0 };
+export async function getMailboxMessages(db: DrizzleD1Database, address: string, options: {limit: number; cursor?: string}) {
+  let boundary;
+  if (options.cursor) {
+    if (options.cursor.length > 512) throw new Error('Invalid cursor');
+    const cursor = JSON.parse(atob(options.cursor));
+    if (!Number.isFinite(cursor.time) || typeof cursor.id !== 'string' || cursor.id.length > 128) throw new Error('Invalid cursor');
+    const date = new Date(cursor.time);
+    boundary = or(lt(emails.createdAt, date), and(eq(emails.createdAt, date), lt(emails.id, cursor.id)));
   }
+  const rows = await db.select({id: emails.id, from: emails.from, subject: emails.subject, receivedAt: emails.createdAt, preview: sql<string>`substr(${emails.text}, 1, 100)`})
+    .from(emails).where(and(eq(emails.messageTo, address), boundary)).orderBy(desc(emails.createdAt), desc(emails.id)).limit(options.limit + 1);
+  const data = rows.slice(0, options.limit), last = data.at(-1);
+  return { data, pagination: { limit: options.limit, nextCursor: rows.length > options.limit && last ? btoa(JSON.stringify({time: last.receivedAt.getTime(), id: last.id})) : null } };
 }
 
 /**
@@ -310,7 +260,7 @@ export async function deleteMailboxMessage(
       .delete(emails)
       .where(and(eq(emails.id, messageId), eq(emails.messageTo, address)))
       .execute();
-    return result.rowsAffected > 0;
+    return result.meta.changes > 0;
   } catch (e) {
     console.error('deleteMailboxMessage error:', e);
     return false;
@@ -347,7 +297,7 @@ export async function deleteExpiredMailboxes(db: DrizzleD1Database) {
       .delete(mailboxes)
       .where(lt(mailboxes.expiresAt, now))
       .execute();
-    return { count: result.rowsAffected };
+    return { count: result.meta.changes };
   } catch (e) {
     console.error('deleteExpiredMailboxes error:', e);
     return { count: 0 };
@@ -497,7 +447,7 @@ async function upsertDailyStatsField(
   dateKey: string = getDateKey(),
 ) {
   const now = new Date();
-  const updates: Record<typeof field | "updatedAt", any> = {
+  const updates: Partial<Record<typeof field | "updatedAt", any>> = {
     updatedAt: now,
     [field]: sql`${dailyStats[field]} + ${amount}`,
   };

@@ -12,6 +12,7 @@ import { CopyButton } from "../components/CopyButton.tsx";
 // feat: 导入 loginByPassword
 import {
   getEmails,
+  getEmailById,
   getMailboxMeta,
   deleteEmails,
   loginByPassword,
@@ -20,7 +21,7 @@ import {
 } from "../services/api.ts";
 import { useConfig } from "../hooks/useConfig.ts";
 // feat: 导入加密函数
-import { encrypt } from "../lib/utlis.ts";
+
 
 // feat: 导入密码模态框和相关 hook
 import { usePasswordModal } from "../components/password.tsx";
@@ -55,6 +56,12 @@ export function Home() {
   const [mailboxToken, setMailboxToken] = useState<string>(
     () => Cookies.get("mailboxToken") || "",
   );
+  useEffect(() => {
+    if (address && !mailboxToken && config.upgradeNotice === 'signed-mailbox-tokens-v2') {
+      Cookies.remove('userMailbox'); Cookies.remove('emailExpiry'); setAddress(undefined);
+      toast(t('Mailbox security has been upgraded. Please create a new mailbox; legacy passwords no longer work.'), { duration: 10000 });
+    }
+  }, [address, mailboxToken, config.upgradeNotice, t]);
   // feat: 新增状态，用于存储邮箱过期时间戳
   const [expiryTimestamp, setExpiryTimestamp] = useState<number | undefined>(
     () => {
@@ -101,7 +108,7 @@ export function Home() {
   } = useQuery<Email[], Error>({
     queryKey: ["emails", address],
     queryFn: () => getEmails(address!, 50),
-    enabled: !!address, // 只有在 address 存在时才执行查询
+    enabled: !!address && !!mailboxToken, // 只有在 address 存在时才执行查询
     refetchInterval: false,
     retry: false, // 失败后不自动重试
   });
@@ -119,7 +126,7 @@ export function Home() {
   const { data: mailboxMeta } = useQuery({
     queryKey: ["emails-meta", address],
     queryFn: () => getMailboxMeta(address!),
-    enabled: !!address,
+    enabled: !!address && !!mailboxToken,
     refetchInterval: () =>
       document.visibilityState === "visible" ? 60000 : false,
     refetchIntervalInBackground: false,
@@ -132,7 +139,7 @@ export function Home() {
       return;
     }
 
-    const signature = `${mailboxMeta.count}:${mailboxMeta.latestEmailCreatedAt ?? ""}`;
+    const signature = `${mailboxMeta.latestEmailId}:${mailboxMeta.latestEmailCreatedAt ?? ""}`;
     if (mailboxMetaSignatureRef.current === null) {
       mailboxMetaSignatureRef.current = signature;
       return;
@@ -375,16 +382,10 @@ export function Home() {
   };
 
   // feat: 获取密码（基于当前邮箱地址和 COOKIES_SECRET 加密）
-  const getPassword = useCallback(() => {
-    if (address && config.cookiesSecret) {
-      return encrypt(address, config.cookiesSecret);
-    }
-    return null;
-  }, [address, config.cookiesSecret]);
-
-  // 新增：处理邮件选择
-  const handleSelectEmail = (email: Email) => {
-    setSelectedEmail(email);
+  const getPassword = () => mailboxToken;
+  const handleSelectEmail = async (email: Email) => {
+    try { setSelectedEmail(await getEmailById(email.id)); }
+    catch { toast.error(t("Failed to get emails")); }
   };
 
   // 新增：关闭邮件详情

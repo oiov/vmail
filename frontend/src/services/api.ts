@@ -1,3 +1,4 @@
+import Cookies from "js-cookie";
 // refactor: 将导入从 'database' 包更改为本地的类型定义文件
 import type { Email } from "../database_types";
 
@@ -13,7 +14,7 @@ export async function getEmails(
 ): Promise<Email[]> {
   const response = await fetch(`${API_BASE_URL}/emails`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + (Cookies.get("mailboxToken") ?? "") },
     // fix: 请求体中只发送 address
     body: JSON.stringify({ address, limit }),
   });
@@ -24,14 +25,14 @@ export async function getEmails(
 }
 
 export interface MailboxMeta {
-  count: number;
+  latestEmailId: string | null;
   latestEmailCreatedAt: string | null;
 }
 
 export async function getMailboxMeta(address: string): Promise<MailboxMeta> {
   const response = await fetch(`${API_BASE_URL}/emails/meta`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + (Cookies.get("mailboxToken") ?? "") },
     body: JSON.stringify({ address }),
   });
   if (!response.ok) {
@@ -54,7 +55,7 @@ export async function verifyTurnstile(
 ): Promise<MailboxAuthorizationResponse> {
   const response = await fetch(`${API_BASE_URL}/verify`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + (Cookies.get("mailboxToken") ?? "") },
     body: JSON.stringify(token ? { token, domain } : { domain }),
   });
   if (!response.ok) {
@@ -66,7 +67,7 @@ export async function verifyTurnstile(
 
 // feat: 添加获取单封邮件详情的函数
 export async function getEmailById(id: string): Promise<Email> {
-  const response = await fetch(`${API_BASE_URL}/emails/${id}`);
+  const response = await fetch(`${API_BASE_URL}/emails/${id}`, { headers: { Authorization: "Bearer " + (Cookies.get("mailboxToken") ?? "") } });
   if (!response.ok) {
     throw new Error("Failed to fetch email");
   }
@@ -78,7 +79,7 @@ export async function getEmailById(id: string): Promise<Email> {
 export async function deleteEmails(ids: string[]): Promise<{ count: number }> {
   const response = await fetch(`${API_BASE_URL}/delete-emails`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + (Cookies.get("mailboxToken") ?? "") },
     // fix: 请求体中只发送 ids
     body: JSON.stringify({ ids }),
   });
@@ -96,7 +97,7 @@ export async function loginByPassword(password: string): Promise<{
 }> {
   const response = await fetch(`${API_BASE_URL}/login`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + (Cookies.get("mailboxToken") ?? "") },
     body: JSON.stringify({ password }),
   });
   if (!response.ok) {
@@ -162,7 +163,7 @@ export async function unlockSite(
 ): Promise<{ success: boolean }> {
   const response = await fetch("/auth/unlock", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", Authorization: "Bearer " + (Cookies.get("mailboxToken") ?? "") },
     body: JSON.stringify({ password }),
   });
 

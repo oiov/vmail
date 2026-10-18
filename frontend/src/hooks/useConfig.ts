@@ -8,6 +8,12 @@ export interface AppConfig {
   sitePasswordEnabled: boolean;
   apiRateLimitPerMinute: number;
   openApiEnabled: boolean;
+  authEnabled: boolean;
+  setupRequired: boolean;
+  upgradeNotice: string;
+  apiDailyLimit: number;
+  mailboxDailyLimit: number;
+  maxApiKeys: number;
   // feat: 添加 cookiesSecret 到配置中，以便前端加密时使用
   cookiesSecret: string;
   // feat: 控制是否展示推广弹框和常驻链接

@@ -10,3 +10,11 @@ fly.toml
 .claude
 docs/superpowers
 frontend/build
+
+.dev.vars
+.dev.vars.*
+.wrangler
+
+wrangler.deploy.toml
+
+!.dev.vars.example

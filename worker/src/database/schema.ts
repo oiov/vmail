@@ -26,7 +26,7 @@ export const mailboxes = sqliteTable("mailboxes", {
   address: text("address").notNull().unique(),    // 完整邮箱地址
   domain: text("domain").notNull(),               // 邮箱域名
   expiresAt: integer("expires_at", { mode: "timestamp" }),
-  apiKeyId: text("api_key_id").notNull(),         // 关联的 API Key ID
+  userId: text("user_id"), apiKeyId: text("api_key_id").notNull(),         // 关联的 API Key ID
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
 });
@@ -85,7 +85,7 @@ const AddressSchema = z.object({
 
 // 使用 drizzle-zod 基于 emails 表结构创建用于插入操作的 Zod schema
 export const insertEmailSchema = createInsertSchema(emails, {
-  headers: z.array(z.record(z.string())),
+  headers: z.array(z.record(z.string(), z.string())),
   from: AddressSchema,
   sender: AddressSchema.optional(),
   replyTo: z.array(AddressSchema).optional(),
@@ -125,7 +125,7 @@ export type DailyStats = typeof dailyStats.$inferSelect;
 export const apiRateLimits = sqliteTable(
   "api_rate_limits",
   {
-    apiKeyId: text("api_key_id").notNull(),
+    userId: text("user_id"), apiKeyId: text("api_key_id").notNull(),
     windowStartEpochSec: integer("window_start_epoch_sec").notNull(),
     requestCount: integer("request_count").default(0).notNull(),
   },

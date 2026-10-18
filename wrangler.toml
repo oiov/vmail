@@ -4,7 +4,7 @@ main = "worker/src/index.ts"
 # 打包配置
 minify = true
 compatibility_flags = [ "nodejs_compat" ]
-compatibility_date = "2025-03-27"
+compatibility_date = "2026-10-18"
 keep_vars = true
 
 # 启用 D1 数据库
@@ -29,6 +29,15 @@ TURNSTILE_SECRET = "${TURNSTILE_SECRET}"
 API_RATE_LIMIT_PER_MINUTE = "${API_RATE_LIMIT_PER_MINUTE}"
 SHOW_AFF = "${SHOW_AFF}"
 ENABLE_OPENAPI = "false"
+BETTER_AUTH_URL = ""
+API_DAILY_LIMIT = "1000"
+MAILBOX_DAILY_LIMIT = "20"
+MAX_ACTIVE_MAILBOXES = "20"
+GLOBAL_API_DAILY_LIMIT = "100000"
+GLOBAL_INBOUND_DAILY_LIMIT = "100000"
+MAILBOX_INBOUND_DAILY_LIMIT = "100"
+MAX_EMAIL_BYTES = "262144"
+SUSPEND_DATABASE_ACCESS = "false"
 
 # Cloudflare 原生邮件发送绑定
 [[send_email]]
@@ -46,3 +55,28 @@ command = "pnpm run build"
 [assets]
 binding = "ASSETS"
 directory = "frontend/build/client"
+
+[[durable_objects.bindings]]
+name = "ACCESS"
+class_name = "AccessLedger"
+
+[[migrations]]
+tag = "v1-access-ledger"
+new_sqlite_classes = ["AccessLedger"]
+
+[[ratelimits]]
+name = "EDGE_IP"
+namespace_id = "1001"
+simple = { limit = 120, period = 60 }
+
+[[ratelimits]]
+name = "EDGE_KEY"
+namespace_id = "1002"
+simple = { limit = 60, period = 60 }
+
+[observability]
+enabled = true
+head_sampling_rate = 0.01
+
+[limits]
+cpu_ms = 100

@@ -1,3 +1,4 @@
+import { AccountButton } from "./Account";
 import { Link } from "react-router-dom";
 import { VmailLogo } from "./icons/vmail.tsx";
 import { useTranslation } from "react-i18next";
@@ -126,6 +127,7 @@ export function Header() {
               </div>
             )}
           </div>
+          <AccountButton />
           {/* GitHub 链接按钮 */}
           <a
             className="ml-3 md:ml-8"

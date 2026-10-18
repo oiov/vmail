@@ -1,3 +1,5 @@
+> **Upgrading to v3.0? Read the [upgrade guide](docs/UPGRADE.en.md).** Anonymous API keys, old mailbox passwords and pagination changed. Run pnpm setup:check and configure mailbox signing, OAuth and the first administrator before deployment.
+
 <div align="center">
   <h1>𝐕𝐌𝐀𝐈𝐋.𝐃𝐄𝐕</h1>
   <p><a href="https://discord.gg/d68kWCBDEs">Discord</a> · English | <a href="/README.md">简体中文</a></p>
@@ -135,7 +137,7 @@ When deploying to Cloudflare Workers through GitHub Actions, configure the follo
 -   `SHOW_AFF`: Show promotional popup and link (optional, `true` to enable, hidden by default).
 -   `SEND_CHANNEL`: Sender provider: `resend`, `mailchannels`, or `cloudflare`. Leave unset to hide sending. The old `send_email` value remains compatible but is deprecated.
 -   `SENDER_EMAIL`: Fixed provider-approved sender address. The temporary mailbox is used only as `Reply-To`.
--   `MAILBOX_TOKEN_SECRET`: Secret used to sign mailbox sending tokens. Required when sending is enabled.
+-   `MAILBOX_TOKEN_SECRET`: Secret used to sign mailbox access and recovery tokens. Required for every deployment (at least 32 characters); preserve its existing value during upgrades.
 -   `RESEND_API_KEY`: Resend API key, required only for `SEND_CHANNEL=resend`.
 -   `MAILCHANNELS_API_KEY`: MailChannels API key, required only for `SEND_CHANNEL=mailchannels`.
 -   `SEND_RATE_LIMIT_PER_MINUTE`: Maximum sends per mailbox per minute (optional, default 3).

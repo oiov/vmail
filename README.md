@@ -1,3 +1,5 @@
+> **v3.0 升级必读：[升级指南](docs/UPGRADE.md)**。旧匿名 API Key、旧邮箱密码及分页协议发生变化。部署前运行 pnpm setup:check，配置邮箱签名密钥、OAuth 和首个管理员。
+
 <div align="center">
   <a href="https://trendshift.io/repositories/8681" target="_blank"><img src="https://trendshift.io/api/badge/repositories/8681" alt="yesmore%2Fvmail | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
   <h1>𝐕𝐌𝐀𝐈𝐋.𝐃𝐄𝐕</h1>
@@ -81,7 +83,7 @@
 -   `API_RATE_LIMIT_PER_MINUTE`: API 每分钟请求限制（可选，默认 100）。
 -   `SEND_CHANNEL`: 发件渠道，可选 `resend`、`mailchannels`、`cloudflare`；不配置时隐藏发信功能。旧值 `send_email` 仍兼容，但已弃用。
 -   `SENDER_EMAIL`: 固定的发件地址，必须是服务商允许或已验证的地址；临时邮箱仅作为 `Reply-To`。
--   `MAILBOX_TOKEN_SECRET`: 邮箱发信授权令牌的签名密钥，启用发信时必填，并应通过 Wrangler secret 配置。
+-   `MAILBOX_TOKEN_SECRET`: 邮箱读取、删除、恢复和发信凭证的签名密钥，所有部署必填（至少 32 字符），升级时保留原值，并通过 Wrangler secret 配置。
 -   `RESEND_API_KEY`: Resend API 密钥，仅 `SEND_CHANNEL=resend` 时需要，通过 Wrangler secret 配置。
 -   `MAILCHANNELS_API_KEY`: MailChannels API 密钥，仅 `SEND_CHANNEL=mailchannels` 时需要，通过 Wrangler secret 配置。
 -   `SEND_RATE_LIMIT_PER_MINUTE`: 每个邮箱每分钟最大发信数（可选，默认 3）。

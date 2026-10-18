@@ -3,6 +3,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Home } from "./pages/Home.tsx";
+import { Admin } from "./pages/Admin";
 import { ApiDocs } from "./pages/ApiDocs.tsx";
 // MailDetail 组件不再作为独立页面，因此移除其路由
 // import { MailDetail } from './pages/MailDetail.tsx';
@@ -72,6 +73,9 @@ function App() {
     );
   }
 
+  if (config.setupRequired) {
+    return <div className="flex min-h-screen items-center justify-center bg-zinc-900 p-6 text-white"><div className="max-w-lg rounded-xl border border-amber-700/50 p-8"><h1 className="mb-4 text-xl font-semibold">Vmail setup required / 需要完成升级配置</h1><p className="mb-3 text-sm leading-7 text-zinc-300">The site operator needs to configure MAILBOX_TOKEN_SECRET. 站点管理员需要配置邮箱签名密钥才能启用邮箱服务。</p><a className="text-sm text-cyan-300 underline" href="https://github.com/oiov/vmail/blob/main/docs/UPGRADE.md">Upgrade instructions / 升级指南</a></div></div>;
+  }
   if (!isUnlocked) {
     return (
       <SiteUnlock
@@ -92,6 +96,7 @@ function App() {
             <Route element={<Layout />}>
               <Route path="/" element={<Home />} />
               <Route path="/api-docs" element={<ApiDocs />} />
+              <Route path="/admin" element={<Admin />} />
               {/* 移除 /mails/:id, /about, /privacy, /terms 路由 */}
             </Route>
           </Routes>

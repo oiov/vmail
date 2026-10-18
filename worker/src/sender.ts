@@ -9,7 +9,7 @@ export interface SenderEnv {
   RESEND_API_KEY?: string;
   MAILCHANNELS_API_KEY?: string;
   MAILBOX_TOKEN_SECRET?: string;
-  SEND_EMAIL?: { send(message: any): Promise<void> };
+  SEND_EMAIL?: { send(message: any): Promise<unknown> };
 }
 
 const emailAddress = z.string().trim().email().max(254);

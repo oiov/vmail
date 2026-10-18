@@ -1,19 +1,20 @@
 {
   "name": "vmail",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@9.1.0",
   "description": "使用 Cloudflare email worker 实现的临时电子邮件服务",
   "scripts": {
     "build": "pnpm --filter frontend run build",
-    "test": "node --test worker/src/*.test.ts",
-    "typecheck": "pnpm --filter frontend run typecheck",
-    "deploy": "pnpm build && wrangler deploy",
+    "test": "node --test worker/src/*.test.ts && vitest run",
+    "typecheck": "tsc -p worker/tsconfig.json && pnpm --filter frontend run typecheck",
+    "deploy": "node scripts/deploy.mjs",
     "dev": "wrangler dev",
     "worker:dev": "pnpm --filter worker run dev",
     "frontend:dev": "pnpm --filter frontend run dev",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "setup:check": "node scripts/configure.mjs --check"
   },
   "keywords": [
     "vmail",
@@ -26,20 +27,28 @@
     "node": ">=22"
   },
   "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.4",
+    "@cloudflare/workers-types": "^5.20261018.1",
+    "@types/node": "^22",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.5.14",
-    "wrangler": "^4.111.0"
+    "typescript": "^5.9",
+    "vite": "^7",
+    "vitest": "~4.1.12",
+    "wrangler": "^4.151.1"
   },
   "dependencies": {
-    "@libsql/client": "0.4.0-pre.7",
+    "@better-auth/api-key": "1.7.10",
+    "@better-auth/drizzle-adapter": "1.7.10",
     "@tanstack/react-query": "^5.90.3",
+    "better-auth": "1.7.10",
     "date-fns": "^3.6.0",
-    "drizzle-orm": "^0.29.5",
-    "drizzle-zod": "^0.5.1",
+    "drizzle-orm": "^0.45.2",
+    "drizzle-zod": "^0.8.3",
     "hono": "^4.5.1",
     "mimetext": "^3.0.28",
     "nanoid": "^5.0.7",
     "postal-mime": "^2.0.2",
-    "zod": "^3.25.76"
+    "zod": "^4.6.7"
   }
 }
