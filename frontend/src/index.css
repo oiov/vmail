@@ -312,7 +312,8 @@
 .home-inbox{display:flex;flex-direction:column;min-width:0;width:100%;flex:1}
 .home-inbox .mail-panel{display:flex;flex-direction:column;flex:1;min-width:0}
 .home-inbox .mail-panel-body{min-height:488px}
-.home-inbox .mail-panel-body>div:only-child{flex:1}
+.home-inbox .mail-empty-state{flex:1}
+.home-inbox .mail-message-row{flex:0 0 auto}
 .public-app:has(.home-workspace)>.public-footer{margin-top:0;margin-bottom:0;padding-top:32px;padding-bottom:32px;flex-shrink:0}
 @media(min-width:768px){
 .home-workspace{display:grid;grid-template-columns:350px minmax(0,1fr);grid-template-rows:minmax(min-content,1fr) auto;column-gap:24px;row-gap:16px;align-items:stretch;margin:100px 40px 0}

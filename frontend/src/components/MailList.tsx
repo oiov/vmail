@@ -98,10 +98,10 @@ export function MailList({
       return <MailDetail email={selectedEmail} onClose={onCloseDetail} />;
     }
 
-    // 状态 1: 还未创建地址 - 展示站点统计数据
+    // 状态 1: 还未创建地址 - 展示创建提示
     if (!isAddressCreated) {
       return (
-        <div className="w-full items-center h-full flex-col justify-center flex">
+        <div className="mail-empty-state w-full items-center flex-col justify-center flex">
           <Loader />
           <p className="text-zinc-400 mt-6">{t("Please create a temporary email address first")}</p>
         </div>
@@ -111,7 +111,7 @@ export function MailList({
     // 状态 2: 正在进行首次加载
     if (isLoading) {
       return (
-        <div className="w-full items-center h-full flex-col justify-center flex">
+        <div className="mail-empty-state w-full items-center flex-col justify-center flex">
           <Loader />
           <p className="text-zinc-400 mt-6">{t("Waiting for emails...")}</p>
         </div>
@@ -121,7 +121,7 @@ export function MailList({
     // 状态 3: 收件箱为空
     if (emails.length === 0) {
       return (
-        <div className="w-full items-center h-full flex-col justify-center flex">
+        <div className="mail-empty-state w-full items-center flex-col justify-center flex">
           {/* 修复: 只要地址已创建且邮箱为空，就持续显示加载动画 */}
           <Loader />
           <p className="text-zinc-400 mt-6">{t("Waiting for emails...")}</p>
@@ -131,7 +131,7 @@ export function MailList({
 
     // 状态 4: 显示邮件列表
     return emails.map((email: Email) => (
-      <div key={email.id} className="flex items-center gap-2 mb-1">
+      <div key={email.id} className="mail-message-row flex items-center gap-2 mb-1">
         <input
           type="checkbox"
           className="h-4 w-4 rounded border-neutral-300 bg-neutral-100 data-[state=checked]:border-neutral-900 data-[state=checked]:bg-neutral-600 data-[state=checked]:text-neutral-100 dark:border-neutral-700 dark:bg-neutral-800 dark:data-[state=checked]:border-neutral-300 dark:data-[state=checked]:bg-neutral-300"
