@@ -305,3 +305,14 @@
 .public-app [class*="text-zinc-400"]{color:#9eaea3}
 .public-app [class*="bg-cyan-400"]{color:#203d2d}
 .public-app [class*="bg-cyan-600"]{background-color:#438461}
+
+/* Let the inbox use the viewport instead of leaving a fixed-height panel above the footer. */
+.public-app:has(.home-workspace){min-height:100svh}
+.home-workspace{display:flex;flex-direction:column;gap:24px;margin:96px 24px 0;flex:1;min-width:0}
+.home-inbox{display:flex;flex-direction:column;min-width:0;width:100%;flex:1}
+.home-inbox .mail-panel{display:flex;flex-direction:column;flex:1;min-width:0}
+.home-inbox .mail-panel-body{min-height:488px}
+.home-inbox .mail-panel-body>div:only-child{flex:1}
+.public-app:has(.home-workspace)>.public-footer{margin-top:0;margin-bottom:0;padding-top:32px;padding-bottom:32px;flex-shrink:0}
+@media(min-width:768px){.home-workspace{flex-direction:row;align-items:stretch;margin:100px 40px 0}}
+@media(max-width:767px){.home-workspace{margin:92px 18px 0;gap:28px}.home-inbox .mail-panel-body{min-height:360px}.public-app:has(.home-workspace)>.public-footer{padding-top:28px;padding-bottom:28px}}

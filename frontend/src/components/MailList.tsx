@@ -168,7 +168,7 @@ export function MailList({
   };
 
   return (
-    <div className="rounded-md border border-cyan-50/20 text-white">
+    <div className="mail-panel rounded-md border border-cyan-50/20 text-white">
       {/* 邮件列表头部 */}
       <div className="w-full rounded-t-md p-2 flex items-center bg-zinc-800 text-zinc-200 gap-2">
         <div className="flex items-center justify-start gap-2 font-bold">
@@ -267,8 +267,8 @@ export function MailList({
       {/* fix: 当显示详情时，移除 grids 背景和 h-[488px] 的高度限制 */}
       <div
         className={clsx(
-          "flex flex-col flex-1 overflow-y-auto p-2",
-          !selectedEmail && "grids h-[488px]",
+          "mail-panel-body flex flex-col flex-1 overflow-y-auto p-2",
+          !selectedEmail && "grids",
         )}>
         {renderBody()}
       </div>

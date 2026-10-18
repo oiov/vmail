@@ -399,7 +399,7 @@ export function Home() {
   };
 
   return (
-    <div className="h-full flex flex-col gap-4 md:flex-row justify-center items-start mt-24 mx-6 md:mx-10">
+    <div className="home-workspace">
       <PasswordModal onLogin={handleLogin} isLoggingIn={isLoggingIn} />
       <SenderModal />
       {selectedEmail && (
@@ -618,7 +618,7 @@ export function Home() {
 
       {/* 右侧邮件列表或邮件详情 */}
       {/* refactor: 始终渲染 MailList，并通过 selectedEmail prop 控制其内部显示逻辑 */}
-      <div className="w-full flex-1 overflow-hidden">
+      <div className="home-inbox">
         <MailList
           isAddressCreated={!!address}
           emails={emails}
