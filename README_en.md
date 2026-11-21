@@ -1,4 +1,4 @@
-> **Upgrading to v3.2.1? Read the [upgrade guide](docs/UPGRADE.en.md).** Anonymous API keys, old mailbox passwords and pagination changed. Run pnpm setup:check and configure mailbox signing, OAuth and the first administrator before deployment.
+> **Upgrading to v3.2.2? Read the [upgrade guide](docs/UPGRADE.en.md).** Anonymous API keys, old mailbox passwords and pagination changed. Run pnpm setup:check and configure mailbox signing, OAuth and the first administrator before deployment.
 See [CHANGELOG](CHANGELOG.md) for release notes.
 
 
@@ -169,7 +169,7 @@ Replace the example origin with `BETTER_AUTH_URL`. Set Google Authorized JavaScr
 | `API_RATE_LIMIT_PER_MINUTE` | 30 | API requests per user per minute, shared across keys |
 | `API_DAILY_LIMIT` | 1000 | API requests per user per day |
 | `MAILBOX_DAILY_LIMIT` | 20 | API mailbox creations per user per day |
-| `MAX_ACTIVE_MAILBOXES` | 20 | Active mailboxes per user |
+| `MAX_ACTIVE_MAILBOXES` | 100 | Active mailboxes per user |
 | `GLOBAL_API_DAILY_LIMIT` | 100000 | Daily HTTP database-path budget, including web and auth; 16 fixed shards |
 | `GLOBAL_INBOUND_DAILY_LIMIT` | 100000 | Daily inbound email budget across 16 fixed shards |
 | `MAILBOX_INBOUND_DAILY_LIMIT` | 100 | Inbound messages per mailbox per day |

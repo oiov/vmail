@@ -10,7 +10,7 @@ import {
   getMailboxMessages,
 } from "../../../database/dao";
 import { failure } from "../../../guard";
-import { positive } from "../../../limits";
+import { DEFAULT_MAX_ACTIVE_MAILBOXES, positive } from "../../../limits";
 type Variables = { apiKey: { id: string; userId: string; rateLimit: number } };
 const router = new Hono<{ Bindings: Env; Variables: Variables }>();
 const input = z.object({
@@ -52,18 +52,20 @@ router.post("/", async (c) => {
     expiresAt = new Date(now.getTime() + body.expiresIn * 1000);
   const ledger = c.env.ACCESS.getByName("mailbox:" + address);
   const userLedger = c.env.ACCESS.getByName("user:" + actor.userId);
+  const reservationId = crypto.randomUUID();
   if (
     !(await userLedger.reserveMailbox(
       address,
       expiresAt.getTime(),
-      positive(c.env.MAX_ACTIVE_MAILBOXES, 20),
+      positive(c.env.MAX_ACTIVE_MAILBOXES, DEFAULT_MAX_ACTIVE_MAILBOXES),
+      reservationId,
     ))
   )
     return failure("MAILBOX_LIMIT", "Active mailbox limit reached", 429);
   if (
     !(await ledger.activateMailbox(expiresAt.getTime(), false, actor.userId))
   ) {
-    await userLedger.releaseMailbox(address);
+    await userLedger.releaseMailbox(address, reservationId);
     return failure("CONFLICT", "Address is already reserved", 409);
   }
   const db = getD1DB(c.env.DB);

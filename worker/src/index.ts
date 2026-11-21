@@ -6,7 +6,7 @@ import { getSessionCookie } from 'better-auth/cookies';
 import { authReady, createAuth } from './auth';
 import accountRoutes from './account-routes';
 import { edgeGuard, reserveGlobal, failure, globalBudget } from './guard';
-import { positive, GLOBAL_SHARDS } from './limits';
+import { positive, GLOBAL_SHARDS, DEFAULT_MAX_ACTIVE_MAILBOXES } from './limits';
 import { hashToken } from './key-token';
 export { AccessLedger } from './access-ledger';
 import { cors } from 'hono/cors';
@@ -203,7 +203,12 @@ const mailboxAuth: import('hono').MiddlewareHandler<{ Bindings: Env; Variables: 
   const token = getBearerToken(c.req.header('Authorization'));
   const mailbox = token && c.env.MAILBOX_TOKEN_SECRET ? await verifyMailboxToken(token, c.env.MAILBOX_TOKEN_SECRET) : null;
   if (!mailbox || !isAllowedMailboxAddress(mailbox, c.env.EMAIL_DOMAIN) || !await c.env.ACCESS.getByName('mailbox:' + mailbox).mailboxActive()) return failure('UNAUTHORIZED', 'Mailbox authorization is invalid or expired', 401);
-  const owner = await c.env.ACCESS.getByName('mailbox:' + mailbox).mailboxOwner();
+  const state = await c.env.ACCESS.getByName('mailbox:' + mailbox).mailboxState();
+  const owner = state.owner;
+  if (state.accountOnly) {
+    const session = authReady(c.env) ? await createAuth(c.env).api.getSession({ headers: c.req.raw.headers }) : null;
+    if (!session || session.user.id !== owner) return failure('UNAUTHORIZED', 'Sign in to the account that owns this recovered mailbox', 401);
+  }
   if (owner && (await c.env.ACCESS.getByName('user:' + owner).accessState()).banned) return failure('ACCOUNT_BANNED', 'Account is banned', 403);
   const decision = await c.env.ACCESS.getByName('mailbox:' + mailbox).consume([{ key: 'web-minute', max: 30, seconds: 60 }, { key: 'web-day', max: 3000, seconds: 86400 }]);
   if (!decision.allowed) return failure('QUOTA_EXCEEDED', 'Mailbox request limit reached', 429, decision.retryAfter);
@@ -236,7 +241,7 @@ api.post('/verify', turnstile, async (c) => {
   if (owner) {
     const userLedger = c.env.ACCESS.getByName('user:' + owner);
     const createQuota = await userLedger.consume([{ key: 'create-day', seconds: 86400, max: positive(c.env.MAILBOX_DAILY_LIMIT, 20) }]);
-    if (!createQuota.allowed || !await userLedger.reserveMailbox(mailbox, Date.now() + 86400_000, positive(c.env.MAX_ACTIVE_MAILBOXES, 20))) return failure('MAILBOX_LIMIT', 'Mailbox creation limit reached', 429);
+    if (!createQuota.allowed || !await userLedger.reserveMailbox(mailbox, Date.now() + 86400_000, positive(c.env.MAX_ACTIVE_MAILBOXES, DEFAULT_MAX_ACTIVE_MAILBOXES))) return failure('MAILBOX_LIMIT', 'Mailbox creation limit reached', 429);
   }
   await c.env.ACCESS.getByName('mailbox:' + mailbox).activateMailbox(Date.now() + 86400_000, false, owner);
   await getD1DB(c.env.DB).insert(mailboxes).values({ id: crypto.randomUUID(), address: mailbox, domain, apiKeyId: 'web', userId: owner || null, expiresAt: new Date(Date.now() + 86400_000), createdAt: new Date(), updatedAt: new Date() });
@@ -265,8 +270,8 @@ api.post('/mailbox-token/refresh', mailboxAuth, async (c) => {
   }
 
   const owner = await c.env.ACCESS.getByName('mailbox:' + mailbox).mailboxOwner();
-  if (owner && !await c.env.ACCESS.getByName('user:' + owner).reserveMailbox(mailbox, Date.now() + 86400_000, positive(c.env.MAX_ACTIVE_MAILBOXES, 20))) return failure('MAILBOX_LIMIT', 'Active mailbox limit reached', 429);
-  await c.env.ACCESS.getByName('mailbox:' + mailbox).activateMailbox(Date.now() + 86400_000, true);
+  if (owner && !await c.env.ACCESS.getByName('user:' + owner).reserveMailbox(mailbox, Date.now() + 86400_000, positive(c.env.MAX_ACTIVE_MAILBOXES, DEFAULT_MAX_ACTIVE_MAILBOXES))) return failure('MAILBOX_LIMIT', 'Active mailbox limit reached', 429);
+  if (!await c.env.ACCESS.getByName('mailbox:' + mailbox).activateMailbox(Date.now() + 86400_000, true)) return failure('RECOVERY_BUSY', 'Mailbox is expired or recovery is in progress', 409);
   await getD1DB(c.env.DB).update(mailboxes).set({ expiresAt: new Date(Date.now() + 86400_000) }).where(eq(mailboxes.address, mailbox));
   return c.json({
     mailboxToken: await createMailboxToken(
@@ -403,7 +408,12 @@ api.post('/login', async c => {
   const body = await c.req.json<{password?: string}>();
   const address = body.password && c.env.MAILBOX_TOKEN_SECRET ? await verifyMailboxToken(body.password, c.env.MAILBOX_TOKEN_SECRET) : null;
   if (!address || !await c.env.ACCESS.getByName('mailbox:' + address).mailboxActive()) return failure('UNAUTHORIZED', 'Invalid or expired mailbox access token', 401);
-  const owner = await c.env.ACCESS.getByName('mailbox:' + address).mailboxOwner();
+  const state = await c.env.ACCESS.getByName('mailbox:' + address).mailboxState();
+  const owner = state.owner;
+  if (state.accountOnly) {
+    const session = authReady(c.env) ? await createAuth(c.env).api.getSession({ headers: c.req.raw.headers }) : null;
+    if (!session || session.user.id !== owner) return failure('UNAUTHORIZED', 'Sign in to the account that owns this recovered mailbox', 401);
+  }
   if (owner && (await c.env.ACCESS.getByName('user:' + owner).accessState()).banned) return failure('ACCOUNT_BANNED', 'Account is banned', 403);
   return c.json({ address, mailboxToken: body.password });
 });
@@ -426,6 +436,7 @@ app.get('/config', (c) => {
     authEnabled: authReady(c.env),
     apiDailyLimit: positive(c.env.API_DAILY_LIMIT, 1000),
     mailboxDailyLimit: positive(c.env.MAILBOX_DAILY_LIMIT, 20),
+    maxActiveMailboxes: positive(c.env.MAX_ACTIVE_MAILBOXES, DEFAULT_MAX_ACTIVE_MAILBOXES),
     maxApiKeys: 3,
     setupRequired: !c.env.MAILBOX_TOKEN_SECRET,
     upgradeNotice: 'signed-mailbox-tokens-v2',

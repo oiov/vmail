@@ -1,4 +1,15 @@
-# 升级到 v3.2.1
+# 升级到 v3.2.2
+
+## v3.2.2：旧邮箱补绑与快速恢复
+
+先应用 **0007_mailbox_recovery.sql**，再部署 Worker 与前端。保留全部签名密钥与 OAuth 配置。`MAX_ACTIVE_MAILBOXES` 默认改为 100；已有 `.env`、Cloudflare 配置或 Actions Secret 的显式 20 必须改为 100，否则仍以原值为准。每日新建邮箱额度仍为 20。
+
+- 用户在 `/dashboard/mailboxes` 点击「重新启用 24 小时」，仅能恢复当前账户已经绑定的地址；域名必须仍被服务支持。每账户最多 10 次/分钟、300 次/天，另外受同时有效邮箱上限约束。
+- 管理员在用户详情页填写地址清单与审核原因，勾选人工归属确认，先检查、再确认补绑。旧版 XOR 密码仅能还原地址，不能作为唯一归属证据。缺失记录可重建；禁止覆盖另一账户或仍有效的匿名邮箱。
+- 补绑接口：`POST /api/account/admin/users/:id/mailboxes/recover`，请求含 `addresses`（1–100 个）、`reason`（10–500 字符）、`ownershipConfirmed: true`、`dryRun`（默认 true）。每个地址返回独立结果；部分失败不会回滚已成功地址，重试不会重复创建邮箱或活跃名额。建议每批不超过 10 个。
+- 自助恢复：`POST /api/account/mailboxes/:id/reactivate`。上述写操作均需要同源 Origin 与有效登录会话；管理员接口额外检查管理员角色。
+- 审计查询：`GET /api/account/admin/users/:id/mailbox-recoveries`，返回最近 100 条；`mailbox_recovery_logs` 不自动清理，运营方应制定保留策略。D1 与 DO 不共享事务；失败时保守保留活跃名额至过期，同一地址重试可修复。
+- 邮箱地址与账户归属保留，停用期间拒绝收信。邮件正文仍按收件后 24 小时清理，恢复地址不能恢复已删除邮件。恢复后的邮箱通过账户控制台访问，旧匿名凭证不能单独授权。
 
 ## v3.2.1：发件权限、管理页与界面修复
 
@@ -87,7 +98,7 @@ GitHub Actions 部署者：在仓库 Actions Secrets 中补齐上述配置，特
 4. 验证邮箱创建、收件、正文读取、删除、凭证恢复，以及管理员入口。
 5. 监测 Workers/DO 请求量、D1 rows_read / rows_written 和 CPU；配置告警及套餐支持的 WAF 规则。关闭不需要的预览入口，防止绕过域名 WAF。
 
-默认每用户 30 请求/分钟、1,000 请求/天、20 邮箱/天、20 有效邮箱。匿名网页另有 IP/邮箱额度。GLOBAL_API_DAILY_LIMIT=100000 覆盖 HTTP 数据库路径（含网页、认证）；GLOBAL_INBOUND_DAILY_LIMIT=100000 单独覆盖入站邮件。全站额度拆分到 16 个固定分片，额度之和不超过配置值，但繁忙分片可能提前耗尽。各日额度 UTC 00:00 重置。
+默认每用户 30 请求/分钟、1,000 请求/天、20 邮箱/天、100 有效邮箱。匿名网页另有 IP/邮箱额度。GLOBAL_API_DAILY_LIMIT=100000 覆盖 HTTP 数据库路径（含网页、认证）；GLOBAL_INBOUND_DAILY_LIMIT=100000 单独覆盖入站邮件。全站额度拆分到 16 个固定分片，额度之和不超过配置值，但繁忙分片可能提前耗尽。各日额度 UTC 00:00 重置。
 
 ENABLE_OPENAPI=false 仅暂停公开 API 和创建 Key。SUSPEND_DATABASE_ACCESS=true 暂停 HTTP 数据库入口、入站邮件和定期邮件清理；已排队的统计汇总可能仍完成少量写入。Worker/DO 拒绝请求本身仍计费，不能用这些开关保证零费用。
 

@@ -13,6 +13,7 @@ export interface AppConfig {
   upgradeNotice: string;
   apiDailyLimit: number;
   mailboxDailyLimit: number;
+  maxActiveMailboxes: number;
   maxApiKeys: number;
   // feat: 添加 cookiesSecret 到配置中，以便前端加密时使用
   cookiesSecret: string;

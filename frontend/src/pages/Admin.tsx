@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { accountRequest, LoginDialog, useAccount } from "../components/Account";
+import { AdminMailboxRecovery } from "../components/AdminMailboxRecovery";
 type User = {
   id: string;
   name: string;
@@ -397,6 +398,11 @@ export function Admin() {
                     <h3 className="mb-3 font-medium">
                       {zh ? "创建的邮箱" : "Created mailboxes"}
                     </h3>
+                    <AdminMailboxRecovery
+                      key={selected}
+                      userId={selected}
+                      email={details.data.user.email}
+                    />
                     <div className="space-y-2">
                       {details.data.mailboxes.map((box) => (
                         <div

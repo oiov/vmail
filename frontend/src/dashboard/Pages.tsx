@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Link,
@@ -11,6 +11,7 @@ import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { accountRequest, useAccount } from "../components/Account";
 import { useConfig } from "../hooks/useConfig";
 import { Icon } from "./Icon";
+import toast from "react-hot-toast";
 type Box = {
   id: string;
   address: string;
@@ -112,56 +113,117 @@ function Empty({
 }
 function BoxTable({ boxes }: { boxes: Box[] }) {
   const zh = useZh();
+  const client = useQueryClient();
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  async function reactivate(box: Box) {
+    setBusy(box.id);
+    setError("");
+    try {
+      await accountRequest(
+        "/mailboxes/" + encodeURIComponent(box.id) + "/reactivate",
+        { method: "POST" },
+      );
+      setNow(Date.now());
+      await client.invalidateQueries({ queryKey: ["mailboxes"] });
+      toast.success(
+        zh
+          ? "邮箱已重新启用，可继续接收新邮件"
+          : "Mailbox reactivated. You can receive new messages.",
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Reactivation failed");
+    } finally {
+      setBusy("");
+    }
+  }
   return (
-    <div className="dash-table-wrap">
-      <table className="dash-table">
-        <thead>
-          <tr>
-            {(zh
-              ? ["邮箱地址", "创建时间", "状态", ""]
-              : ["Email address", "Created", "Status", ""]
-            ).map((s, i) => (
-              <th key={i}>{s}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {boxes.map((b) => (
-            <tr key={b.id}>
-              <td>{b.address}</td>
-              <td>{new Date(b.created_at * 1000).toLocaleDateString()}</td>
-              <td>
-                <span
-                  className={
-                    "status-badge " +
-                    (b.expires_at * 1000 < Date.now() ? "expired" : "")
-                  }
-                >
-                  {b.expires_at * 1000 > Date.now()
-                    ? zh
-                      ? "有效"
-                      : "Active"
-                    : zh
-                      ? "已过期"
-                      : "Expired"}
-                </span>
-              </td>
-              <td>
-                {b.expires_at * 1000 > Date.now() && (
-                  <Link
-                    to={
-                      "/dashboard/messages?mailbox=" + encodeURIComponent(b.id)
+    <>
+      {error && (
+        <p role="alert" className="dash-error">
+          {error}
+        </p>
+      )}
+      <div className="dash-table-wrap">
+        <table className="dash-table mailbox-table">
+          <thead>
+            <tr>
+              {(zh
+                ? ["邮箱地址", "创建时间", "状态", "有效期至", ""]
+                : ["Email address", "Created", "Status", "Expires", ""]
+              ).map((s, i) => (
+                <th key={i}>{s}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {boxes.map((b) => (
+              <tr key={b.id}>
+                <td>{b.address}</td>
+                <td>{new Date(b.created_at * 1000).toLocaleDateString()}</td>
+                <td>
+                  <span
+                    className={
+                      "status-badge " +
+                      (b.expires_at * 1000 <= now ? "expired" : "")
                     }
                   >
-                    {zh ? "查看邮件" : "Open inbox"} →
-                  </Link>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+                    {b.expires_at * 1000 > now
+                      ? zh
+                        ? "有效"
+                        : "Active"
+                      : zh
+                        ? "已过期"
+                        : "Expired"}
+                  </span>
+                </td>
+                <td>
+                  {b.expires_at
+                    ? new Date(b.expires_at * 1000).toLocaleString()
+                    : "—"}
+                </td>
+                <td>
+                  {b.expires_at * 1000 > now ? (
+                    <Link
+                      to={
+                        "/dashboard/messages?mailbox=" +
+                        encodeURIComponent(b.id)
+                      }
+                    >
+                      {zh ? "查看邮件" : "Open inbox"} →
+                    </Link>
+                  ) : (
+                    <button
+                      className="dash-secondary"
+                      disabled={!!busy}
+                      aria-label={
+                        (zh
+                          ? "重新启用 24 小时："
+                          : "Reactivate for 24 hours: ") + b.address
+                      }
+                      onClick={() => void reactivate(b)}
+                    >
+                      {busy === b.id
+                        ? zh
+                          ? "正在恢复…"
+                          : "Reactivating…"
+                        : zh
+                          ? "重新启用 24 小时"
+                          : "Reactivate for 24 hours"}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 export function OverviewPage() {
@@ -572,6 +634,11 @@ export function MailboxesPage() {
         </section>
       )}
       <section className="dash-panel">
+        <p className="page-description">
+          {zh
+            ? `最多同时启用 ${config.maxActiveMailboxes} 个邮箱。已绑定的过期地址可重新启用 24 小时；历史邮件仍按收件后 24 小时清理，过期停用期间不接收邮件。`
+            : `Up to ${config.maxActiveMailboxes} active mailboxes. Reactivate an expired, account-owned address for 24 hours. Messages are still deleted after 24 hours; inactive mailboxes do not receive mail.`}
+        </p>
         <QueryState loading={q.isLoading} error={q.error} />
         {q.data?.mailboxes.length ? (
           <BoxTable boxes={q.data.mailboxes} />

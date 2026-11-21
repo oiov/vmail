@@ -207,38 +207,48 @@ export class AccessLedger extends DurableObject<Env> {
     if (decision.allowed) await this.record(owner, key.id, "api_calls");
     return { valid: true, id: key.id, ...decision };
   }
-  reserveMailbox(address: string, expiresAt: number, max: number): boolean {
+  reserveMailbox(
+    address: string,
+    expiresAt: number,
+    max: number,
+    reservationId = "",
+  ): boolean {
     return this.ctx.storage.transactionSync(() => {
       const boxes = (
-        this.ctx.storage.kv.get<Array<{ address: string; expiresAt: number }>>(
-          "activeMailboxes",
-        ) ?? []
+        this.ctx.storage.kv.get<
+          Array<{ address: string; expiresAt: number; reservationId?: string }>
+        >("activeMailboxes") ?? []
       ).filter((box) => box.expiresAt > Date.now());
       const existing = boxes.find((box) => box.address === address);
       if (existing) {
-        existing.expiresAt = expiresAt;
+        existing.expiresAt = Math.max(existing.expiresAt, expiresAt);
         this.ctx.storage.kv.put("activeMailboxes", boxes);
         return true;
       }
       if (boxes.length >= max) return false;
       this.ctx.storage.kv.put("activeMailboxes", [
         ...boxes,
-        { address, expiresAt },
+        { address, expiresAt, reservationId },
       ]);
       return true;
     });
   }
-  releaseMailbox(address: string) {
+  releaseMailbox(address: string, reservationId?: string) {
     const boxes =
-      this.ctx.storage.kv.get<Array<{ address: string; expiresAt: number }>>(
-        "activeMailboxes",
-      ) ?? [];
+      this.ctx.storage.kv.get<
+        Array<{ address: string; expiresAt: number; reservationId?: string }>
+      >("activeMailboxes") ?? [];
     this.ctx.storage.kv.put(
       "activeMailboxes",
-      boxes.filter((box) => box.address !== address),
+      boxes.filter(
+        (box) =>
+          box.address !== address ||
+          (reservationId !== undefined && box.reservationId !== reservationId),
+      ),
     );
   }
   activateMailbox(expiresAt: number, renew = false, owner = ""): boolean {
+    if (this.mailboxState().recovering) return false;
     const current = this.ctx.storage.kv.get<number>("mailboxExpiry");
     if (current && !renew) return false;
     if (renew && (!current || current <= Date.now())) return false;
@@ -251,6 +261,67 @@ export class AccessLedger extends DurableObject<Env> {
   }
   mailboxOwner(): string {
     return this.ctx.storage.kv.get<string>("owner") ?? "";
+  }
+  mailboxState() {
+    const pending = this.ctx.storage.kv.get<{ until: number }>(
+      "mailboxRecovery",
+    );
+    return {
+      owner: this.mailboxOwner(),
+      expiresAt: this.ctx.storage.kv.get<number>("mailboxExpiry") ?? 0,
+      recovering: (pending?.until ?? 0) > Date.now(),
+      accountOnly:
+        this.ctx.storage.kv.get<boolean>("mailboxAccountOnly") ?? false,
+    };
+  }
+  beginMailboxRecovery(owner: string, allowClaim: boolean) {
+    return this.ctx.storage.transactionSync(() => {
+      const state = this.mailboxState();
+      if (state.recovering) return { code: "RECOVERY_BUSY" as const };
+      if (
+        !owner ||
+        (state.owner && state.owner !== owner) ||
+        (!state.owner && (!allowClaim || state.expiresAt > Date.now()))
+      )
+        return { code: "OWNERSHIP_CONFLICT" as const };
+      const operationId = crypto.randomUUID();
+      this.ctx.storage.kv.put("mailboxRecovery", {
+        operationId,
+        owner,
+        until: Date.now() + 60_000,
+      });
+      return { code: "READY" as const, operationId, ...state };
+    });
+  }
+  finishMailboxRecovery(operationId: string, expiresAt: number) {
+    return this.ctx.storage.transactionSync(() => {
+      const pending = this.ctx.storage.kv.get<{
+        operationId: string;
+        owner: string;
+        until: number;
+      }>("mailboxRecovery");
+      if (
+        !pending ||
+        pending.operationId !== operationId ||
+        pending.until <= Date.now()
+      )
+        return false;
+      if (this.mailboxOwner() && this.mailboxOwner() !== pending.owner)
+        return false;
+      this.ctx.storage.kv.put("owner", pending.owner);
+      this.ctx.storage.kv.put("mailboxExpiry", expiresAt);
+      // Previously issued anonymous bearer tokens must not authorize a recovered mailbox.
+      this.ctx.storage.kv.put("mailboxAccountOnly", true);
+      this.ctx.storage.kv.delete("mailboxRecovery");
+      return true;
+    });
+  }
+  cancelMailboxRecovery(operationId: string) {
+    const pending = this.ctx.storage.kv.get<{ operationId: string }>(
+      "mailboxRecovery",
+    );
+    if (pending?.operationId === operationId)
+      this.ctx.storage.kv.delete("mailboxRecovery");
   }
   async record(
     owner: string,

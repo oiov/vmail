@@ -1,4 +1,15 @@
-# Upgrade to v3.2.1
+# Upgrade to v3.2.2
+
+## v3.2.2: legacy mailbox import and reactivation
+
+Apply **0007_mailbox_recovery.sql** before deploying the Worker and frontend. Preserve OAuth and signing secrets. The default `MAX_ACTIVE_MAILBOXES` is now 100; explicitly change existing `.env`, Cloudflare or Actions overrides from 20 to 100. The daily new-mailbox quota remains 20.
+
+- Account owners can reactivate their expired addresses for 24 hours from `/dashboard/mailboxes`. Domains must still be configured. Reactivation has separate limits of 10/minute and 300/day and respects the active-mailbox cap.
+- The administrator user-detail page supports manual ownership confirmation, an audit reason, a preview and per-address import results. Legacy XOR passwords only identify addresses, not ownership. Missing records can be recreated; other owners and active anonymous mailboxes are never overwritten.
+- `POST /api/account/admin/users/:id/mailboxes/recover` accepts `addresses` (1–100), `reason` (10–500 characters), `ownershipConfirmed: true` and `dryRun` (defaults to true). Results are per address, not an all-or-nothing batch. Retry failures without duplicating records or active slots. Batches of up to 10 are recommended.
+- `POST /api/account/mailboxes/:id/reactivate` requires the owning account. All writes require same-origin Origin and a valid session; import also requires administrator privileges.
+- `GET /api/account/admin/users/:id/mailbox-recoveries` returns the latest 100 audit entries. `mailbox_recovery_logs` is not automatically pruned; operators should define retention. D1 and DO do not share a transaction: uncertain outcomes conservatively retain a slot until expiry; retrying the same address repairs state.
+- Ownership remains after expiry; inactive mailboxes reject incoming mail. Message retention is still 24 hours after receipt. Reactivation does not recover deleted messages. Recovered mailboxes require account authorization; old anonymous bearer credentials alone cannot read them.
 
 ## v3.2.1: authenticated sending, mail review and UI fixes
 
@@ -73,7 +84,7 @@ Rolling back the Worker does not reactivate old keys or roll back D1/DO state. P
 
 Check both OAuth callbacks, three-key cap, shared quotas after rotation, immediate revocation, unauthenticated mailbox 401s, ordinary-user admin 403s, mailbox creation/receipt/read/delete/recovery and admin access.
 
-Defaults: 30 API requests/minute, 1,000/day, 20 mailboxes/day and 20 active mailboxes/user. HTTP and inbound global limits are separately 100,000/day. The global cap is split into 16 fixed disjoint budgets: their sum cannot exceed the cap, but a busy shard can exhaust early. Daily windows reset at 00:00 UTC. Configure Cloudflare WAF rules and alerts, observe D1 rows and Worker/DO requests/CPU. Disable unused preview routes that bypass domain WAF.
+Defaults: 30 API requests/minute, 1,000/day, 20 mailboxes/day and 100 active mailboxes/user. HTTP and inbound global limits are separately 100,000/day. The global cap is split into 16 fixed disjoint budgets: their sum cannot exceed the cap, but a busy shard can exhaust early. Daily windows reset at 00:00 UTC. Configure Cloudflare WAF rules and alerts, observe D1 rows and Worker/DO requests/CPU. Disable unused preview routes that bypass domain WAF.
 
 ENABLE_OPENAPI=false pauses public API and key creation. SUSPEND_DATABASE_ACCESS=true pauses HTTP database entry, incoming mail and scheduled cleanup; queued aggregation may complete a small number of writes. Rejected requests still cost money.
 

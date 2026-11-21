@@ -1,4 +1,4 @@
-> **v3.2.1 升级必读：[升级指南](docs/UPGRADE.md)**。旧匿名 API Key、旧邮箱密码及分页协议发生变化。部署前运行 pnpm setup:check，配置邮箱签名密钥、OAuth 和首个管理员。
+> **v3.2.2 升级必读：[升级指南](docs/UPGRADE.md)**。旧匿名 API Key、旧邮箱密码及分页协议发生变化。部署前运行 pnpm setup:check，配置邮箱签名密钥、OAuth 和首个管理员。
 版本变更见 [CHANGELOG](CHANGELOG.md)。
 
 
@@ -134,7 +134,7 @@
 | `API_RATE_LIMIT_PER_MINUTE` | 30 | 每用户 API 请求/分钟，所有 Key 共用 |
 | `API_DAILY_LIMIT` | 1000 | 每用户 API 请求/天 |
 | `MAILBOX_DAILY_LIMIT` | 20 | 每用户通过 API 创建邮箱/天 |
-| `MAX_ACTIVE_MAILBOXES` | 20 | 每用户有效邮箱上限 |
+| `MAX_ACTIVE_MAILBOXES` | 100 | 每用户有效邮箱上限 |
 | `GLOBAL_API_DAILY_LIMIT` | 100000 | 全站 HTTP 数据库路径日额度，含网页与认证；16 个固定分片 |
 | `GLOBAL_INBOUND_DAILY_LIMIT` | 100000 | 全站每日入站邮件预算；16 个固定分片 |
 | `MAILBOX_INBOUND_DAILY_LIMIT` | 100 | 每邮箱每日入站邮件数 |

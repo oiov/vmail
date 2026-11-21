@@ -13,6 +13,8 @@ import {
   deleteMailboxMessage,
 } from "./database/dao";
 import { MAX_API_KEYS, positive } from "./limits";
+import { z } from "zod";
+import { recoverMailbox } from "./mailbox-recovery";
 function effectiveUser<
   T extends { email: string; role: string; email_verified?: number },
 >(row: T, env: Env): T {
@@ -122,6 +124,53 @@ routes.get("/mailboxes", async (c) => {
     mailboxes: result.results.slice(0, 50),
     nextCursor: result.results.length > 50 ? result.results[49].id : null,
   });
+});
+// Recovery authenticates by account ownership, not by the expired mailbox token.
+routes.post("/mailboxes/:id/reactivate", async (c) => {
+  const userId = c.get("account").id;
+  const box = await c.env.DB.prepare(
+    "SELECT address FROM mailboxes WHERE id=? AND user_id=?",
+  )
+    .bind(c.req.param("id"), userId)
+    .first<{ address: string }>();
+  if (!box) return failure("NOT_FOUND", "Mailbox not found", 404);
+  const quota = await c.env.ACCESS.getByName("user:" + userId).consume([
+    { key: "reactivate-minute", max: 10, seconds: 60 },
+    { key: "reactivate-day", max: 300, seconds: 86400 },
+  ]);
+  if (!quota.allowed)
+    return failure(
+      "RATE_LIMITED",
+      "Reactivation limit reached",
+      429,
+      quota.retryAfter,
+    );
+  const result = await recoverMailbox(c.env, {
+    userId,
+    actorId: userId,
+    address: box.address,
+    reason: "Account owner reactivation",
+    allowClaim: false,
+  });
+  if (result.code === "RECOVERED") return c.json(result);
+  const messages: Record<string, string> = {
+    MAILBOX_LIMIT:
+      "Active mailbox limit reached. Wait for another mailbox to expire.",
+    OWNERSHIP_CONFLICT: "Mailbox ownership requires administrator review.",
+    INVALID_ADDRESS: "This mailbox domain is no longer available.",
+    RECOVERY_BUSY: "Mailbox recovery is in progress. Please retry shortly.",
+    ACCOUNT_BANNED: "Account is banned",
+    ACCOUNT_NOT_VERIFIED: "A verified account is required",
+  };
+  return failure(
+    result.code,
+    messages[result.code] ?? "Recovery is incomplete. Please retry.",
+    result.code === "MAILBOX_LIMIT"
+      ? 429
+      : result.code === "RETRY_REQUIRED"
+        ? 503
+        : 409,
+  );
 });
 routes.use("/mailboxes/:id/*", async (c, next) => {
   const box = await c.env.DB.prepare(
@@ -279,6 +328,48 @@ routes.use("/admin/*", async (c, next) => {
   if (c.get("account").role !== "admin")
     return failure("FORBIDDEN", "Administrator access required", 403);
   await next();
+});
+const recoveryRequest = z.object({
+  addresses: z
+    .array(z.string().trim().toLowerCase().min(3).max(254))
+    .min(1)
+    .max(100),
+  reason: z.string().trim().min(10).max(500),
+  ownershipConfirmed: z.literal(true),
+  dryRun: z.boolean().default(true),
+});
+routes.post("/admin/users/:id/mailboxes/recover", async (c) => {
+  const parsed = recoveryRequest.safeParse(
+    await c.req.json().catch(() => null),
+  );
+  if (!parsed.success)
+    return failure(
+      "VALIDATION_ERROR",
+      "Provide 1-100 addresses, an audit reason and explicit ownership confirmation",
+      400,
+    );
+  const results = [];
+  for (const address of new Set(parsed.data.addresses)) {
+    results.push(
+      await recoverMailbox(c.env, {
+        userId: c.req.param("id"),
+        actorId: c.get("account").id,
+        address,
+        reason: parsed.data.reason,
+        allowClaim: true,
+        dryRun: parsed.data.dryRun,
+      }),
+    );
+  }
+  return c.json({ dryRun: parsed.data.dryRun, results });
+});
+routes.get("/admin/users/:id/mailbox-recoveries", async (c) => {
+  const logs = await c.env.DB.prepare(
+    "SELECT id,actor_id,address,action,reason,expires_at,status,created_at FROM mailbox_recovery_logs WHERE user_id=? ORDER BY created_at DESC LIMIT 100",
+  )
+    .bind(c.req.param("id"))
+    .all();
+  return c.json({ logs: logs.results });
 });
 routes.get("/admin/sending", async (c) =>
   c.json(
