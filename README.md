@@ -10,8 +10,6 @@
   <p>使用 Cloudflare Email Worker 实现的临时电子邮件服务</p>
 </div>
 
-> 🌟 推荐 **Claude Code** 稳定 API 渠道：[Nbility AI Gateway](https://nbility.ai/auth/register?aff=Dptp) ，支持 Claude Fable 5、GPT 5.6 等主流 AI Coding 大模型
-
 ## 控制台预览
 
 登录后可分别管理 API Key、邮箱、邮件和账户信息。管理员拥有独立的用户管理、调用日志、发件管理和部署配置页面。控制台默认深色，可切换浅色并记住选择；[API 文档](https://vmail.dev/api-docs) 无需登录。
@@ -52,6 +50,14 @@
 - 前端 (Vite + React) 显示电子邮件
 - 邮件存储 (Cloudflare D1)
 - 发信使用 Resend API、MailChannels API 或 Cloudflare 原生发件
+
+## 赞助
+
+Vmail 是一个业余时间维护的开源项目。如果你愿意支持这个项目，或希望出现在这里，欢迎[创建一个 Issue](https://github.com/oiov/wr.do/issues/new) 或[发邮件](mailto:hi@oiov.dev)联系我。
+
+| 支持方 | 说明 |
+|--------|------|
+| [<img src="https://github.com/user-attachments/assets/b338bfca-71ed-447a-bde5-18e5677cb8dc" alt="nbility" width="220" />](https://nbility.ai/auth/register?aff=Dptp&utm_source=github&utm_campaign=horizon) |  Nbility AI Gateway：满血、稳定、不掺水，以更低成本使用全球 AI 大模型，兼容协议支持 GPT、Claude、Gemini、Grok 等领先模型，通过[此专属链接](https://nbility.ai/auth/register?aff=Dptp&utm_source=github&utm_campaign=horizon)注册即可开始使用。 |
 
 ## 👋 自部署教程
 
