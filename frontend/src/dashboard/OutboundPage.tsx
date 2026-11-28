@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { accountRequest, useAccount } from "../components/Account";
 import { PageTitle, QueryState } from "./Pages";
+import { Pagination, PageSizeSelect } from "./Pagination";
+import type { PageInfo } from "../../../shared/admin";
 type Message = {
   id: string;
   created_at: number;
@@ -20,8 +22,7 @@ type Message = {
 type History = {
   logs: Message[];
   stats: { status: string; count: number }[];
-  nextCursor: string | null;
-};
+} & (PageInfo | { nextCursor: string | null });
 export function OutboundPage({ admin = false }: { admin?: boolean }) {
   const { i18n } = useTranslation(),
     zh = i18n.language.startsWith("zh"),
@@ -29,26 +30,80 @@ export function OutboundPage({ admin = false }: { admin?: boolean }) {
   const { id } = useParams(),
     [search, setSearch] = useSearchParams();
   const [filter, setFilter] = useState(search.get("userId") ?? "");
+  const userId = search.get("userId") ?? "";
+  const requestedPage = Number(search.get("page") ?? 1);
+  const page =
+    Number.isSafeInteger(requestedPage) && requestedPage > 0
+      ? requestedPage
+      : 1;
+  const requestedSize = Number(search.get("pageSize") ?? 50);
+  const pageSize = [20, 50, 100].includes(requestedSize) ? requestedSize : 50;
+  const sort = search.get("sort") === "oldest" ? "oldest" : "newest";
+  const listQuery = admin
+    ? new URLSearchParams({
+        page: String(page),
+        pageSize: String(pageSize),
+        sort,
+        ...(userId ? { userId } : {}),
+      }).toString()
+    : search.toString();
+  const updateList = (changes: Record<string, string>) =>
+    setSearch((previous) => {
+      const next = new URLSearchParams(previous);
+      next.delete("cursor");
+      for (const [key, value] of Object.entries(changes))
+        value ? next.set(key, value) : next.delete(key);
+      return next;
+    });
+  useEffect(() => setFilter(userId), [userId]);
   const base = admin ? "/admin/outbound" : "/outbound",
     route = "/dashboard" + base;
   const allowed = !!account && (!admin || account.role === "admin");
   const query = useQuery({
-    queryKey: ["outbound", account?.id, admin, id, search.toString()],
+    queryKey: ["outbound", account?.id, admin, id, listQuery],
     queryFn: () =>
-      accountRequest<History & { message: Message }>(
-        base + (id ? "/" + encodeURIComponent(id) : "?" + search.toString()),
+      accountRequest<History | { message: Message }>(
+        base + (id ? "/" + encodeURIComponent(id) : "?" + listQuery),
       ),
     enabled: allowed,
     retry: false,
     staleTime: 15000,
+    placeholderData:
+      admin && !id
+        ? (previous) =>
+            previous && "logs" in previous && "total" in previous
+              ? previous
+              : undefined
+        : undefined,
   });
+  const history = query.data && "logs" in query.data ? query.data : undefined;
+  const pagination = history && "total" in history ? history : undefined;
+  useEffect(() => {
+    if (
+      !admin ||
+      id ||
+      !pagination ||
+      query.isPlaceholderData ||
+      pagination.page === page
+    )
+      return;
+    const currentPage = pagination.page;
+    setSearch(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        next.set("page", String(currentPage));
+        return next;
+      },
+      { replace: true },
+    );
+  }, [admin, id, pagination, query.isPlaceholderData, page, setSearch]);
   const quota = useQuery({
     queryKey: ["sending-quota", account?.id, admin],
     queryFn: () =>
       accountRequest<{ limit: number; remaining: number }>(
         admin ? "/admin/sending" : "/sending",
       ),
-    enabled: allowed,
+    enabled: allowed && !id,
     retry: false,
   });
   const status = (s: string) =>
@@ -58,18 +113,23 @@ export function OutboundPage({ admin = false }: { admin?: boolean }) {
       pending: zh ? "处理中 / 结果待确认" : "Pending / unconfirmed",
     })[s] ?? s;
   if (!allowed) return <p>{zh ? "无权访问此页面。" : "Access denied."}</p>;
-  const message = query.data?.message;
+  const message =
+    query.data && "message" in query.data ? query.data.message : undefined;
   return (
     <>
       <PageTitle
         title={
-          admin
+          id
             ? zh
-              ? "发件管理"
-              : "Outgoing mail"
-            : zh
-              ? "发件记录"
-              : "Sent mail"
+              ? "发件详情"
+              : "Outgoing message"
+            : admin
+              ? zh
+                ? "发件管理"
+                : "Outgoing mail"
+              : zh
+                ? "发件记录"
+                : "Sent mail"
         }
         description={
           zh
@@ -79,19 +139,23 @@ export function OutboundPage({ admin = false }: { admin?: boolean }) {
         action={
           <button
             className="dash-secondary"
+            disabled={query.isFetching || quota.isFetching}
             onClick={() => {
               void query.refetch();
-              void quota.refetch();
+              if (!id) void quota.refetch();
             }}
           >
             {zh ? "刷新" : "Refresh"}
           </button>
         }
       />
-      <QueryState loading={query.isLoading} error={query.error} />
+      <QueryState
+        loading={query.isLoading}
+        error={query.error || (!id ? quota.error : null)}
+      />
       {id ? (
         <>
-          <Link className="dash-secondary" to={route + "?" + search.toString()}>
+          <Link className="dash-secondary" to={route + "?" + listQuery}>
             {zh ? "返回发件列表" : "Back to sent mail"}
           </Link>
           {message && (
@@ -143,7 +207,11 @@ export function OutboundPage({ admin = false }: { admin?: boolean }) {
               <section className="dash-panel metric" key={s}>
                 <span>{status(s)}</span>
                 <p className="metric-value">
-                  {query.data?.stats.find((x) => x.status === s)?.count ?? 0}
+                  {history
+                    ? (
+                        history.stats.find((x) => x.status === s)?.count ?? 0
+                      ).toLocaleString()
+                    : "—"}
                 </p>
                 <p className="metric-note">
                   {zh ? "最近 30 天" : "Last 30 days"}
@@ -178,7 +246,7 @@ export function OutboundPage({ admin = false }: { admin?: boolean }) {
               className="outbound-filter"
               onSubmit={(e) => {
                 e.preventDefault();
-                setSearch(filter ? { userId: filter } : {});
+                updateList({ userId: filter.trim(), page: "1" });
               }}
             >
               <label>
@@ -191,86 +259,148 @@ export function OutboundPage({ admin = false }: { admin?: boolean }) {
                   }
                 />
               </label>
-              <button className="dash-secondary">
+              <button className="dash-secondary" disabled={query.isFetching}>
                 {zh ? "筛选" : "Filter"}
               </button>
             </form>
           )}
-          <div className="dash-panel dash-table-wrap">
-            <table className="dash-table">
-              <thead>
-                <tr>
-                  {(zh
-                    ? ["主题 / 发件邮箱", "收件人", "结果", "时间", ""]
-                    : ["Subject / mailbox", "Recipient", "Result", "Time", ""]
-                  ).map((x, i) => (
-                    <th key={i}>{x}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {query.data?.logs.map((m) => (
-                  <tr key={m.id}>
-                    <td>
-                      <strong>{m.subject}</strong>
-                      <br />
-                      <span>{m.mailbox}</span>
-                      {admin && (
-                        <>
-                          <br />
-                          <Link to={"/dashboard/admin/users/" + m.user_id}>
-                            {m.user_id}
-                          </Link>
-                        </>
-                      )}
-                    </td>
-                    <td>{m.recipient}</td>
-                    <td>{status(m.status)}</td>
-                    <td>{new Date(m.created_at).toLocaleString()}</td>
-                    <td>
-                      <Link
-                        className="dash-secondary"
-                        to={route + "/" + m.id + "?" + search.toString()}
-                      >
-                        {zh ? "查看" : "View"}
-                      </Link>
-                    </td>
+          <div className="dash-panel">
+            {admin && (
+              <div className="list-toolbar">
+                <p role="status">
+                  {pagination
+                    ? zh
+                      ? `共 ${pagination.total.toLocaleString()} 条记录`
+                      : `${pagination.total.toLocaleString()} messages`
+                    : null}
+                </p>
+                <div className="list-options">
+                  <select
+                    aria-label={zh ? "发件排序" : "Outgoing mail sort order"}
+                    value={sort}
+                    disabled={query.isFetching}
+                    onChange={(event) =>
+                      updateList({ sort: event.target.value, page: "1" })
+                    }
+                  >
+                    <option value="newest">
+                      {zh ? "最新发送" : "Newest first"}
+                    </option>
+                    <option value="oldest">
+                      {zh ? "最早发送" : "Oldest first"}
+                    </option>
+                  </select>
+                  <PageSizeSelect
+                    value={pageSize}
+                    busy={query.isFetching}
+                    onChange={(size) =>
+                      updateList({ pageSize: String(size), page: "1" })
+                    }
+                  />
+                </div>
+              </div>
+            )}
+            <div
+              className="dash-table-wrap list-table-wrap"
+              aria-busy={query.isFetching}
+            >
+              <table className="dash-table outbound-table">
+                <thead>
+                  <tr>
+                    {(zh
+                      ? ["主题 / 发件邮箱", "收件人", "结果", "时间", ""]
+                      : ["Subject / mailbox", "Recipient", "Result", "Time", ""]
+                    ).map((x, i) => (
+                      <th key={i}>{x}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            {query.data && !query.data.logs.length && (
+                </thead>
+                <tbody>
+                  {history?.logs.map((m) => (
+                    <tr key={m.id}>
+                      <td>
+                        <strong>{m.subject}</strong>
+                        <br />
+                        <span>{m.mailbox}</span>
+                        {admin && (
+                          <>
+                            <br />
+                            <Link to={"/dashboard/admin/users/" + m.user_id}>
+                              {m.user_id}
+                            </Link>
+                          </>
+                        )}
+                      </td>
+                      <td>{m.recipient}</td>
+                      <td>{status(m.status)}</td>
+                      <td>{new Date(m.created_at).toLocaleString()}</td>
+                      <td>
+                        <Link
+                          className="dash-secondary"
+                          to={
+                            route +
+                            "/" +
+                            encodeURIComponent(m.id) +
+                            "?" +
+                            listQuery
+                          }
+                        >
+                          {zh ? "查看" : "View"}
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {history && !history.logs.length && (
               <p className="empty-state">
                 {zh ? "暂无发件记录" : "No outgoing messages yet"}
               </p>
             )}
-          </div>
-          <div className="outbound-pagination">
-            {search.has("cursor") && (
-              <button
-                className="dash-secondary"
-                onClick={() => {
-                  const p = new URLSearchParams(search);
-                  p.delete("cursor");
-                  setSearch(p);
-                }}
-              >
-                {zh ? "返回首页" : "First page"}
-              </button>
-            )}
-            {query.data?.nextCursor && (
-              <button
-                className="dash-secondary"
-                onClick={() => {
-                  const p = new URLSearchParams(search);
-                  p.set("cursor", query.data!.nextCursor!);
-                  setSearch(p);
-                }}
-              >
-                {zh ? "下一页" : "Next page"}
-              </button>
+            {admin && pagination && (
+              <Pagination
+                key={sort + userId}
+                data={pagination}
+                busy={query.isFetching}
+                label={zh ? "发件列表分页" : "Outgoing mail pagination"}
+                onPageChange={(page) => updateList({ page: String(page) })}
+              />
             )}
           </div>
+          {!admin && (
+            <div className="outbound-pagination">
+              {search.has("cursor") && (
+                <button
+                  className="dash-secondary"
+                  onClick={() => {
+                    const p = new URLSearchParams(search);
+                    p.delete("cursor");
+                    setSearch(p);
+                  }}
+                >
+                  {zh ? "返回首页" : "First page"}
+                </button>
+              )}
+              {history && "nextCursor" in history && history.nextCursor && (
+                <button
+                  className="dash-secondary"
+                  onClick={() => {
+                    const p = new URLSearchParams(search);
+                    if (
+                      history &&
+                      "nextCursor" in history &&
+                      history.nextCursor
+                    )
+                      p.set("cursor", history.nextCursor);
+                    setSearch(p);
+                  }}
+                >
+                  {zh ? "下一页" : "Next page"}
+                </button>
+              )}
+            </div>
+          )}
         </>
       )}
     </>

@@ -7,29 +7,47 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      runner:
+        description: Build and deployment runner
+        type: choice
+        default: github
+        options:
+          - github
+          - local
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   # 新增一个 job 用于检查密钥是否存在
   check_credentials:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.runner == 'local' && (vars.CI_RUNNER_LABELS || '["self-hosted","Linux","vmail-local"]') || '["ubuntu-latest"]') }}
     name: Check for Cloudflare Credentials
     outputs:
       has_creds: ${{ steps.cf_creds.outputs.has_creds }}
     steps:
       - name: Check for Cloudflare credentials
         id: cf_creds
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
         run: |
-          if [ -z "${{ secrets.CF_API_TOKEN }}" ] || [ -z "${{ secrets.CF_ACCOUNT_ID }}" ]; then
+          if [ -z "$CF_API_TOKEN" ] || [ -z "$CF_ACCOUNT_ID" ]; then
             echo "Cloudflare credentials not found, skipping deployment."
-            echo "has_creds=false" >> $GITHUB_OUTPUT
+            echo "has_creds=false" >> "$GITHUB_OUTPUT"
           else
             echo "Cloudflare credentials found."
-            echo "has_creds=true" >> $GITHUB_OUTPUT
+            echo "has_creds=true" >> "$GITHUB_OUTPUT"
           fi
 
   # 部署 job，依赖于 check_credentials job 的结果
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(github.event_name == 'workflow_dispatch' && inputs.runner == 'local' && (vars.CI_RUNNER_LABELS || '["self-hosted","Linux","vmail-local"]') || '["ubuntu-latest"]') }}
     name: Deploy
     needs: check_credentials # 依赖于上一个 job
     if: needs.check_credentials.outputs.has_creds == 'true' # 只有在密钥存在时才运行
@@ -37,21 +55,18 @@ jobs:
       # 检出代码
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       # 设置 pnpm (版本由根目录 package.json 的 "packageManager" 字段决定)
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      # 设置 Node.js 环境
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js and pnpm
+        uses: ./.github/actions/setup-pnpm
         with:
-          node-version: 22
-          cache: "pnpm"
+          node-version: "22"
 
       # 安装依赖
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --prefer-offline --store-dir "$PNPM_STORE_DIR"
 
       - name: Validate, migrate and deploy
         run: pnpm run deploy

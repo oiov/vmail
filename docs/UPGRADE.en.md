@@ -1,5 +1,20 @@
 # Upgrade to v3.2.2
 
+## User list pagination improvements
+
+Apply **0008_admin_user_pagination.sql** with this update to index registration-time sorting; the deployment script runs migrations automatically. The admin user list defaults to newest registrations first, with ID as a stable tie-breaker, and supports oldest first, total users, current/total pages, page jumps, and 20/50/100 users per page. Pagination and sorting are preserved in the URL. The internal `/api/account/admin/users` endpoint now accepts `page`, `pageSize`, and `sort=newest|oldest`, and returns `total`, `page`, `pageSize`, and `totalPages`. Update the frontend and Worker together.
+
+## Admin overview and outgoing pagination
+
+Apply **0009_admin_overview.sql** and deploy the frontend and Worker together. The migration indexes recovery audit timestamps. `/dashboard/admin` and `/api/account/admin/overview` require administrator access; API responses use `no-store`. The page supports manual refresh with a 60-second freshness window and no polling.
+
+- Inventory: registered/new/banned/verified users, effective administrators including verified allow-listed emails, users with usage or outgoing activity in 30 days, unexpired owned/anonymous mailboxes, stored mailboxes by domain, active/disabled/expired keys, and undeleted received messages within 24-hour retention.
+- Usage: today/7-day/30-day/all-time API calls, mailbox creation, incoming mail, and key creation from `daily_stats` and `site_stats`, including anonymous mailbox activity. Usage can lag by 5 minutes. API calls passed key validation and consumed account quota; they are not all HTTP requests or successful operations.
+- Operations: outgoing statuses/channels, API log outcomes/mean duration/top routes, top 10 users by usage, and mailbox recovery audit outcomes. Overview windows use UTC calendar days including today; outgoing lists retain the last 30×24 hours. API logs can lag by 1 minute, are retained for 7 days, and exclude authentication/quota rejections. Outgoing records are retained for 30 days; provider acceptance does not confirm delivery. Deleted messages and recovery previews are excluded from their respective inventory/audit counts.
+- Quotas: read the existing Durable Object counters for 16 HTTP shards, 16 inbound shards, and the global outgoing budget. A shard can exhaust before the total; quotas reset at 00:00 UTC. No billing, storage bytes, CPU, delivery receipts, or online-user metrics are inferred.
+
+`/api/account/admin/outbound` now accepts `page`, `pageSize=20|50|100`, `sort=newest|oldest`, and the existing `userId` filter. It returns `total`, `page`, `pageSize`, and `totalPages`; totals and status counts respect the filter. The UI supports first/previous/next/last, page jumps, page sizes, stable ordering, and URL persistence. The personal `/api/account/outbound` cursor API is unchanged.
+
 ## v3.2.2: legacy mailbox import and reactivation
 
 Apply **0007_mailbox_recovery.sql** before deploying the Worker and frontend. Preserve OAuth and signing secrets. The default `MAX_ACTIVE_MAILBOXES` is now 100; explicitly change existing `.env`, Cloudflare or Actions overrides from 20 to 100. The daily new-mailbox quota remains 20.

@@ -41,6 +41,7 @@
   display: flex;
   flex-direction: column;
   z-index: 40;
+  overflow-y: auto;
 }
 .dash-brand {
   display: flex;
@@ -455,6 +456,70 @@
   color: #48836a;
   font-size: 12px;
 }
+.list-toolbar,
+.list-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+}
+.list-toolbar {
+  margin-bottom: 20px;
+}
+.admin-users-table {
+  min-width: 720px;
+  white-space: nowrap;
+}
+.list-table-wrap[aria-busy="true"] {
+  opacity: 0.6;
+}
+.list-options,
+.list-pagination nav,
+.list-pagination form,
+.list-pagination label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.list-options select,
+.list-pagination button,
+.list-pagination input {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 9px;
+  background: transparent;
+  color: inherit;
+}
+.list-options select {
+  cursor: pointer;
+}
+.list-pagination {
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.list-pagination input {
+  width: 60px;
+  text-align: center;
+}
+.list-pagination button:not(:disabled):hover {
+  background: var(--wash);
+  color: var(--accent);
+}
+.list-pagination button:disabled,
+.list-pagination input:disabled,
+.list-options select:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+[data-theme="dark"] .list-options select {
+  color-scheme: dark;
+}
 .account-grid {
   display: grid;
   grid-template-columns: 1.3fr 1fr;
@@ -736,6 +801,17 @@
   }
   .keys-page > section {
     padding: 18px;
+  }
+  .list-pagination nav {
+    width: 100%;
+  }
+  .list-pagination form {
+    width: 100%;
+    order: -1;
+    justify-content: center;
+  }
+  .list-pagination nav > button {
+    flex: 1;
   }
 }
 .quick-links {
@@ -1091,6 +1167,152 @@
   display: flex;
   gap: 12px;
   margin-top: 16px;
+}
+.outbound-table {
+  min-width: 800px;
+}
+.outbound-table td:first-child {
+  min-width: 220px;
+  max-width: 360px;
+  overflow-wrap: anywhere;
+}
+.outbound-table td:not(:first-child) {
+  white-space: nowrap;
+}
+.admin-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 22px;
+  margin-top: 22px;
+}
+.admin-span-full {
+  grid-column: 1 / -1;
+}
+.overview-data-table {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.overview-data-table th,
+.overview-data-table td {
+  padding: 12px 10px;
+}
+.overview-data-table th:not(:first-child),
+.overview-data-table td:not(:first-child) {
+  text-align: right;
+}
+.admin-overview-grid .metric-note {
+  margin-top: 14px;
+  line-height: 1.7;
+}
+.admin-chart-heading {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.admin-usage-chart {
+  display: flex;
+  align-items: end;
+  gap: 5px;
+  height: 160px;
+  margin: 32px 8px 40px;
+}
+.admin-chart-column {
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-direction: column;
+  position: relative;
+}
+.admin-chart-column > span {
+  font-size: 10px;
+  margin-bottom: 6px;
+}
+.admin-chart-column small {
+  position: absolute;
+  bottom: -24px;
+  white-space: nowrap;
+  font-size: 9px;
+  color: var(--muted);
+}
+.admin-chart-bar {
+  width: 100%;
+  max-width: 38px;
+  min-height: 2px;
+  flex-shrink: 0;
+  background: var(--accent);
+  border-radius: 4px 4px 0 0;
+  opacity: 0.65;
+}
+.admin-chart-column:last-child .admin-chart-bar {
+  opacity: 1;
+}
+.admin-stat-list > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+  padding: 10px 0;
+  font-size: 12px;
+}
+.admin-stat-list dd {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.admin-details {
+  font-size: 12px;
+  margin-top: 16px;
+}
+.admin-details summary {
+  cursor: pointer;
+}
+.admin-quota-list > div {
+  margin-bottom: 22px;
+  font-size: 12px;
+}
+.admin-quota-list > div > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.admin-quota-list progress {
+  display: block;
+  width: 100%;
+  height: 7px;
+  margin: 10px 0 5px;
+  accent-color: var(--accent);
+}
+.admin-quota-list small {
+  color: var(--muted);
+}
+.admin-service-summary {
+  display: flex;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.admin-service-summary a {
+  color: var(--accent);
+}
+@media (max-width: 1100px) {
+  .admin-overview-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .outbound-filter {
+    flex-wrap: wrap;
+  }
+  .outbound-filter label {
+    min-width: 0;
+  }
 }
 
 .outbound-overview {

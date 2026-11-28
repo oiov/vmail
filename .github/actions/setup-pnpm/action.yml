@@ -1,0 +1,30 @@
+name: Set up pnpm with a persistent package store
+description: Isolate the pnpm executable while keeping packages outside runner temp
+inputs:
+  node-version:
+    description: Node.js version for this project
+    default: "22"
+runs:
+  using: composite
+  steps:
+    - name: Configure persistent package store
+      shell: bash
+      run: |
+        set -euo pipefail
+        store="$RUNNER_TOOL_CACHE/pnpm-store"
+        mkdir -p "$store"
+        printf 'PNPM_STORE_DIR=%s\n' "$store" >> "$GITHUB_ENV"
+    - uses: pnpm/action-setup@v4
+      with:
+        dest: ${{ runner.temp }}/pnpm
+    - uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+    - name: Cache packages on GitHub-hosted runners
+      if: runner.environment == 'github-hosted'
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.PNPM_STORE_DIR }}
+        key: pnpm-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          pnpm-${{ runner.os }}-${{ runner.arch }}-

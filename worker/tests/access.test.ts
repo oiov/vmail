@@ -611,6 +611,107 @@ describe("cost and authorization boundaries", () => {
       ).status,
     ).toBe(200);
   });
+  it("paginates users by registration time with stable ties and accurate totals", async () => {
+    const admin = await seedUser("admin");
+    const prefix = crypto.randomUUID();
+    await bindings.DB.batch(
+      Array.from({ length: 45 }, (_, index) => {
+        const id = `${prefix}-${String(44 - index).padStart(2, "0")}`;
+        const createdAt = 4102444800000 + Math.floor(index / 3);
+        return bindings.DB.prepare(
+          "INSERT INTO auth_user (id, name, email, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+        ).bind(id, `User ${index}`, `${id}@example.com`, createdAt, createdAt);
+      }),
+    );
+    const all = await bindings.DB.prepare(
+      "SELECT id, created_at FROM auth_user",
+    ).all<{ id: string; created_at: number }>();
+    const expected = all.results
+      .sort(
+        (a, b) =>
+          b.created_at - a.created_at ||
+          (a.id < b.id ? 1 : a.id > b.id ? -1 : 0),
+      )
+      .map((user) => user.id);
+    const list = async (query = "") => {
+      const result = await request("/api/account/admin/users" + query, {
+        headers: { Cookie: admin.cookie },
+      });
+      expect(result.status).toBe(200);
+      return result.json<{
+        users: { id: string; created_at: number }[];
+        total: number;
+        page: number;
+        pageSize: number;
+        totalPages: number;
+      }>();
+    };
+    const defaults = await list();
+    expect(defaults).toMatchObject({
+      total: expected.length,
+      page: 1,
+      pageSize: 50,
+      totalPages: Math.ceil(expected.length / 50),
+    });
+    expect(defaults.users.map((user) => user.id)).toEqual(
+      expected.slice(0, 50),
+    );
+    const totalPages = Math.ceil(expected.length / 20);
+    const visited: string[] = [];
+    for (let page = 1; page <= totalPages; page++) {
+      const result = await list(`?page=${page}&pageSize=20`);
+      expect(result).toMatchObject({
+        page,
+        pageSize: 20,
+        total: expected.length,
+        totalPages,
+      });
+      visited.push(...result.users.map((user) => user.id));
+    }
+    expect(visited).toEqual(expected);
+    expect(new Set(visited).size).toBe(expected.length);
+    const secondPage = await list("?page=2&pageSize=20");
+    expect(secondPage.users.map((user) => user.id)).toEqual(
+      expected.slice(20, 40),
+    );
+    const oldest = await list("?sort=oldest&pageSize=20");
+    expect(oldest.users.map((user) => user.id)).toEqual(
+      [...expected].reverse().slice(0, 20),
+    );
+    const last = await list("?page=999999&pageSize=20");
+    expect(last.page).toBe(totalPages);
+    expect(last.users.map((user) => user.id)).toEqual(
+      expected.slice((totalPages - 1) * 20),
+    );
+    const larger = await list("?pageSize=100");
+    expect(larger.pageSize).toBe(100);
+    expect(larger.users.map((user) => user.id)).toEqual(expected.slice(0, 100));
+  });
+  it("rejects invalid user pagination and sort parameters", async () => {
+    const admin = await seedUser("admin");
+    for (const query of [
+      "page=0",
+      "page=-1",
+      "page=1.5",
+      "page=abc",
+      "page=",
+      "page=9007199254740992",
+      "pageSize=0",
+      "pageSize=21",
+      "pageSize=101",
+      "pageSize=",
+      "sort=id",
+      "sort=",
+    ]) {
+      const response = await request("/api/account/admin/users?" + query, {
+        headers: { Cookie: admin.cookie },
+      });
+      expect(response.status, query).toBe(400);
+      expect(await response.json()).toMatchObject({
+        error: { code: "VALIDATION_ERROR" },
+      });
+    }
+  });
   it("issues Better Auth keys with a three-key database guard and immediate revocation", async () => {
     const user = await seedUser();
     const headers = {

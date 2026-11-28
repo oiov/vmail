@@ -1,18 +1,22 @@
 import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 const date = (name: string) => integer(name, { mode: "timestamp_ms" });
-export const user = sqliteTable("auth_user", {
-  role: text("role").notNull().default("user"),
-  banned: integer("banned", { mode: "boolean" }).notNull().default(false),
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  emailVerified: integer("email_verified", { mode: "boolean" })
-    .notNull()
-    .default(false),
-  image: text("image"),
-  createdAt: date("created_at").notNull(),
-  updatedAt: date("updated_at").notNull(),
-});
+export const user = sqliteTable(
+  "auth_user",
+  {
+    role: text("role").notNull().default("user"),
+    banned: integer("banned", { mode: "boolean" }).notNull().default(false),
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull().unique(),
+    emailVerified: integer("email_verified", { mode: "boolean" })
+      .notNull()
+      .default(false),
+    image: text("image"),
+    createdAt: date("created_at").notNull(),
+    updatedAt: date("updated_at").notNull(),
+  },
+  (t) => [index("auth_user_created_id").on(t.createdAt, t.id)],
+);
 export const session = sqliteTable(
   "auth_session",
   {

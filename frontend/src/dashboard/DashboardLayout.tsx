@@ -47,6 +47,7 @@ export function DashboardLayout() {
     ["/dashboard/account", "user", "账户信息", "Account"],
   ];
   const admin = [
+    ["/dashboard/admin", "grid", "管理概览", "Admin overview"],
     ["/dashboard/admin/users", "users", "用户管理", "Users"],
     ["/dashboard/admin/logs", "log", "调用日志", "Request logs"],
     ["/dashboard/admin/outbound", "mail", "发件管理", "Outgoing mail"],
@@ -60,9 +61,14 @@ export function DashboardLayout() {
       ? zh
         ? "邮件详情"
         : "Message"
-      : zh
-        ? "用户详情"
-        : "User details");
+      : location.pathname.startsWith("/dashboard/outbound/") ||
+          location.pathname.startsWith("/dashboard/admin/outbound/")
+        ? zh
+          ? "发件详情"
+          : "Outgoing message"
+        : zh
+          ? "用户详情"
+          : "User details");
   const signOut = async () => {
     try {
       const r = await fetch("/api/auth/sign-out", {
@@ -83,7 +89,7 @@ export function DashboardLayout() {
       <NavLink
         key={to}
         to={to}
-        end={to === "/dashboard"}
+        end={to === "/dashboard" || to === "/dashboard/admin"}
         className={({ isActive }) => "dash-link " + (isActive ? "active" : "")}
       >
         <Icon name={icon} />

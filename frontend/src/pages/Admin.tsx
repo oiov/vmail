@@ -1,9 +1,14 @@
-import { Link, useParams } from "react-router-dom";
-import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, useParams, useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { accountRequest, LoginDialog, useAccount } from "../components/Account";
 import { AdminMailboxRecovery } from "../components/AdminMailboxRecovery";
+import { Pagination } from "../dashboard/Pagination";
 type User = {
   id: string;
   name: string;
@@ -11,6 +16,13 @@ type User = {
   role: string;
   banned: number;
   created_at: number;
+};
+type UserList = {
+  users: User[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 };
 type Usage = {
   date: string;
@@ -39,18 +51,56 @@ export function Admin() {
     { i18n } = useTranslation(),
     zh = i18n.language.startsWith("zh");
   const [login, setLogin] = useState(false),
-    [cursor, setCursor] = useState(""),
     [mailCursor, setMailCursor] = useState("");
   const { id: selected = "" } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedPage = Number(searchParams.get("page") ?? 1);
+  const page =
+    Number.isSafeInteger(requestedPage) && requestedPage > 0
+      ? requestedPage
+      : 1;
+  const requestedPageSize = Number(searchParams.get("pageSize") ?? 50);
+  const pageSize = [20, 50, 100].includes(requestedPageSize)
+    ? requestedPageSize
+    : 50;
+  const sort = searchParams.get("sort") === "oldest" ? "oldest" : "newest";
+  const listQuery = new URLSearchParams({
+    page: String(page),
+    pageSize: String(pageSize),
+    sort,
+  }).toString();
   const users = useQuery({
-    queryKey: ["admin", "users", cursor],
+    queryKey: ["admin", "users", page, pageSize, sort],
     enabled: account?.role === "admin" && !selected,
     retry: false,
-    queryFn: () =>
-      accountRequest<{ users: User[]; nextCursor: string | null }>(
-        "/admin/users?cursor=" + encodeURIComponent(cursor),
-      ),
+    placeholderData: keepPreviousData,
+    queryFn: () => accountRequest<UserList>("/admin/users?" + listQuery),
   });
+  const updateList = (changes: Record<string, string>) => {
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous);
+      for (const [key, value] of Object.entries(changes)) next.set(key, value);
+      return next;
+    });
+  };
+  useEffect(() => {
+    if (
+      selected ||
+      !users.data ||
+      users.isPlaceholderData ||
+      users.data.page === page
+    )
+      return;
+    const currentPage = users.data.page;
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        next.set("page", String(currentPage));
+        return next;
+      },
+      { replace: true },
+    );
+  }, [selected, users.data, users.isPlaceholderData, page, setSearchParams]);
   const details = useQuery({
     queryKey: ["admin", "user", selected, mailCursor],
     enabled: account?.role === "admin" && !!selected,
@@ -118,7 +168,10 @@ export function Admin() {
     <div className="dashboard-legacy">
       <main>
         {selected && (
-          <Link to="/dashboard/admin/users" className="text-action">
+          <Link
+            to={"/dashboard/admin/users?" + listQuery}
+            className="text-action"
+          >
             ← {zh ? "返回用户列表" : "Back to users"}
           </Link>
         )}
@@ -155,8 +208,55 @@ export function Admin() {
           <div className="mt-8">
             {!selected && (
               <section className="dash-panel">
-                <div className="dash-table-wrap">
-                  <table className="dash-table">
+                <div className="list-toolbar">
+                  <p role="status" aria-live="polite">
+                    {users.data
+                      ? zh
+                        ? `共 ${users.data.total.toLocaleString()} 位用户`
+                        : `${users.data.total.toLocaleString()} users`
+                      : users.isFetching
+                        ? zh
+                          ? "正在加载…"
+                          : "Loading…"
+                        : null}
+                  </p>
+                  <div className="list-options">
+                    <select
+                      aria-label={zh ? "用户排序" : "User sort order"}
+                      value={sort}
+                      disabled={users.isFetching}
+                      onChange={(event) =>
+                        updateList({ sort: event.target.value, page: "1" })
+                      }
+                    >
+                      <option value="newest">
+                        {zh ? "最新注册" : "Newest first"}
+                      </option>
+                      <option value="oldest">
+                        {zh ? "最早注册" : "Oldest first"}
+                      </option>
+                    </select>
+                    <select
+                      aria-label={zh ? "每页用户数" : "Users per page"}
+                      value={pageSize}
+                      disabled={users.isFetching}
+                      onChange={(event) =>
+                        updateList({ pageSize: event.target.value, page: "1" })
+                      }
+                    >
+                      {[20, 50, 100].map((size) => (
+                        <option key={size} value={size}>
+                          {zh ? `${size} 条 / 页` : `${size} per page`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div
+                  className="dash-table-wrap list-table-wrap"
+                  aria-busy={users.isFetching}
+                >
+                  <table className="dash-table admin-users-table">
                     <thead>
                       <tr>
                         {(zh
@@ -195,7 +295,9 @@ export function Admin() {
                             <Link
                               to={
                                 "/dashboard/admin/users/" +
-                                encodeURIComponent(user.id)
+                                encodeURIComponent(user.id) +
+                                "?" +
+                                listQuery
                               }
                             >
                               {zh ? "查看详情" : "View details"} →
@@ -203,24 +305,25 @@ export function Admin() {
                           </td>
                         </tr>
                       ))}
+                      {users.data?.total === 0 && (
+                        <tr>
+                          <td colSpan={6} className="empty-state">
+                            {zh ? "暂无用户" : "No users yet"}
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
-                {users.isLoading && (
-                  <p className="page-description">Loading…</p>
+                {users.data && (
+                  <Pagination
+                    key={sort}
+                    data={users.data}
+                    busy={users.isFetching}
+                    label={zh ? "用户列表分页" : "User list pagination"}
+                    onPageChange={(page) => updateList({ page: String(page) })}
+                  />
                 )}
-                <div className="dash-pagination">
-                  {cursor && (
-                    <button onClick={() => setCursor("")}>
-                      {zh ? "首页" : "First page"}
-                    </button>
-                  )}
-                  {users.data?.nextCursor && (
-                    <button onClick={() => setCursor(users.data!.nextCursor!)}>
-                      {zh ? "下一页" : "Next page"} →
-                    </button>
-                  )}
-                </div>
               </section>
             )}
             {selected && (

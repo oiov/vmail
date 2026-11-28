@@ -15,6 +15,8 @@ import {
 import { MAX_API_KEYS, positive } from "./limits";
 import { z } from "zod";
 import { recoverMailbox } from "./mailbox-recovery";
+import { adminOverview } from "./admin-overview";
+import { paginationQuery, pageInfo } from "./pagination";
 function effectiveUser<
   T extends { email: string; role: string; email_verified?: number },
 >(row: T, env: Env): T {
@@ -384,6 +386,7 @@ routes.get("/admin/settings", (c) => {
   c.header("Cache-Control", "no-store");
   return c.json(deploymentSettings(c.env));
 });
+routes.get("/admin/overview", async (c) => c.json(await adminOverview(c.env)));
 routes.patch("/admin/users/:id/role", async (c) => {
   const id = c.req.param("id");
   const body = await c.req.json<{ role?: string }>();
@@ -556,13 +559,50 @@ routes.get("/admin/outbound/:id", (c) =>
 routes.get("/outbound", (c) =>
   outboundHistory(c.env, c.get("account").id, c.req.query("cursor") ?? ""),
 );
-routes.get("/admin/outbound", (c) =>
-  outboundHistory(
-    c.env,
-    c.req.query("userId") ?? "",
-    c.req.query("cursor") ?? "",
-  ),
-);
+routes.get("/admin/outbound", async (c) => {
+  const parsed = paginationQuery
+    .extend({ userId: z.string().trim().max(128).default("") })
+    .safeParse(c.req.query());
+  if (!parsed.success)
+    return failure(
+      "VALIDATION_ERROR",
+      "Invalid outgoing mail pagination or filter",
+      400,
+    );
+  const { page, pageSize, sort, userId } = parsed.data;
+  const now = Date.now();
+  const condition =
+    "created_at>=? AND created_at<=?" + (userId ? " AND user_id=?" : "");
+  const args: (string | number)[] = [
+    now - 30 * 86400_000,
+    now,
+    ...(userId ? [userId] : []),
+  ];
+  const stats = await c.env.DB.prepare(
+    "SELECT status,COUNT(*) AS count FROM outbound_logs WHERE " +
+      condition +
+      " GROUP BY status",
+  )
+    .bind(...args)
+    .all<{ status: string; count: number }>();
+  const pagination = pageInfo(
+    stats.results.reduce((total, row) => total + row.count, 0),
+    page,
+    pageSize,
+  );
+  const direction = sort === "oldest" ? "ASC" : "DESC";
+  const logs = await c.env.DB.prepare(
+    `SELECT id,created_at,user_id,mailbox,recipient,channel,status,subject FROM outbound_logs WHERE ${condition} ORDER BY created_at ${direction},id ${direction} LIMIT ? OFFSET ?`,
+  )
+    .bind(...args, pageSize, (pagination.page - 1) * pageSize)
+    .all();
+  return c.json({
+    logs: logs.results,
+    stats: stats.results,
+    ...pagination,
+    retentionDays: 30,
+  });
+});
 routes.get("/admin/logs", async (c) => {
   const owner = c.req.query("userId") ?? "";
   if (owner.length > 128)
@@ -623,11 +663,24 @@ routes.get("/admin/logs", async (c) => {
 });
 
 routes.get("/admin/users", async (c) => {
-  const cursor = c.req.query("cursor") ?? "";
+  const query = paginationQuery.safeParse(c.req.query());
+  if (!query.success)
+    return failure(
+      "VALIDATION_ERROR",
+      "Invalid user list pagination or sort",
+      400,
+    );
+  const { pageSize } = query.data;
+  const total =
+    (await c.env.DB.prepare(
+      "SELECT COUNT(*) AS total FROM auth_user",
+    ).first<number>("total")) ?? 0;
+  const pagination = pageInfo(total, query.data.page, pageSize);
+  const direction = query.data.sort === "oldest" ? "ASC" : "DESC";
   const result = await c.env.DB.prepare(
-    "SELECT id, name, email, image, role, banned, email_verified, created_at FROM auth_user WHERE id > ? ORDER BY id LIMIT 51",
+    `SELECT id, name, email, image, role, banned, email_verified, created_at FROM auth_user ORDER BY created_at ${direction}, id ${direction} LIMIT ? OFFSET ?`,
   )
-    .bind(cursor)
+    .bind(pageSize, (pagination.page - 1) * pageSize)
     .all<{
       id: string;
       name: string;
@@ -635,12 +688,9 @@ routes.get("/admin/users", async (c) => {
       role: string;
       email_verified: number;
     }>();
-  const users = result.results
-    .slice(0, 50)
-    .map((row) => effectiveUser(row, c.env));
   return c.json({
-    users,
-    nextCursor: result.results.length > 50 ? users.at(-1)?.id : null,
+    users: result.results.map((row) => effectiveUser(row, c.env)),
+    ...pagination,
   });
 });
 routes.get("/admin/users/:id", async (c) => {
